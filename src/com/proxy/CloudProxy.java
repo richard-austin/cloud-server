@@ -36,11 +36,11 @@ public class CloudProxy {
         }
     }
 
-    CloudProxy(String webServerHost, int webServerPort)
-    {
-        this.webServerHost =webServerHost;
+    CloudProxy(String webServerHost, int webServerPort) {
+        this.webServerHost = webServerHost;
         this.webServerPort = webServerPort;
     }
+
     private static void error(Throwable exc, Object attachment) {
         logger.log(Level.WARNING, "IO failure in " + attachment, exc);
     }
@@ -77,18 +77,12 @@ public class CloudProxy {
                             final AsynchronousSocketChannel server;
                             try {
                                 useConnection(cloudChannel);
-
-                                //cloudConnectionQueue.add(cloudChannel);
-//                            server = AsynchronousSocketChannel.open();
-//                            server.connect(new InetSocketAddress(webServerHost, webServerPort)).get();
                             } catch (Exception e) {
                                 error(e, "connect failed: " + webServerAddress);
                                 System.exit(1);
                                 return;
                             }
-//                        read(client, server);
-//                        read(server, client);
-                        }
+                       }
 
                         @Override
                         public void failed(Throwable exc, AsynchronousSocketChannel attachment) {
@@ -111,6 +105,7 @@ public class CloudProxy {
             System.out.println("IOException in CloudProxy.start: " + ex.getMessage());
         }
     }
+
     private void read(final AsynchronousSocketChannel reader, AsynchronousSocketChannel writer) {
         final ByteBuffer buffer = getBuffer();
         reader.read(buffer, writer, new CloudProxy.Handler<AsynchronousSocketChannel>() {
@@ -133,7 +128,7 @@ public class CloudProxy {
 
     private void useConnection(AsynchronousSocketChannel cloudChannel) {
         try {
-        final AsynchronousSocketChannel webServerChannel = AsynchronousSocketChannel.open();
+            final AsynchronousSocketChannel webServerChannel = AsynchronousSocketChannel.open();
             webServerChannel.connect(new InetSocketAddress(webServerHost, webServerPort), webServerChannel, new CompletionHandler<Void, AsynchronousSocketChannel>() {
                 @Override
                 public void completed(Void result, AsynchronousSocketChannel attachment) {
@@ -147,32 +142,10 @@ public class CloudProxy {
                 }
             });
 
+        } catch (Exception ex) {
+            logger.log(Level.SEVERE, "Exception in useConnection: " + ex.getMessage());
         }
-        catch(Exception ex)
-        {
-
-        }
-       // ByteBuffer buf = getBuffer();
-
-//
-//        cloudChannel.read(buf, cloudChannel, new CompletionHandler<Integer, AsynchronousSocketChannel>() {
-//            @Override
-//            public void completed(Integer result, AsynchronousSocketChannel attachment) {
-//                buf.flip();
-//                logger.log(Level.FINE, new String(buf.array()));
-//                ByteBuffer b = buf;
-//                int x = result;
-//
-//            }
-//
-//            @Override
-//            public void failed(Throwable exc, AsynchronousSocketChannel attachment) {
-//                error(exc, "accept");
-//                System.exit(1);
-//            }
-//
-//        });
-    }
+     }
 
     private ByteBuffer getBuffer() {
         ByteBuffer poll = queue.poll();
