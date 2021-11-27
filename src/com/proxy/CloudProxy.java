@@ -17,8 +17,8 @@ public class CloudProxy {
 
     private static final String webServerAddress = "192.168.0.29:443";
     //   private static ExecutorService es = Executors.newCachedThreadPool();
-    public final int cloudListeningPort = 8081;
-    public final String cloudHost = "localhost";
+    public final int cloudListeningPort;
+    public final String cloudHost;
 
     public static final int BUFFER_SIZE = 1024;
 
@@ -26,7 +26,7 @@ public class CloudProxy {
     private final String webServerHost;
     private final int webServerPort;
 
-    final Queue<ByteBuffer> queue = new ConcurrentLinkedQueue<>();
+    final Queue<ByteBuffer> bufferQueue = new ConcurrentLinkedQueue<>();
     final private Queue<AsynchronousSocketChannel> cloudConnectionQueue = new ConcurrentLinkedQueue<>();
 
     private static abstract class Handler<A> implements CompletionHandler<Integer, A> {
@@ -36,9 +36,11 @@ public class CloudProxy {
         }
     }
 
-    CloudProxy(String webServerHost, int webServerPort) {
+    CloudProxy(String webServerHost, int webServerPort, String cloudHost, int cloudListeningPort) {
         this.webServerHost = webServerHost;
         this.webServerPort = webServerPort;
+        this.cloudHost = cloudHost;
+        this.cloudListeningPort = cloudListeningPort;
     }
 
     private static void error(Throwable exc, Object attachment) {
@@ -55,48 +57,16 @@ public class CloudProxy {
             }
             host = split[0];
             port = Integer.parseInt(split[1]);
-            new CloudProxy(host, port).start("localhost", 8081);
+            new CloudProxy(host, port, "localhost", 8081).start();
         } catch (IllegalArgumentException e) {
             System.exit(1);
         }
     }
 
-    void start(String cloudHost, int cloudPort) {
-
+    void start() {
         try {
             CountDownLatch done = new CountDownLatch(1);
-
-            try {
-                final int numberOfClientConnections = 60;
-
-                for (int i = 0; i < numberOfClientConnections; ++i) {
-                    final AsynchronousSocketChannel cloudChannel = AsynchronousSocketChannel.open();
-                    cloudChannel.connect(new InetSocketAddress(cloudHost, cloudPort), cloudChannel, new CompletionHandler<Void, AsynchronousSocketChannel>() {
-                        @Override
-                        public void completed(final Void nothing, AsynchronousSocketChannel client) {
-                            final AsynchronousSocketChannel server;
-                            try {
-                                useConnection(cloudChannel);
-                            } catch (Exception e) {
-                                error(e, "connect failed: " + webServerAddress);
-                                System.exit(1);
-                                return;
-                            }
-                       }
-
-                        @Override
-                        public void failed(Throwable exc, AsynchronousSocketChannel attachment) {
-                            error(exc, "accept");
-                            System.exit(1);
-                        }
-
-                    });
-                }
-            } catch (Exception e) {
-                error(e, "connect failed: " + webServerAddress);
-                System.exit(1);
-                return;
-            }
+            createConnections(60);
 
             done.await();
         } catch (InterruptedException iex) {
@@ -106,21 +76,69 @@ public class CloudProxy {
         }
     }
 
+    private void createConnections(final int numberOfClientConnections)
+    {
+        logger.log(Level.INFO, "CloudProxy.createConnections, "+ numberOfClientConnections + " connections to be created");
+        try {
+            for (int i = 0; i < numberOfClientConnections; ++i) {
+                final AsynchronousSocketChannel cloudChannel = AsynchronousSocketChannel.open();
+                cloudChannel.connect(new InetSocketAddress(cloudHost, cloudListeningPort), cloudChannel, new CompletionHandler<Void, AsynchronousSocketChannel>() {
+                    @Override
+                    public void completed(final Void nothing, AsynchronousSocketChannel client) {
+                        final AsynchronousSocketChannel server;
+                        try {
+                            useConnection(cloudChannel);
+                        } catch (Exception e) {
+                            error(e, "connect failed: " + webServerAddress);
+                            System.exit(1);
+                            return;
+                        }
+                    }
+
+                    @Override
+                    public void failed(Throwable exc, AsynchronousSocketChannel attachment) {
+                        error(exc, "accept");
+                        System.exit(1);
+                    }
+
+                });
+            }
+        } catch (Exception e) {
+            error(e, "connect failed: " + webServerAddress);
+            System.exit(1);
+            return;
+        }
+    }
+
     private void read(final AsynchronousSocketChannel reader, AsynchronousSocketChannel writer) {
         final ByteBuffer buffer = getBuffer();
         reader.read(buffer, writer, new CloudProxy.Handler<AsynchronousSocketChannel>() {
             @Override
             public void completed(Integer result, AsynchronousSocketChannel writer) {
-                logger.log(Level.WARNING, new String(buffer.array()));
+                logger.log(Level.INFO, "CloudProxy.read "+result+" bytes");
+
+                // logger.log(Level.WARNING, new String(buffer.array()));
                 if (result == -1) {
+                    try {
+                        logger.log(Level.INFO, "CloudProxy.read returned -1");
+                        //reader.close();
+                    }
+                    catch(Exception ex)
+                    {
+                        logger.log(Level.SEVERE, "Exception closing reader socket: "+ex.getMessage());
+                    }
+                    createConnections(1);
                     return;
                 }
                 writer.write(buffer.flip(), buffer, new CloudProxy.Handler<ByteBuffer>() {
                     @Override
                     public void completed(Integer result, ByteBuffer attachment) {
-                        queue.add(buffer.clear());
+                        logger.log(Level.INFO, "CloudProxy.read writer.write "+result+" bytes");
+
+                        //bufferQueue.add(buffer.clear());
                     }
                 });
+                logger.log(Level.INFO, "CloudProxy.read reading again");
                 read(reader, writer);
             }
         });
@@ -129,9 +147,12 @@ public class CloudProxy {
     private void useConnection(AsynchronousSocketChannel cloudChannel) {
         try {
             final AsynchronousSocketChannel webServerChannel = AsynchronousSocketChannel.open();
+            logger.log(Level.INFO, "CloudProxy.useConnection called");
             webServerChannel.connect(new InetSocketAddress(webServerHost, webServerPort), webServerChannel, new CompletionHandler<Void, AsynchronousSocketChannel>() {
                 @Override
                 public void completed(Void result, AsynchronousSocketChannel attachment) {
+                    logger.log(Level.INFO, "CloudProxy.useConnection read from cloud, write to webserver and vice versa.");
+
                     read(cloudChannel, webServerChannel);
                     read(webServerChannel, cloudChannel);
                 }
@@ -145,10 +166,10 @@ public class CloudProxy {
         } catch (Exception ex) {
             logger.log(Level.SEVERE, "Exception in useConnection: " + ex.getMessage());
         }
-     }
+    }
 
     private ByteBuffer getBuffer() {
-        ByteBuffer poll = queue.poll();
+        ByteBuffer poll = bufferQueue.poll();
         return Objects.requireNonNullElseGet(poll, () -> ByteBuffer.allocate(BUFFER_SIZE));
     }
 }
@@ -208,7 +229,7 @@ class Cloud {
                 public void completed(final AsynchronousSocketChannel frontEnd, Void att) {
                     // accept the next connection
                     listenerToFrontEnd.accept(null, this);
-
+                    logger.log(Level.INFO, "Cloud.start accepted connection");
                     AsynchronousSocketChannel clientSocket = clientSocketQueue.poll();
                     if (clientSocket != null) {
                         read(frontEnd, clientSocket);
@@ -224,24 +245,33 @@ class Cloud {
 
                 private void read(final AsynchronousSocketChannel reader, AsynchronousSocketChannel writer) {
                     final ByteBuffer buffer = getBuffer();
+
                     reader.read(buffer, writer, new Cloud.Handler<AsynchronousSocketChannel>() {
                         @Override
                         public void completed(Integer result, AsynchronousSocketChannel writer) {
+                            logger.log(Level.INFO, "Cloud.read "+result+" bytes");
+
                             if (result == -1) {
-                                try {
-                                    writer.close();  // Tell the ClientProxy the connection is finished
-                                } catch (IOException ioex) {
-                                    logger.log(Level.SEVERE, "Exception shutting down input on clientSocket: " + ioex.getMessage());
-                                }
+                                logger.log(Level.INFO, "Cloud.read completed with -1, exiting");
+//                                try {
+//                                    writer.close();  // Tell the ClientProxy the connection is finished
+//                                } catch (IOException ioex) {
+//                                    logger.log(Level.SEVERE, "Exception shutting down input on clientSocket: " + ioex.getMessage());
+//                                }
                                 return;
                             }
                             writer.write(buffer.flip(), buffer, new Cloud.Handler<ByteBuffer>() {
                                 @Override
                                 public void completed(Integer result, ByteBuffer attachment) {
-                                    bufferQueue.add(buffer.clear());
+                                    logger.log(Level.INFO, "Cloud.read writer.write completed with "+result+" bytes");
+
+                                    //bufferQueue.add(buffer.clear());
                                 }
                             });
-                            read(reader, writer);
+                            if(reader.isOpen()) {
+                                logger.log(Level.INFO, "Cloud.read, reading again");
+                                read(reader, writer);
+                            }
                         }
                     });
                 }
