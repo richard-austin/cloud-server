@@ -146,10 +146,22 @@ class Cloud {
             ByteBuffer buf;
             try {
                 while ((buf = outQueue.poll()) != null && clientSocket != null) {
-                    logger.log(Level.INFO, "startWriteToCloudProxy: " + log(buf));
-                    clientSocket.write(buf.flip(), null, new CompletionHandler<Integer, Object>() {
+                    setBufferForSend(buf);
+                    if(buf.limit() != BUFFER_SIZE || buf.position() != 0)
+                    {
+                        logger.log(Level.SEVERE, "Crazy buffer value");
+                    }
+
+                    //                    logger.log(Level.INFO, "startWriteToCloudProxy: " + log(buf));
+                    clientSocket.write(buf, null, new CompletionHandler<Integer, Object>() {
                         @Override
                         public void completed(Integer result, Object attachment) {
+                            if(result != (BUFFER_SIZE))
+                            {
+                                logger.log(Level.SEVERE, "Crazy length value ("+result+"}");
+                            }
+
+
                             // Nothing more to do for now
                         }
 
@@ -162,45 +174,49 @@ class Cloud {
             } catch (Exception e) {
                 logger.log(Level.INFO, "Exception in startWriteToCloudProxy: " + e.getClass().getName() + ": " + e.getMessage());
             }
-        }, 300, 10, TimeUnit.MILLISECONDS);
+        }, 300, 1, TimeUnit.MILLISECONDS);
     }
 
     void startReadFromCloudProxy() {
-        AtomicBoolean runAgain = new AtomicBoolean(false);
-        readFromCloudProxy(runAgain);
-
+        AtomicBoolean waiting = new AtomicBoolean(false);
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
         executor.scheduleAtFixedRate(() -> {
-            if (runAgain.get()) {
-                runAgain.set(false);
-                readFromCloudProxy(runAgain);
+            if(!waiting.get()) {
+                ByteBuffer buf = getBuffer();
+                readFromCloudProxy(waiting, buf);
             }
-        }, 300, 10, TimeUnit.MILLISECONDS);
+        }, 300, 1, TimeUnit.MILLISECONDS);
     }
 
-    void readFromCloudProxy(AtomicBoolean runAgain) {
-        if (clientSocket != null && clientSocket.isOpen()) {
-            ByteBuffer buf = getBuffer();
-            clientSocket.read(buf, runAgain, new CompletionHandler<Integer, AtomicBoolean>() {
-                @Override
-                public void completed(Integer result, AtomicBoolean doAgain) {
-                    if (result != -1) {
-                        logger.log(Level.INFO, "readFromCloudProxy: " + log(buf));
+    void readFromCloudProxy(AtomicBoolean waiting, ByteBuffer buf) {
 
-                        inQueue.add(buf);
-                       // readFromCloudProxy(doAgain);
+        if (clientSocket != null && clientSocket.isOpen() && !waiting.get()) {
+            waiting.set(true);
+
+            clientSocket.read(buf, waiting, new CompletionHandler<Integer, AtomicBoolean>() {
+                @Override
+                public void completed(Integer result, AtomicBoolean waiting) {
+                    if(result != (BUFFER_SIZE))
+                    {
+                        logger.log(Level.SEVERE, "Crazy length value ("+result+"}");
+//                        if(buf.position() != BUFFER_SIZE)
+//                            readFromCloudProxy(waiting, buf);
+//                        return;
                     }
-                    doAgain.set(true);
+                    if (result != -1) {
+//                        logger.log(Level.INFO, "readFromCloudProxy: " + log(buf));
+                        inQueue.add(buf);
+                    }
+                    waiting.set(false);
                 }
 
                 @Override
-                public void failed(Throwable exc, AtomicBoolean doAgain) {
+                public void failed(Throwable exc, AtomicBoolean waiting) {
                     logger.log(Level.INFO, "readFromCloudProxy failed: " + exc.getClass().getName() + " : " + exc.getMessage());
-                    doAgain.set(true);
+                    waiting.set(false);
                 }
             });
-        } else
-            runAgain.set(true);
+        }
     }
 
     void startRespondToFrontEnd() {
@@ -209,8 +225,8 @@ class Cloud {
     }
 
     void respondToFrontEnd() {
-        while (!inQueue.isEmpty()) {
-            ByteBuffer buf = inQueue.poll();
+        ByteBuffer buf;
+        while ((buf = inQueue.poll()) != null) {
             String token = getToken(buf);
             int length = getDataLength(buf);
             AsynchronousSocketChannel frontEndChannel = tokenSocketMap.get(token);  //Select the correct connection to respond to
@@ -266,6 +282,11 @@ class Cloud {
      * @param length: The length to set.
      */
     private void setDataLength(ByteBuffer buf, int length) {
+        if(length > (BUFFER_SIZE-tokenLength-Integer.BYTES) || length < 0)
+        {
+            logger.log(Level.SEVERE, "Crazy length value ("+length+"}");
+        }
+
         int position = buf.position();
         buf.position(tokenLength);
 //        for (int i = length + tokenLength + Integer.BYTES; i < BUFFER_SIZE; ++i)
@@ -285,6 +306,10 @@ class Cloud {
     private int getDataLength(ByteBuffer buf) {
         buf.position(tokenLength);
         int length = buf.getInt();
+        if(length > (BUFFER_SIZE-tokenLength-Integer.BYTES) || length < 0)
+        {
+            logger.log(Level.SEVERE, "Crazy length value ("+length+"}");
+        }
         return length;
     }
 
@@ -311,6 +336,12 @@ class Cloud {
         buf.get(bytes, 0, 36);
         buf.position(position);
         return new String(bytes);
+    }
+
+    void setBufferForSend(ByteBuffer buf)
+    {
+        buf.flip();
+        buf.limit(BUFFER_SIZE);
     }
 
     private String log(ByteBuffer buf) {

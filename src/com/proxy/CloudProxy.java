@@ -105,7 +105,7 @@ public class CloudProxy {
                 runAgain.set(false);
                 readFromCloud(runAgain);
             }
-        }, 300, 10, TimeUnit.MILLISECONDS);
+        }, 300, 1, TimeUnit.MILLISECONDS);
     }
 
     void readFromCloud(AtomicBoolean runAgain) {
@@ -114,6 +114,10 @@ public class CloudProxy {
             cloudSocket.read(buf, null, new CompletionHandler<Integer, AtomicBoolean>() {
                 @Override
                 public void completed(Integer result, AtomicBoolean doAgain) {
+                    if(result != (BUFFER_SIZE))
+                    {
+                        logger.log(Level.SEVERE, "Crazy length value ("+result+"}");
+                    }
                     if (result != -1) {
                         inQueue.add(buf);
                         readFromCloud(runAgain);
@@ -132,7 +136,7 @@ public class CloudProxy {
 
     void startWriteRequestsToWebserver() {
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-        executor.scheduleAtFixedRate(this::writeRequestsToWebserver, 300, 10, TimeUnit.MILLISECONDS);
+        executor.scheduleAtFixedRate(this::writeRequestsToWebserver, 300, 1, TimeUnit.MILLISECONDS);
     }
 
     private final Object LOCK2 = new Object();
@@ -143,7 +147,7 @@ public class CloudProxy {
                 if (tokenSocketMap.containsKey(token)) {
                     try {
                         while (tokenSocketMap.get(token) == null)
-                            Thread.sleep(2);
+                            Thread.sleep(1);
                     } catch (InterruptedException ex) {
                     }
                     writeRequestToWebserver(buf, tokenSocketMap.get(token));
@@ -183,7 +187,7 @@ public class CloudProxy {
             webserverChannel.write(buf, null, new CompletionHandler<Integer, Object>() {
                 @Override
                 public void completed(Integer result, Object attachment) {
-                    logger.log(Level.INFO, "writeRequestToWebserver: "+log(buf));
+ //                   logger.log(Level.INFO, "writeRequestToWebserver: "+log(buf));
                 }
 
                 @Override
@@ -201,7 +205,7 @@ public class CloudProxy {
             public void completed(Integer result, Void nothing) {
                 if(result > 0) {
                     setDataLength(buf, result);
-                    logger.log(Level.INFO, "readResponseFromWebserver: "+log(buf));
+//                    logger.log(Level.INFO, "readResponseFromWebserver: "+log(buf));
                     outQueue.add(buf);
                     readResponseFromWebserver(webserverChannel, token);
                 }
@@ -216,17 +220,26 @@ public class CloudProxy {
 
     void startSendResponseToCloud() {
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-        executor.scheduleAtFixedRate(this::sendResponseToCloud, 300, 10, TimeUnit.MILLISECONDS);
+        executor.scheduleAtFixedRate(this::sendResponseToCloud, 300, 1, TimeUnit.MILLISECONDS);
     }
 
     private void sendResponseToCloud() {
         while(!outQueue.isEmpty()) {
             ByteBuffer buf = outQueue.poll();
             setBufferForSend(buf);
+            try {
+                Thread.sleep(2);
+            }
+            catch (Exception ex)
+            {}
             cloudSocket.write(buf, null, new CompletionHandler<Integer, Object>() {
                 @Override
                 public void completed(Integer result, Object attachment) {
-                    logger.log(Level.INFO, "sendResponseToCloud: " + log(buf));
+                    if(result != BUFFER_SIZE)
+                    {
+                        logger.log(Level.SEVERE, "Loopy value for bytes sent: ("+result+")");
+                    }
+//                    logger.log(Level.INFO, "sendResponseToCloud: " + log(buf));
                 }
 
                 @Override
@@ -270,6 +283,11 @@ public class CloudProxy {
      * @param length: The length to set.
      */
     private void setDataLength(ByteBuffer buf, int length) {
+        if(length > (BUFFER_SIZE-tokenLength-Integer.BYTES) || length < 0)
+        {
+            logger.log(Level.SEVERE, "Crazy length value ("+length+"}");
+        }
+
         int position = buf.position();
         buf.position(tokenLength);
 //        for (int i = length + tokenLength + Integer.BYTES; i < BUFFER_SIZE; ++i)
@@ -287,6 +305,10 @@ public class CloudProxy {
      */
     private int getDataLength(ByteBuffer buf) {
         int length = buf.getInt(tokenLength);
+        if(length > (BUFFER_SIZE-tokenLength-Integer.BYTES) || length < 0)
+        {
+            logger.log(Level.SEVERE, "Crazy length value ("+length+"}");
+        }
         buf.position(tokenLength + Integer.BYTES);
         return length;
     }
@@ -317,9 +339,8 @@ public class CloudProxy {
 
     void setBufferForSend(ByteBuffer buf)
     {
-        int length = getDataLength(buf);
-        buf.position(0);
-//        buf.limit(length+tokenLength+Integer.BYTES);
+        buf.flip();
+        buf.limit(BUFFER_SIZE);
     }
 
     private void setToken(ByteBuffer buf, String token)
