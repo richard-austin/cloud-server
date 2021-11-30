@@ -227,11 +227,11 @@ public class CloudProxy {
         while(!outQueue.isEmpty()) {
             ByteBuffer buf = outQueue.poll();
             setBufferForSend(buf);
-            try {
-                Thread.sleep(2);
-            }
-            catch (Exception ex)
-            {}
+//            try {
+//                Thread.sleep(2);
+//            }
+//            catch (Exception ex)
+//            {}
             cloudSocket.write(buf, null, new CompletionHandler<>() {
                 @Override
                 public void completed(Integer result, Object attachment) {
