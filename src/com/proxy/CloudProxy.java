@@ -24,7 +24,7 @@ public class CloudProxy {
     final Queue<ByteBuffer> outQueue = new ConcurrentLinkedQueue<>();
     final Queue<ByteBuffer> inQueue = new ConcurrentLinkedQueue<>();
 
-    public static final int BUFFER_SIZE = 300;
+    public static final int BUFFER_SIZE = 16384;
 
     private static final Logger logger = Logger.getLogger("CloudProxy");
 
@@ -74,7 +74,7 @@ public class CloudProxy {
     private void createConnectionToCloud() {
         try {
             final AsynchronousSocketChannel cloudChannel = AsynchronousSocketChannel.open();
-            cloudChannel.connect(new InetSocketAddress(cloudHost, cloudListeningPort), cloudChannel, new CompletionHandler<Void, AsynchronousSocketChannel>() {
+            cloudChannel.connect(new InetSocketAddress(cloudHost, cloudListeningPort), cloudChannel, new CompletionHandler<>() {
                 @Override
                 public void completed(final Void nothing, AsynchronousSocketChannel client) {
                     setCloudChannel(cloudChannel);
@@ -157,7 +157,7 @@ public class CloudProxy {
                     try {
                         tokenSocketMap.put(token, null);
                         final AsynchronousSocketChannel webserverChannel = AsynchronousSocketChannel.open();
-                        webserverChannel.connect(new InetSocketAddress(webserverHost, webserverPort), token, new CompletionHandler<Void, String>() {
+                        webserverChannel.connect(new InetSocketAddress(webserverHost, webserverPort), token, new CompletionHandler<>() {
 
                             @Override
                             public void completed(Void result, String token) {
@@ -184,10 +184,10 @@ public class CloudProxy {
             int length = getDataLength(buf);
             buf.position(tokenLength+Integer.BYTES);
             buf.limit(tokenLength+Integer.BYTES+length);
-            webserverChannel.write(buf, null, new CompletionHandler<Integer, Object>() {
+            webserverChannel.write(buf, null, new CompletionHandler<>() {
                 @Override
                 public void completed(Integer result, Object attachment) {
- //                   logger.log(Level.INFO, "writeRequestToWebserver: "+log(buf));
+                    //                   logger.log(Level.INFO, "writeRequestToWebserver: "+log(buf));
                 }
 
                 @Override
@@ -232,12 +232,11 @@ public class CloudProxy {
             }
             catch (Exception ex)
             {}
-            cloudSocket.write(buf, null, new CompletionHandler<Integer, Object>() {
+            cloudSocket.write(buf, null, new CompletionHandler<>() {
                 @Override
                 public void completed(Integer result, Object attachment) {
-                    if(result != BUFFER_SIZE)
-                    {
-                        logger.log(Level.SEVERE, "Loopy value for bytes sent: ("+result+")");
+                    if (result != BUFFER_SIZE) {
+                        logger.log(Level.SEVERE, "Loopy value for bytes sent: (" + result + ")");
                     }
 //                    logger.log(Level.INFO, "sendResponseToCloud: " + log(buf));
                 }
@@ -272,10 +271,6 @@ public class CloudProxy {
         return buf;
     }
 
-    private static void error(Throwable exc, Object attachment) {
-        logger.log(Level.WARNING, "IO failure in " + attachment, exc);
-    }
-
     /**
      * setDataLength: Set the Integer.BYTES bytes following the token to the length of the data in the buffer
      *                (minus token and length bytes).
@@ -290,8 +285,6 @@ public class CloudProxy {
 
         int position = buf.position();
         buf.position(tokenLength);
-//        for (int i = length + tokenLength + Integer.BYTES; i < BUFFER_SIZE; ++i)
-//            buf.put((byte) 0);
         // Set apparent size to full buffer size so that "packets" are all the same size
         buf.limit(BUFFER_SIZE);
         buf.putInt(length);
@@ -311,16 +304,6 @@ public class CloudProxy {
         }
         buf.position(tokenLength + Integer.BYTES);
         return length;
-    }
-
-    /**
-     * getToken: Get a unique GUID as a token
-     * @return: The token as a string
-     */
-    private String getToken()
-    {
-        UUID uuid = UUID.randomUUID();
-        return uuid.toString();
     }
 
     /**

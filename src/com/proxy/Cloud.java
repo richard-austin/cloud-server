@@ -19,7 +19,7 @@ class Cloud {
     int frontEndFacingPort;
     int clientFacingPort;
     private final int tokenLength = 36;
-    public static final int BUFFER_SIZE = 300;
+    public static final int BUFFER_SIZE = 16384;
     final Queue<ByteBuffer> bufferQueue = new ConcurrentLinkedQueue<>();
     AsynchronousSocketChannel clientSocket;
 
@@ -28,13 +28,6 @@ class Cloud {
     final Map<String, AsynchronousSocketChannel> tokenSocketMap = new LinkedHashMap<>();
 
     private static final Logger logger = Logger.getLogger("Cloud");
-
-    private static abstract class Handler<A> implements CompletionHandler<Integer, A> {
-        @Override
-        public void failed(Throwable exc, A attachment) {
-            error(exc, attachment);
-        }
-    }
 
     public static void main(String[] args) {
         new Cloud(8082, 8081).start();
@@ -120,7 +113,7 @@ class Cloud {
 
     final void readFromFrontEnd(AsynchronousSocketChannel channel, final String token) {
         ByteBuffer buf = getBuffer(token);
-        channel.read(buf, null, new CompletionHandler<Integer, Object>() {
+        channel.read(buf, null, new CompletionHandler<>() {
             @Override
             public void completed(Integer result, Object attachment) {
                 if (result != -1) {
@@ -153,12 +146,11 @@ class Cloud {
                     }
 
                     //                    logger.log(Level.INFO, "startWriteToCloudProxy: " + log(buf));
-                    clientSocket.write(buf, null, new CompletionHandler<Integer, Object>() {
+                    clientSocket.write(buf, null, new CompletionHandler<>() {
                         @Override
                         public void completed(Integer result, Object attachment) {
-                            if(result != (BUFFER_SIZE))
-                            {
-                                logger.log(Level.SEVERE, "Crazy length value ("+result+"}");
+                            if (result != (BUFFER_SIZE)) {
+                                logger.log(Level.SEVERE, "Crazy length value (" + result + "}");
                             }
 
 
@@ -193,12 +185,11 @@ class Cloud {
         if (clientSocket != null && clientSocket.isOpen() && !waiting.get()) {
             waiting.set(true);
 
-            clientSocket.read(buf, waiting, new CompletionHandler<Integer, AtomicBoolean>() {
+            clientSocket.read(buf, waiting, new CompletionHandler<>() {
                 @Override
                 public void completed(Integer result, AtomicBoolean waiting) {
-                    if(result != (BUFFER_SIZE))
-                    {
-                        logger.log(Level.SEVERE, "Crazy length value ("+result+"}");
+                    if (result != (BUFFER_SIZE)) {
+                        logger.log(Level.SEVERE, "Crazy length value (" + result + "}");
 //                        if(buf.position() != BUFFER_SIZE)
 //                            readFromCloudProxy(waiting, buf);
 //                        return;
@@ -232,7 +223,7 @@ class Cloud {
             AsynchronousSocketChannel frontEndChannel = tokenSocketMap.get(token);  //Select the correct connection to respond to
             buf.position(tokenLength + Integer.BYTES);
             buf.limit(tokenLength + Integer.BYTES + length);
-            frontEndChannel.write(buf, null, new CompletionHandler<Integer, Object>() {
+            frontEndChannel.write(buf, null, new CompletionHandler<>() {
                 @Override
                 public void completed(Integer result, Object attachment) {
                     // Done, nothing more to do
@@ -289,8 +280,6 @@ class Cloud {
 
         int position = buf.position();
         buf.position(tokenLength);
-//        for (int i = length + tokenLength + Integer.BYTES; i < BUFFER_SIZE; ++i)
-//            buf.put((byte) 0);
         // Set apparent size to full buffer size so that "packets" are all the same size
         buf.limit(BUFFER_SIZE);
         buf.putInt(length);
