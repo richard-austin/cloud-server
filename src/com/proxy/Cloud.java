@@ -126,10 +126,6 @@ class Cloud {
                 if (result != -1) {
                     setDataLength(buf, result);
 
-                    // Fill any remaining space with 0s so that "packets" are all the same size
-                    for (int i = result + tokenLength + Integer.BYTES; i < BUFFER_SIZE; ++i)
-                        buf.put((byte) 0);
-
                     outQueue.add(buf);
                 } else
                     return;
@@ -150,6 +146,7 @@ class Cloud {
             ByteBuffer buf;
             try {
                 while ((buf = outQueue.poll()) != null && clientSocket != null) {
+                    logger.log(Level.INFO, "startWriteToCloudProxy: " + log(buf));
                     clientSocket.write(buf.flip(), null, new CompletionHandler<Integer, Object>() {
                         @Override
                         public void completed(Integer result, Object attachment) {
@@ -184,23 +181,26 @@ class Cloud {
     void readFromCloudProxy(AtomicBoolean runAgain) {
         if (clientSocket != null && clientSocket.isOpen()) {
             ByteBuffer buf = getBuffer();
-            clientSocket.read(buf, null, new CompletionHandler<Integer, AtomicBoolean>() {
+            clientSocket.read(buf, runAgain, new CompletionHandler<Integer, AtomicBoolean>() {
                 @Override
                 public void completed(Integer result, AtomicBoolean doAgain) {
                     if (result != -1) {
+                        logger.log(Level.INFO, "readFromCloudProxy: " + log(buf));
+
                         inQueue.add(buf);
-                        readFromCloudProxy(runAgain);
-                    } else
-                        runAgain.set(true);
+                       // readFromCloudProxy(doAgain);
+                    }
+                    doAgain.set(true);
                 }
 
                 @Override
                 public void failed(Throwable exc, AtomicBoolean doAgain) {
                     logger.log(Level.INFO, "readFromCloudProxy failed: " + exc.getClass().getName() + " : " + exc.getMessage());
-                    runAgain.set(true);
+                    doAgain.set(true);
                 }
             });
-        }
+        } else
+            runAgain.set(true);
     }
 
     void startRespondToFrontEnd() {
@@ -214,8 +214,8 @@ class Cloud {
             String token = getToken(buf);
             int length = getDataLength(buf);
             AsynchronousSocketChannel frontEndChannel = tokenSocketMap.get(token);  //Select the correct connection to respond to
+            buf.position(tokenLength + Integer.BYTES);
             buf.limit(tokenLength + Integer.BYTES + length);
-            buf.flip();
             frontEndChannel.write(buf, null, new CompletionHandler<Integer, Object>() {
                 @Override
                 public void completed(Integer result, Object attachment) {
@@ -232,6 +232,7 @@ class Cloud {
 
     /**
      * getBuffer: Get a new ByteBuffer of BUFFER_SIZE bytes length.
+     *
      * @return: The buffer
      */
     private ByteBuffer getBuffer() {
@@ -241,6 +242,7 @@ class Cloud {
 
     /**
      * getBuffer: Get a buffer and place the token at the start. Reserve a further Integer.BYTES bytes to contain the length.
+     *
      * @param token: The token
      * @return: The byte buffer with the token in place and length reservation set up.
      */
@@ -258,37 +260,47 @@ class Cloud {
 
     /**
      * setDataLength: Set the Integer.BYTES bytes following the token to the length of the data in the buffer
-     *                (minus token and length bytes).
-     * @param buf: The buffer to set the length in.
+     * (minus token and length bytes).
+     *
+     * @param buf:    The buffer to set the length in.
      * @param length: The length to set.
      */
     private void setDataLength(ByteBuffer buf, int length) {
-        buf.putInt(tokenLength, length);
+        int position = buf.position();
+        buf.position(tokenLength);
+//        for (int i = length + tokenLength + Integer.BYTES; i < BUFFER_SIZE; ++i)
+//            buf.put((byte) 0);
+        // Set apparent size to full buffer size so that "packets" are all the same size
+        buf.limit(BUFFER_SIZE);
+        buf.putInt(length);
+        buf.position(position);
     }
 
     /**
-     *getDataLength: Get the length of the data from the buffer. The actual data follows the token and length bytes.
+     * getDataLength: Get the length of the data from the buffer. The actual data follows the token and length bytes.
+     *
      * @param buf: The buffer
      * @return: The length of the data in the buffer
      */
     private int getDataLength(ByteBuffer buf) {
-        int length = buf.getInt(tokenLength);
-        buf.position(tokenLength + Integer.BYTES);
+        buf.position(tokenLength);
+        int length = buf.getInt();
         return length;
     }
 
     /**
      * getToken: Get a unique GUID as a token
+     *
      * @return: The token as a string
      */
-    private String getToken()
-    {
+    private String getToken() {
         UUID uuid = UUID.randomUUID();
         return uuid.toString();
     }
 
     /**
      * getToken: Get the token in the ByteBuffer
+     *
      * @param buf: The buffer containing the token.
      * @return: The token
      */
@@ -299,5 +311,17 @@ class Cloud {
         buf.get(bytes, 0, 36);
         buf.position(position);
         return new String(bytes);
+    }
+
+    private String log(ByteBuffer buf) {
+        int position = buf.position();
+        buf.position(tokenLength + Integer.BYTES);
+
+        int length = getDataLength(buf);
+        byte[] dataBytes = new byte[length];
+        for (int i = 0; i < length; ++i)
+            dataBytes[i] = buf.get();
+        buf.position(position);
+        return new String(dataBytes);
     }
 }
