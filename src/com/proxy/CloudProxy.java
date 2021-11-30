@@ -145,11 +145,11 @@ public class CloudProxy {
                 ByteBuffer buf = inQueue.poll();
                 String token = getToken(buf);
                 if (tokenSocketMap.containsKey(token)) {
-                    try {
-                        while (tokenSocketMap.get(token) == null)
-                            Thread.sleep(1);
-                    } catch (InterruptedException ex) {
-                    }
+//                    try {
+//                        while (tokenSocketMap.get(token) == null)
+//                            Thread.sleep(1);
+//                    } catch (InterruptedException ex) {
+//                    }
                     writeRequestToWebserver(buf, tokenSocketMap.get(token));
                 }
                 else  // Make a new connection to the webserver
