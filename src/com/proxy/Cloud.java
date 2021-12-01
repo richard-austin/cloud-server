@@ -140,20 +140,11 @@ class Cloud {
             try {
                 while ((buf = outQueue.poll()) != null && clientSocket != null) {
                     setBufferForSend(buf);
-                    if(buf.limit() != BUFFER_SIZE || buf.position() != 0)
-                    {
-                        logger.log(Level.SEVERE, "Crazy buffer value");
-                    }
 
                     //                    logger.log(Level.INFO, "startWriteToCloudProxy: " + log(buf));
                     clientSocket.write(buf, null, new CompletionHandler<>() {
                         @Override
                         public void completed(Integer result, Object attachment) {
-                            if (result != (BUFFER_SIZE)) {
-                                logger.log(Level.SEVERE, "Crazy length value (" + result + "}");
-                            }
-
-
                             // Nothing more to do for now
                         }
 
@@ -188,15 +179,10 @@ class Cloud {
             clientSocket.read(buf, waiting, new CompletionHandler<>() {
                 @Override
                 public void completed(Integer result, AtomicBoolean waiting) {
-                    if (result != (BUFFER_SIZE)) {
-                        logger.log(Level.SEVERE, "Crazy length value (" + result + "}");
-//                        if(buf.position() != BUFFER_SIZE)
-//                            readFromCloudProxy(waiting, buf);
-//                        return;
-                    }
                     if (result != -1) {
 //                        logger.log(Level.INFO, "readFromCloudProxy: " + log(buf));
-                        inQueue.add(buf);
+                   //     inQueue.add(buf);
+                        splitMessages(buf, inQueue);
                     }
                     waiting.set(false);
                 }
@@ -273,15 +259,10 @@ class Cloud {
      * @param length: The length to set.
      */
     private void setDataLength(ByteBuffer buf, int length) {
-        if(length > (BUFFER_SIZE-tokenLength-Integer.BYTES) || length < 0)
-        {
-            logger.log(Level.SEVERE, "Crazy length value ("+length+"}");
-        }
-
         int position = buf.position();
         buf.position(tokenLength);
         // Set apparent size to full buffer size so that "packets" are all the same size
-        buf.limit(BUFFER_SIZE);
+  //      buf.limit(BUFFER_SIZE);
         buf.putInt(length);
         buf.position(position);
     }
@@ -294,12 +275,7 @@ class Cloud {
      */
     private int getDataLength(ByteBuffer buf) {
         buf.position(tokenLength);
-        int length = buf.getInt();
-        if(length > (BUFFER_SIZE-tokenLength-Integer.BYTES) || length < 0)
-        {
-            logger.log(Level.SEVERE, "Crazy length value ("+length+"}");
-        }
-        return length;
+        return buf.getInt();
     }
 
     /**
@@ -330,7 +306,58 @@ class Cloud {
     void setBufferForSend(ByteBuffer buf)
     {
         buf.flip();
-        buf.limit(BUFFER_SIZE);
+ //       buf.limit(BUFFER_SIZE);
+    }
+
+    ByteBuffer previousBuffer = null;
+    void splitMessages(ByteBuffer buf, Queue<ByteBuffer> queue)
+    {
+        final int headerLength = tokenLength+Integer.BYTES;
+        buf.flip();
+        ByteBuffer completeBuf;
+
+        if(previousBuffer != null)
+        {
+            // Append the new buffer onto the previous ones remaining content
+            completeBuf = ByteBuffer.allocate(buf.limit() + previousBuffer.limit() - previousBuffer.position());
+            completeBuf.put(previousBuffer);
+            completeBuf.put(buf);
+            previousBuffer=null;
+        }
+        else
+            completeBuf = buf;
+        completeBuf.rewind();
+
+        while(completeBuf.position() < completeBuf.limit())
+        {
+            if(completeBuf.limit()-completeBuf.position() < headerLength) {
+                previousBuffer = ByteBuffer.wrap(Arrays.copyOfRange(completeBuf.array(), completeBuf.position(), completeBuf.limit()));
+                completeBuf.position(completeBuf.limit());
+            }
+            else {
+                int lengthThisMessage = getMessageLengthFromPosition(completeBuf);
+                if (lengthThisMessage > completeBuf.limit() - completeBuf.position()) {
+                    previousBuffer = ByteBuffer.wrap(Arrays.copyOfRange(completeBuf.array(), completeBuf.position(), completeBuf.limit()));
+                    completeBuf.position(completeBuf.limit());
+                }
+                 else {
+                    try {
+                        ByteBuffer newBuf = ByteBuffer.wrap(Arrays.copyOfRange(completeBuf.array(), completeBuf.position(), completeBuf.position() + lengthThisMessage));
+                        newBuf.rewind();
+                        queue.add(newBuf);
+                        completeBuf.position(completeBuf.position() + lengthThisMessage);
+                    }
+                    catch(Exception ex)
+                    {
+                        Object x = ex;
+                    }
+                }
+            }
+        }
+    }
+
+    private int getMessageLengthFromPosition(ByteBuffer buf) {
+        return buf.getInt(buf.position()+tokenLength) + tokenLength + Integer.BYTES;
     }
 
     private String log(ByteBuffer buf) {
