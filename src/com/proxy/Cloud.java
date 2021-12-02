@@ -24,7 +24,6 @@ class Cloud {
     AsynchronousSocketChannel clientSocket;
 
     final Queue<ByteBuffer> outQueue = new ConcurrentLinkedQueue<>();
-    final Queue<ByteBuffer> inQueue = new ConcurrentLinkedQueue<>();
     final Map<String, AsynchronousSocketChannel> tokenSocketMap = new LinkedHashMap<>();
 
     private static final Logger logger = Logger.getLogger("Cloud");
@@ -36,7 +35,6 @@ class Cloud {
     Cloud(int frontEndFacingPort, int clientFacingPort) {
         this.frontEndFacingPort = frontEndFacingPort;
         this.clientFacingPort = clientFacingPort;
-
     }
 
     static final Object LOCK = new Object();
@@ -46,7 +44,6 @@ class Cloud {
         acceptConnectionsFromFrontEnd();
         startWriteToCloudProxy();
         startReadFromCloudProxy();
-        startRespondToFrontEnd();
         try {
             synchronized (LOCK) {
                 LOCK.wait(0, 0);
@@ -164,7 +161,7 @@ class Cloud {
         AtomicBoolean waiting = new AtomicBoolean(false);
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
         executor.scheduleAtFixedRate(() -> {
-            if(!waiting.get()) {
+            if (!waiting.get()) {
                 ByteBuffer buf = getBuffer();
                 readFromCloudProxy(waiting, buf);
             }
@@ -181,8 +178,8 @@ class Cloud {
                 public void completed(Integer result, AtomicBoolean waiting) {
                     if (result != -1) {
 //                        logger.log(Level.INFO, "readFromCloudProxy: " + log(buf));
-                   //     inQueue.add(buf);
-                        splitMessages(buf, inQueue);
+                        //     inQueue.add(buf);
+                        splitMessages(buf);
                     }
                     waiting.set(false);
                 }
@@ -196,31 +193,23 @@ class Cloud {
         }
     }
 
-    void startRespondToFrontEnd() {
-        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-        executor.scheduleAtFixedRate(this::respondToFrontEnd, 300, 10, TimeUnit.MILLISECONDS);
-    }
+    void respondToFrontEnd(ByteBuffer buf) {
+        String token = getToken(buf);
+        int length = getDataLength(buf);
+        AsynchronousSocketChannel frontEndChannel = tokenSocketMap.get(token);  //Select the correct connection to respond to
+        buf.position(tokenLength + Integer.BYTES);
+        buf.limit(tokenLength + Integer.BYTES + length);
+        frontEndChannel.write(buf, null, new CompletionHandler<>() {
+            @Override
+            public void completed(Integer result, Object attachment) {
+                // Done, nothing more to do
+            }
 
-    void respondToFrontEnd() {
-        ByteBuffer buf;
-        while ((buf = inQueue.poll()) != null) {
-            String token = getToken(buf);
-            int length = getDataLength(buf);
-            AsynchronousSocketChannel frontEndChannel = tokenSocketMap.get(token);  //Select the correct connection to respond to
-            buf.position(tokenLength + Integer.BYTES);
-            buf.limit(tokenLength + Integer.BYTES + length);
-            frontEndChannel.write(buf, null, new CompletionHandler<>() {
-                @Override
-                public void completed(Integer result, Object attachment) {
-                    // Done, nothing more to do
-                }
-
-                @Override
-                public void failed(Throwable exc, Object attachment) {
-                    logger.log(Level.INFO, "startRespondToFrontEnd failed: " + exc.getClass().getName() + " : " + exc.getMessage());
-                }
-            });
-        }
+            @Override
+            public void failed(Throwable exc, Object attachment) {
+                logger.log(Level.INFO, "startRespondToFrontEnd failed: " + exc.getClass().getName() + " : " + exc.getMessage());
+            }
+        });
     }
 
     /**
@@ -262,7 +251,7 @@ class Cloud {
         int position = buf.position();
         buf.position(tokenLength);
         // Set apparent size to full buffer size so that "packets" are all the same size
-  //      buf.limit(BUFFER_SIZE);
+        //      buf.limit(BUFFER_SIZE);
         buf.putInt(length);
         buf.position(position);
     }
@@ -303,53 +292,44 @@ class Cloud {
         return new String(bytes);
     }
 
-    void setBufferForSend(ByteBuffer buf)
-    {
+    void setBufferForSend(ByteBuffer buf) {
         buf.flip();
- //       buf.limit(BUFFER_SIZE);
+        //       buf.limit(BUFFER_SIZE);
     }
 
     ByteBuffer previousBuffer = null;
-    void splitMessages(ByteBuffer buf, Queue<ByteBuffer> queue)
-    {
-        final int headerLength = tokenLength+Integer.BYTES;
+    void splitMessages(ByteBuffer buf) {
+        final int headerLength = tokenLength + Integer.BYTES;
         buf.flip();
         ByteBuffer combinedBuf;
 
-        if(previousBuffer != null)
-        {
+        if (previousBuffer != null) {
             // Append the new buffer onto the previous ones remaining content
             combinedBuf = ByteBuffer.allocate(buf.limit() + previousBuffer.limit() - previousBuffer.position());
             combinedBuf.put(previousBuffer);
             combinedBuf.put(buf);
-            previousBuffer=null;
-        }
-        else
+            previousBuffer = null;
+        } else
             combinedBuf = buf;
         combinedBuf.rewind();
 
-        while(combinedBuf.position() < combinedBuf.limit())
-        {
-            if(combinedBuf.limit()-combinedBuf.position() < headerLength) {
+        while (combinedBuf.position() < combinedBuf.limit()) {
+            if (combinedBuf.limit() - combinedBuf.position() < headerLength) {
                 previousBuffer = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.limit()));
                 combinedBuf.position(combinedBuf.limit());
-            }
-            else {
+            } else {
                 int lengthThisMessage = getMessageLengthFromPosition(combinedBuf);
                 if (lengthThisMessage > combinedBuf.limit() - combinedBuf.position()) {
                     previousBuffer = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.limit()));
                     combinedBuf.position(combinedBuf.limit());
-                }
-                 else {
+                } else {
                     try {
                         ByteBuffer newBuf = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.position() + lengthThisMessage));
                         newBuf.rewind();
-                        queue.add(newBuf);
-                        logger.log(Level.INFO, "Buffer size "+newBuf.limit()+ " lengthThisMessage= "+lengthThisMessage);
+                        respondToFrontEnd(newBuf);
+                        logger.log(Level.INFO, "Buffer size " + newBuf.limit() + " lengthThisMessage= " + lengthThisMessage);
                         combinedBuf.position(combinedBuf.position() + lengthThisMessage);
-                    }
-                    catch(Exception ex)
-                    {
+                    } catch (Exception ex) {
                         Object x = ex;
                     }
                 }
@@ -358,7 +338,7 @@ class Cloud {
     }
 
     private int getMessageLengthFromPosition(ByteBuffer buf) {
-        return buf.getInt(buf.position()+tokenLength) + tokenLength + Integer.BYTES;
+        return buf.getInt(buf.position() + tokenLength) + tokenLength + Integer.BYTES;
     }
 
     private String log(ByteBuffer buf) {
