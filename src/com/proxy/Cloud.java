@@ -19,7 +19,7 @@ class Cloud {
     int frontEndFacingPort;
     int clientFacingPort;
     private final int tokenLength = 36;
-    public static final int BUFFER_SIZE = 3000;
+    public static final int BUFFER_SIZE = 16000;
     final Queue<ByteBuffer> bufferQueue = new ConcurrentLinkedQueue<>();
     AsynchronousSocketChannel clientSocket;
 
@@ -170,7 +170,6 @@ class Cloud {
 
         if (clientSocket != null && clientSocket.isOpen() && !waiting.get()) {
             waiting.set(true);
-
             clientSocket.read(buf, waiting, new CompletionHandler<>() {
                 @Override
                 public void completed(Integer result, AtomicBoolean waiting) {
@@ -194,6 +193,7 @@ class Cloud {
     final Object respondToFrontEndLock = new Object();
     void respondToFrontEnd(ByteBuffer buf) {
         synchronized (respondToFrontEndLock) {
+            AtomicBoolean done = new AtomicBoolean(false);
             String token = getToken(buf);
             int length = getDataLength(buf);
             AsynchronousSocketChannel frontEndChannel = tokenSocketMap.get(token);  //Select the correct connection to respond to
@@ -202,14 +202,17 @@ class Cloud {
             frontEndChannel.write(buf, null, new CompletionHandler<>() {
                 @Override
                 public void completed(Integer result, Object attachment) {
+                    done.set(true);
                     // Done, nothing more to do
                 }
 
                 @Override
                 public void failed(Throwable exc, Object attachment) {
+                    done.set(true);
                     logger.log(Level.INFO, "startRespondToFrontEnd failed: " + exc.getClass().getName() + " : " + exc.getMessage());
                 }
             });
+            //waitTillDone(done, 30000);
         }
     }
 
@@ -341,6 +344,19 @@ class Cloud {
 
     private int getMessageLengthFromPosition(ByteBuffer buf) {
         return buf.getInt(buf.position() + tokenLength) + tokenLength + Integer.BYTES;
+    }
+
+    private void waitTillDone(final AtomicBoolean done, final int maxMicroseconds) {
+        try {
+            done.set(false);
+            int countDown = maxMicroseconds;
+            while (--countDown > 0 && !done.get())
+                Thread.sleep(0, 1000);
+
+            logger.log(Level.INFO, "waitTillDone timed out after " + (maxMicroseconds - countDown) + " done = " + done.get());
+        } catch (Exception ex) {
+            logger.log(Level.INFO, "Exception in waitTillDone: " + ex.getClass().getName() + " " + ex.getMessage());
+        }
     }
 
     private String log(ByteBuffer buf) {
