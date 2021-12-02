@@ -23,7 +23,6 @@ class Cloud {
     final Queue<ByteBuffer> bufferQueue = new ConcurrentLinkedQueue<>();
     AsynchronousSocketChannel clientSocket;
 
-    final Queue<ByteBuffer> outQueue = new ConcurrentLinkedQueue<>();
     final Map<String, AsynchronousSocketChannel> tokenSocketMap = new LinkedHashMap<>();
 
     private static final Logger logger = Logger.getLogger("Cloud");
@@ -42,7 +41,6 @@ class Cloud {
     void start() {
         openServerSocketForCloudProxy();
         acceptConnectionsFromFrontEnd();
-        startWriteToCloudProxy();
         startReadFromCloudProxy();
         try {
             synchronized (LOCK) {
@@ -116,11 +114,11 @@ class Cloud {
                 if (result != -1) {
                     setDataLength(buf, result);
 
-                    outQueue.add(buf);
+                    startWriteToCloudProxy(buf);
                 } else
                     return;
 
-                readFromFrontEnd(channel, token);
+               readFromFrontEnd(channel, token);
             }
 
             @Override
@@ -130,12 +128,12 @@ class Cloud {
         });
     }
 
-    void startWriteToCloudProxy() {
-        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-        executor.scheduleAtFixedRate(() -> {
-            ByteBuffer buf;
+    final Object startWriteToCloudProxyLock = new Object();
+
+    void startWriteToCloudProxy(ByteBuffer buf) {
+        synchronized (startWriteToCloudProxyLock) {
             try {
-                while ((buf = outQueue.poll()) != null && clientSocket != null) {
+                if (clientSocket != null) {
                     setBufferForSend(buf);
 
                     //                    logger.log(Level.INFO, "startWriteToCloudProxy: " + log(buf));
@@ -154,7 +152,7 @@ class Cloud {
             } catch (Exception e) {
                 logger.log(Level.INFO, "Exception in startWriteToCloudProxy: " + e.getClass().getName() + ": " + e.getMessage());
             }
-        }, 300, 1, TimeUnit.MILLISECONDS);
+        }
     }
 
     void startReadFromCloudProxy() {
@@ -193,23 +191,26 @@ class Cloud {
         }
     }
 
+    final Object respondToFrontEndLock = new Object();
     void respondToFrontEnd(ByteBuffer buf) {
-        String token = getToken(buf);
-        int length = getDataLength(buf);
-        AsynchronousSocketChannel frontEndChannel = tokenSocketMap.get(token);  //Select the correct connection to respond to
-        buf.position(tokenLength + Integer.BYTES);
-        buf.limit(tokenLength + Integer.BYTES + length);
-        frontEndChannel.write(buf, null, new CompletionHandler<>() {
-            @Override
-            public void completed(Integer result, Object attachment) {
-                // Done, nothing more to do
-            }
+        synchronized (respondToFrontEndLock) {
+            String token = getToken(buf);
+            int length = getDataLength(buf);
+            AsynchronousSocketChannel frontEndChannel = tokenSocketMap.get(token);  //Select the correct connection to respond to
+            buf.position(tokenLength + Integer.BYTES);
+            buf.limit(tokenLength + Integer.BYTES + length);
+            frontEndChannel.write(buf, null, new CompletionHandler<>() {
+                @Override
+                public void completed(Integer result, Object attachment) {
+                    // Done, nothing more to do
+                }
 
-            @Override
-            public void failed(Throwable exc, Object attachment) {
-                logger.log(Level.INFO, "startRespondToFrontEnd failed: " + exc.getClass().getName() + " : " + exc.getMessage());
-            }
-        });
+                @Override
+                public void failed(Throwable exc, Object attachment) {
+                    logger.log(Level.INFO, "startRespondToFrontEnd failed: " + exc.getClass().getName() + " : " + exc.getMessage());
+                }
+            });
+        }
     }
 
     /**
@@ -298,6 +299,7 @@ class Cloud {
     }
 
     ByteBuffer previousBuffer = null;
+
     void splitMessages(ByteBuffer buf) {
         final int headerLength = tokenLength + Integer.BYTES;
         buf.flip();
@@ -326,9 +328,9 @@ class Cloud {
                     try {
                         ByteBuffer newBuf = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.position() + lengthThisMessage));
                         newBuf.rewind();
-                        respondToFrontEnd(newBuf);
                         logger.log(Level.INFO, "Buffer size " + newBuf.limit() + " lengthThisMessage= " + lengthThisMessage);
                         combinedBuf.position(combinedBuf.position() + lengthThisMessage);
+                        respondToFrontEnd(newBuf);
                     } catch (Exception ex) {
                         Object x = ex;
                     }

@@ -21,7 +21,6 @@ public class CloudProxy {
     final Map<String, AsynchronousSocketChannel> tokenSocketMap = new LinkedHashMap<>();
     private final int tokenLength = 36;
     private AsynchronousSocketChannel cloudSocket;
-    final Queue<ByteBuffer> outQueue = new ConcurrentLinkedQueue<>();
 
     public static final int BUFFER_SIZE = 3000;
 
@@ -58,7 +57,6 @@ public class CloudProxy {
     void start() {
         createConnectionToCloud();
         startReadFromCloud();
-        startSendResponseToCloud();
 
         try {
             synchronized (LOCK) {
@@ -121,27 +119,17 @@ public class CloudProxy {
 
                 @Override
                 public void failed(Throwable exc, AtomicBoolean doAgain) {
-                    logger.log(Level.INFO, "readFromCloudProxy failed: " + exc.getClass().getName() + " : " + exc.getMessage());
+                    logger.log(Level.INFO, "readFromCloud failed: " + exc.getClass().getName() + " : " + exc.getMessage());
                     runAgain.set(true);
                 }
             });
         }
     }
 
-    //    void startWriteRequestsToWebserver() {
-//        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-//        executor.scheduleAtFixedRate(this::writeRequestsToWebserver, 300, 1, TimeUnit.MILLISECONDS);
-//    }
-//
     void writeRequestsToWebserver(ByteBuffer buf) {
         String token = getToken(buf);
         if (tokenSocketMap.containsKey(token)) {
-//                    try {
-//                        while (tokenSocketMap.get(token) == null)
-//                            Thread.sleep(1);
-//                    } catch (InterruptedException ex) {
-//                    }
-            writeRequestToWebserver(buf, tokenSocketMap.get(token));
+            writeRequestToWebserver(buf, tokenSocketMap.get(token), token);
         } else  // Make a new connection to the webserver
         {
             try {
@@ -152,8 +140,7 @@ public class CloudProxy {
                     @Override
                     public void completed(Void result, String token) {
                         tokenSocketMap.put(token, webserverChannel);
-                        writeRequestToWebserver(buf, webserverChannel);
-                        readResponseFromWebserver(webserverChannel, token);
+                        writeRequestToWebserver(buf, webserverChannel, token);
                     }
 
                     @Override
@@ -162,25 +149,28 @@ public class CloudProxy {
                     }
                 });
             } catch (IOException ioex) {
-                logger.log(Level.INFO, "readFromCloudProxy failed: " + ioex.getClass().getName() + " : " + ioex.getMessage());
+                logger.log(Level.INFO, "writeRequestsToWebserver failed: " + ioex.getClass().getName() + " : " + ioex.getMessage());
             }
         }
     }
 
-    void writeRequestToWebserver(final ByteBuffer buf, final AsynchronousSocketChannel webserverChannel) {
-        synchronized (webserverChannel) {
+    final Object writeRequestToWebserverLock = new Object();
+
+    void writeRequestToWebserver(final ByteBuffer buf, final AsynchronousSocketChannel webserverChannel, String token) {
+        synchronized (writeRequestToWebserverLock) {
             int length = getDataLength(buf);
             buf.position(tokenLength + Integer.BYTES);
             buf.limit(tokenLength + Integer.BYTES + length);
-            webserverChannel.write(buf, null, new CompletionHandler<>() {
+            webserverChannel.write(buf, token, new CompletionHandler<>() {
                 @Override
-                public void completed(Integer result, Object attachment) {
+                public void completed(Integer result, String token) {
+                    readResponseFromWebserver(webserverChannel, token);
                     //                   logger.log(Level.INFO, "writeRequestToWebserver: "+log(buf));
                 }
 
                 @Override
-                public void failed(Throwable exc, Object attachment) {
-                    logger.log(Level.INFO, "startRespondToFrontEnd failed: " + exc.getClass().getName() + " : " + exc.getMessage());
+                public void failed(Throwable exc, String token) {
+                    logger.log(Level.INFO, "writeRequestToWebserver failed: " + exc.getClass().getName() + " : " + exc.getMessage());
                 }
             });
         }
@@ -194,26 +184,21 @@ public class CloudProxy {
                 if (result > 0) {
                     setDataLength(buf, result);
 //                    logger.log(Level.INFO, "readResponseFromWebserver: "+log(buf));
-                    outQueue.add(buf);
+                    sendResponseToCloud(buf);
                     readResponseFromWebserver(webserverChannel, token);
                 }
             }
 
             @Override
             public void failed(Throwable exc, Void nothing) {
-
             }
         });
     }
 
-    void startSendResponseToCloud() {
-        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-        executor.scheduleAtFixedRate(this::sendResponseToCloud, 300, 1, TimeUnit.MILLISECONDS);
-    }
+    final Object sendResponseToCloudLock = new Object();
 
-    private void sendResponseToCloud() {
-        while (!outQueue.isEmpty()) {
-            ByteBuffer buf = outQueue.poll();
+    private void sendResponseToCloud(ByteBuffer buf) {
+        synchronized (sendResponseToCloudLock) {
             setBufferForSend(buf);
             cloudSocket.write(buf, null, new CompletionHandler<>() {
                 @Override
