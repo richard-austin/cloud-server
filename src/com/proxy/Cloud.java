@@ -19,7 +19,7 @@ class Cloud {
     int frontEndFacingPort;
     int clientFacingPort;
     private final int tokenLength = 36;
-    public static final int BUFFER_SIZE = 16384;
+    public static final int BUFFER_SIZE = 3000;
     final Queue<ByteBuffer> bufferQueue = new ConcurrentLinkedQueue<>();
     AsynchronousSocketChannel clientSocket;
 
@@ -314,38 +314,39 @@ class Cloud {
     {
         final int headerLength = tokenLength+Integer.BYTES;
         buf.flip();
-        ByteBuffer completeBuf;
+        ByteBuffer combinedBuf;
 
         if(previousBuffer != null)
         {
             // Append the new buffer onto the previous ones remaining content
-            completeBuf = ByteBuffer.allocate(buf.limit() + previousBuffer.limit() - previousBuffer.position());
-            completeBuf.put(previousBuffer);
-            completeBuf.put(buf);
+            combinedBuf = ByteBuffer.allocate(buf.limit() + previousBuffer.limit() - previousBuffer.position());
+            combinedBuf.put(previousBuffer);
+            combinedBuf.put(buf);
             previousBuffer=null;
         }
         else
-            completeBuf = buf;
-        completeBuf.rewind();
+            combinedBuf = buf;
+        combinedBuf.rewind();
 
-        while(completeBuf.position() < completeBuf.limit())
+        while(combinedBuf.position() < combinedBuf.limit())
         {
-            if(completeBuf.limit()-completeBuf.position() < headerLength) {
-                previousBuffer = ByteBuffer.wrap(Arrays.copyOfRange(completeBuf.array(), completeBuf.position(), completeBuf.limit()));
-                completeBuf.position(completeBuf.limit());
+            if(combinedBuf.limit()-combinedBuf.position() < headerLength) {
+                previousBuffer = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.limit()));
+                combinedBuf.position(combinedBuf.limit());
             }
             else {
-                int lengthThisMessage = getMessageLengthFromPosition(completeBuf);
-                if (lengthThisMessage > completeBuf.limit() - completeBuf.position()) {
-                    previousBuffer = ByteBuffer.wrap(Arrays.copyOfRange(completeBuf.array(), completeBuf.position(), completeBuf.limit()));
-                    completeBuf.position(completeBuf.limit());
+                int lengthThisMessage = getMessageLengthFromPosition(combinedBuf);
+                if (lengthThisMessage > combinedBuf.limit() - combinedBuf.position()) {
+                    previousBuffer = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.limit()));
+                    combinedBuf.position(combinedBuf.limit());
                 }
                  else {
                     try {
-                        ByteBuffer newBuf = ByteBuffer.wrap(Arrays.copyOfRange(completeBuf.array(), completeBuf.position(), completeBuf.position() + lengthThisMessage));
+                        ByteBuffer newBuf = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.position() + lengthThisMessage));
                         newBuf.rewind();
                         queue.add(newBuf);
-                        completeBuf.position(completeBuf.position() + lengthThisMessage);
+                        logger.log(Level.INFO, "Buffer size "+newBuf.limit()+ " lengthThisMessage= "+lengthThisMessage);
+                        combinedBuf.position(combinedBuf.position() + lengthThisMessage);
                     }
                     catch(Exception ex)
                     {
