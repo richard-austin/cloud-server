@@ -112,6 +112,7 @@ public class CloudProxy {
                 public void completed(Integer result, AtomicBoolean doAgain) {
                     if (result != -1) {
                         splitMessages(buf);
+                        buf.clear();
                         readFromCloud(runAgain);
                     } else
                         runAgain.set(true);
@@ -126,15 +127,7 @@ public class CloudProxy {
         }
     }
 
-    //    void startWriteRequestsToWebserver() {
-//        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-//        executor.scheduleAtFixedRate(this::writeRequestsToWebserver, 300, 1, TimeUnit.MILLISECONDS);
-//    }
-//
-    final Object writeRequestsToWebserverLock = new Object();
     void writeRequestsToWebserver(ByteBuffer buf) {
-        synchronized (writeRequestsToWebserverLock) {
-            AtomicBoolean done = new AtomicBoolean(false);
             String token = getToken(buf);
             if (tokenSocketMap.containsKey(token)) {
                 writeRequestToWebserver(buf, tokenSocketMap.get(token), token);
@@ -149,20 +142,16 @@ public class CloudProxy {
                         public void completed(Void result, String token) {
                             tokenSocketMap.put(token, webserverChannel);
                             writeRequestToWebserver(buf, webserverChannel, token);
-                            done.set(true);
                         }
 
                         @Override
                         public void failed(Throwable exc, String token) {
-                            done.set(true);
                         }
                     });
                 } catch (IOException ioex) {
                     logger.log(Level.INFO, "writeRequestsToWebserver failed: " + ioex.getClass().getName() + " : " + ioex.getMessage());
                 }
             }
-            waitTillDone(done, 30000);
-        }
     }
 
 
@@ -184,26 +173,23 @@ public class CloudProxy {
         });
     }
 
-    final Object readResponseFromWebserverLock = new Object();
     private void readResponseFromWebserver(AsynchronousSocketChannel webserverChannel, String token) {
-        synchronized (readResponseFromWebserverLock) {
-            ByteBuffer buf = getBuffer(token);
-            webserverChannel.read(buf, null, new CompletionHandler<Integer, Void>() {
-                @Override
-                public void completed(Integer result, Void nothing) {
-                    if (result > 0) {
-                        setDataLength(buf, result);
+        ByteBuffer buf = getBuffer(token);
+        webserverChannel.read(buf, null, new CompletionHandler<Integer, Void>() {
+            @Override
+            public void completed(Integer result, Void nothing) {
+                if (result > 0) {
+                    setDataLength(buf, result);
 //                    logger.log(Level.INFO, "readResponseFromWebserver: "+log(buf));
-                        sendResponseToCloud(buf);
-                        readResponseFromWebserver(webserverChannel, token);
-                    }
+                    sendResponseToCloud(buf);
+                    readResponseFromWebserver(webserverChannel, token);
                 }
+            }
 
-                @Override
-                public void failed(Throwable exc, Void nothing) {
-                }
-            });
-        }
+            @Override
+            public void failed(Throwable exc, Void nothing) {
+            }
+        });
     }
 
     final Object sendResponseToCloudLock = new Object();

@@ -118,7 +118,7 @@ class Cloud {
                 } else
                     return;
 
-               readFromFrontEnd(channel, token);
+                readFromFrontEnd(channel, token);
             }
 
             @Override
@@ -167,7 +167,6 @@ class Cloud {
     }
 
     void readFromCloudProxy(AtomicBoolean waiting, ByteBuffer buf) {
-
         if (clientSocket != null && clientSocket.isOpen() && !waiting.get()) {
             waiting.set(true);
             clientSocket.read(buf, waiting, new CompletionHandler<>() {
@@ -177,6 +176,7 @@ class Cloud {
 //                        logger.log(Level.INFO, "readFromCloudProxy: " + log(buf));
                         //     inQueue.add(buf);
                         splitMessages(buf);
+                        buf.clear();
                     }
                     waiting.set(false);
                 }
@@ -190,30 +190,27 @@ class Cloud {
         }
     }
 
-    final Object respondToFrontEndLock = new Object();
     void respondToFrontEnd(ByteBuffer buf) {
-        synchronized (respondToFrontEndLock) {
-            AtomicBoolean done = new AtomicBoolean(false);
-            String token = getToken(buf);
-            int length = getDataLength(buf);
-            AsynchronousSocketChannel frontEndChannel = tokenSocketMap.get(token);  //Select the correct connection to respond to
-            buf.position(tokenLength + Integer.BYTES);
-            buf.limit(tokenLength + Integer.BYTES + length);
-            frontEndChannel.write(buf, null, new CompletionHandler<>() {
-                @Override
-                public void completed(Integer result, Object attachment) {
-                    done.set(true);
-                    // Done, nothing more to do
-                }
 
-                @Override
-                public void failed(Throwable exc, Object attachment) {
-                    done.set(true);
-                    logger.log(Level.INFO, "startRespondToFrontEnd failed: " + exc.getClass().getName() + " : " + exc.getMessage());
-                }
-            });
-            //waitTillDone(done, 30000);
-        }
+        AtomicBoolean done = new AtomicBoolean(false);
+        String token = getToken(buf);
+        int length = getDataLength(buf);
+        AsynchronousSocketChannel frontEndChannel = tokenSocketMap.get(token);  //Select the correct connection to respond to
+        buf.position(tokenLength + Integer.BYTES);
+        buf.limit(tokenLength + Integer.BYTES + length);
+        frontEndChannel.write(buf, null, new CompletionHandler<>() {
+            @Override
+            public void completed(Integer result, Object attachment) {
+                done.set(true);
+                // Done, nothing more to do
+            }
+
+            @Override
+            public void failed(Throwable exc, Object attachment) {
+                done.set(true);
+                logger.log(Level.INFO, "startRespondToFrontEnd failed: " + exc.getClass().getName() + " : " + exc.getMessage());
+            }
+        });
     }
 
     /**
