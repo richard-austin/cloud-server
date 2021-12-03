@@ -18,12 +18,12 @@ import java.util.logging.Logger;
 class Cloud {
     int frontEndFacingPort;
     int clientFacingPort;
-    private final int tokenLength = 36;
+    private final int tokenLength = Integer.BYTES;
     public static final int BUFFER_SIZE = 16000;
     final Queue<ByteBuffer> bufferQueue = new ConcurrentLinkedQueue<>();
     AsynchronousSocketChannel clientSocket;
 
-    final Map<String, AsynchronousSocketChannel> tokenSocketMap = new LinkedHashMap<>();
+    final Map<Integer, AsynchronousSocketChannel> tokenSocketMap = new LinkedHashMap<>();
 
     private static final Logger logger = Logger.getLogger("Cloud");
 
@@ -89,7 +89,7 @@ class Cloud {
                     logger.log(Level.INFO, "Cloud.start accepted connection");
 
                     if (frontEnd != null) {
-                        String token = getToken();
+                        int token = getToken();
                         tokenSocketMap.put(token, frontEnd);
                         readFromFrontEnd(frontEnd, token);
                     } else
@@ -106,7 +106,7 @@ class Cloud {
         }
     }
 
-    final void readFromFrontEnd(AsynchronousSocketChannel channel, final String token) {
+    final void readFromFrontEnd(AsynchronousSocketChannel channel, final int token) {
         ByteBuffer buf = getBuffer(token);
         channel.read(buf, null, new CompletionHandler<>() {
             @Override
@@ -191,7 +191,7 @@ class Cloud {
     }
 
     void respondToFrontEnd(ByteBuffer buf) {
-        String token = getToken(buf);
+        int token = getToken(buf);
         int length = getDataLength(buf);
         AsynchronousSocketChannel frontEndChannel = tokenSocketMap.get(token);  //Select the correct connection to respond to
         buf.position(tokenLength + Integer.BYTES);
@@ -225,10 +225,10 @@ class Cloud {
      * @param token: The token
      * @return: The byte buffer with the token in place and length reservation set up.
      */
-    private ByteBuffer getBuffer(String token) {
+    private ByteBuffer getBuffer(int token) {
         ByteBuffer buf = getBuffer();
 
-        buf.put(token.getBytes());
+        buf.putInt(token);
         buf.putInt(0);  // Reserve space for the data length
         return buf;
     }
@@ -264,14 +264,17 @@ class Cloud {
         return buf.getInt();
     }
 
+    static int nextToken=0;
+    final Object getTokenLock = new Object();
     /**
-     * getToken: Get a unique GUID as a token
+     * getToken: Get a sequential integer as a token
      *
-     * @return: The token as a string
+     * @return: The token as an integer
      */
-    private String getToken() {
-        UUID uuid = UUID.randomUUID();
-        return uuid.toString();
+    private int getToken() {
+        synchronized (getTokenLock) {
+            return ++nextToken;
+        }
     }
 
     /**
@@ -280,13 +283,12 @@ class Cloud {
      * @param buf: The buffer containing the token.
      * @return: The token
      */
-    private String getToken(ByteBuffer buf) {
+    private int getToken(ByteBuffer buf) {
         int position = buf.position();
         buf.position(0);
-        byte[] bytes = new byte[36];
-        buf.get(bytes, 0, 36);
+        int token = buf.getInt();
         buf.position(position);
-        return new String(bytes);
+        return token;
     }
 
     void setBufferForSend(ByteBuffer buf) {

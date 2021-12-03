@@ -18,8 +18,8 @@ public class CloudProxy {
     public final String cloudHost;
     private final String webserverHost;
     private final int webserverPort;
-    final Map<String, AsynchronousSocketChannel> tokenSocketMap = new LinkedHashMap<>();
-    private final int tokenLength = 36;
+    final Map<Integer, AsynchronousSocketChannel> tokenSocketMap = new LinkedHashMap<>();
+    private final int tokenLength = Integer.BYTES;
     private AsynchronousSocketChannel cloudSocket;
 
     public static final int BUFFER_SIZE = 16000;
@@ -128,7 +128,7 @@ public class CloudProxy {
     }
 
     void writeRequestsToWebserver(ByteBuffer buf) {
-            String token = getToken(buf);
+            int token = getToken(buf);
             if (tokenSocketMap.containsKey(token)) {
                 writeRequestToWebserver(buf, tokenSocketMap.get(token), token);
             } else  // Make a new connection to the webserver
@@ -136,16 +136,16 @@ public class CloudProxy {
                 try {
                     tokenSocketMap.put(token, null);
                     final AsynchronousSocketChannel webserverChannel = AsynchronousSocketChannel.open();
-                    webserverChannel.connect(new InetSocketAddress(webserverHost, webserverPort), token, new CompletionHandler<>() {
+                    webserverChannel.connect(new InetSocketAddress(webserverHost, webserverPort), token, new CompletionHandler<Void, Integer>() {
 
                         @Override
-                        public void completed(Void result, String token) {
+                        public void completed(Void result, Integer token) {
                             tokenSocketMap.put(token, webserverChannel);
                             writeRequestToWebserver(buf, webserverChannel, token);
                         }
 
                         @Override
-                        public void failed(Throwable exc, String token) {
+                        public void failed(Throwable exc, Integer token) {
                         }
                     });
                 } catch (IOException ioex) {
@@ -155,25 +155,25 @@ public class CloudProxy {
     }
 
 
-    void writeRequestToWebserver(final ByteBuffer buf, final AsynchronousSocketChannel webserverChannel, String token) {
+    void writeRequestToWebserver(final ByteBuffer buf, final AsynchronousSocketChannel webserverChannel, int token) {
         int length = getDataLength(buf);
         buf.position(tokenLength + Integer.BYTES);
         buf.limit(tokenLength + Integer.BYTES + length);
         webserverChannel.write(buf, token, new CompletionHandler<>() {
             @Override
-            public void completed(Integer result, String token) {
+            public void completed(Integer result, Integer token) {
                 readResponseFromWebserver(webserverChannel, token);
                 //                   logger.log(Level.INFO, "writeRequestToWebserver: "+log(buf));
             }
 
             @Override
-            public void failed(Throwable exc, String token) {
+            public void failed(Throwable exc, Integer token) {
                 logger.log(Level.INFO, "writeRequestToWebserver failed: " + exc.getClass().getName() + " : " + exc.getMessage());
             }
         });
     }
 
-    private void readResponseFromWebserver(AsynchronousSocketChannel webserverChannel, String token) {
+    private void readResponseFromWebserver(AsynchronousSocketChannel webserverChannel, int token) {
         ByteBuffer buf = getBuffer(token);
         webserverChannel.read(buf, null, new CompletionHandler<Integer, Void>() {
             @Override
@@ -227,10 +227,10 @@ public class CloudProxy {
      * @param token: The token
      * @return: The byte buffer with the token in place and length reservation set up.
      */
-    private ByteBuffer getBuffer(String token) {
+    private ByteBuffer getBuffer(int token) {
         ByteBuffer buf = getBuffer();
 
-        buf.put(token.getBytes());
+        buf.putInt(token);
         buf.putInt(0);  // Reserve space for the data length
         return buf;
     }
@@ -274,14 +274,13 @@ public class CloudProxy {
      * @param buf: The buffer containing the token.
      * @return: The token
      */
-    private String getToken(ByteBuffer buf) {
+    private int getToken(ByteBuffer buf) {
         int position = buf.position();
         buf.position(0);
-        byte[] bytes = new byte[36];
-        buf.get(bytes, 0, 36);
+        int token = buf.getInt();
         buf.position(position);
-        return new String(bytes);
-    }
+        return token;
+     }
 
     void setBufferForSend(ByteBuffer buf) {
         buf.flip();
