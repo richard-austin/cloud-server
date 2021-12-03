@@ -156,43 +156,41 @@ class Cloud {
     }
 
     void startReadFromCloudProxy() {
-        AtomicBoolean waiting = new AtomicBoolean(false);
+        AtomicBoolean done = new AtomicBoolean(true);
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
         executor.scheduleAtFixedRate(() -> {
-            if (!waiting.get()) {
+            if (done.get()) {
                 ByteBuffer buf = getBuffer();
-                readFromCloudProxy(waiting, buf);
+                readFromCloudProxy(done, buf);
             }
         }, 300, 1, TimeUnit.MILLISECONDS);
     }
 
-    void readFromCloudProxy(AtomicBoolean waiting, ByteBuffer buf) {
-        if (clientSocket != null && clientSocket.isOpen() && !waiting.get()) {
-            waiting.set(true);
-            clientSocket.read(buf, waiting, new CompletionHandler<>() {
+    void readFromCloudProxy(AtomicBoolean done, ByteBuffer buf) {
+        if (clientSocket != null && clientSocket.isOpen() && done.get()) {
+            done.set(false);
+            clientSocket.read(buf, done, new CompletionHandler<>() {
                 @Override
-                public void completed(Integer result, AtomicBoolean waiting) {
+                public void completed(Integer result, AtomicBoolean done) {
                     if (result != -1) {
 //                        logger.log(Level.INFO, "readFromCloudProxy: " + log(buf));
-                        //     inQueue.add(buf);
                         splitMessages(buf);
                         buf.clear();
+                        readFromCloudProxy(done, buf);
                     }
-                    waiting.set(false);
+                    done.set(true);
                 }
 
                 @Override
-                public void failed(Throwable exc, AtomicBoolean waiting) {
+                public void failed(Throwable exc, AtomicBoolean done) {
                     logger.log(Level.INFO, "readFromCloudProxy failed: " + exc.getClass().getName() + " : " + exc.getMessage());
-                    waiting.set(false);
+                    done.set(true);
                 }
             });
         }
     }
 
     void respondToFrontEnd(ByteBuffer buf) {
-
-        AtomicBoolean done = new AtomicBoolean(false);
         String token = getToken(buf);
         int length = getDataLength(buf);
         AsynchronousSocketChannel frontEndChannel = tokenSocketMap.get(token);  //Select the correct connection to respond to
@@ -201,13 +199,11 @@ class Cloud {
         frontEndChannel.write(buf, null, new CompletionHandler<>() {
             @Override
             public void completed(Integer result, Object attachment) {
-                done.set(true);
                 // Done, nothing more to do
             }
 
             @Override
             public void failed(Throwable exc, Object attachment) {
-                done.set(true);
                 logger.log(Level.INFO, "startRespondToFrontEnd failed: " + exc.getClass().getName() + " : " + exc.getMessage());
             }
         });
