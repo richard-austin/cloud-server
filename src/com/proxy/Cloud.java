@@ -14,11 +14,17 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.zip.CRC32;
+import java.util.zip.Checksum;
 
 class Cloud {
     int frontEndFacingPort;
     int clientFacingPort;
     private final int tokenLength = Integer.BYTES;
+    private final int lengthLength = Integer.BYTES;
+    private final int checkSumLength = Long.BYTES;
+    private final int headerLength = tokenLength+lengthLength+checkSumLength;
+
     public static final int BUFFER_SIZE = 16000;
     final Queue<ByteBuffer> bufferQueue = new ConcurrentLinkedQueue<>();
     AsynchronousSocketChannel clientSocket;
@@ -113,6 +119,7 @@ class Cloud {
             public void completed(Integer result, Object attachment) {
                 if (result != -1) {
                     setDataLength(buf, result);
+                    setCRC32Checksum(buf);
 
                     startWriteToCloudProxy(buf);
                 } else
@@ -194,8 +201,8 @@ class Cloud {
         int token = getToken(buf);
         int length = getDataLength(buf);
         AsynchronousSocketChannel frontEndChannel = tokenSocketMap.get(token);  //Select the correct connection to respond to
-        buf.position(tokenLength + Integer.BYTES);
-        buf.limit(tokenLength + Integer.BYTES + length);
+        buf.position(headerLength);
+        buf.limit(headerLength + length);
         frontEndChannel.write(buf, null, new CompletionHandler<>() {
             @Override
             public void completed(Integer result, Object attachment) {
@@ -220,7 +227,7 @@ class Cloud {
     }
 
     /**
-     * getBuffer: Get a buffer and place the token at the start. Reserve a further Integer.BYTES bytes to contain the length.
+     * getBuffer: Get a buffer and place the token at the start. Reserve a further lengthLength bytes to contain the length.
      *
      * @param token: The token
      * @return: The byte buffer with the token in place and length reservation set up.
@@ -230,6 +237,7 @@ class Cloud {
 
         buf.putInt(token);
         buf.putInt(0);  // Reserve space for the data length
+        buf.putLong(0); // Reserve space for the checksum
         return buf;
     }
 
@@ -238,7 +246,7 @@ class Cloud {
     }
 
     /**
-     * setDataLength: Set the Integer.BYTES bytes following the token to the length of the data in the buffer
+     * setDataLength: Set the lengthLength bytes following the token to the length of the data in the buffer
      * (minus token and length bytes).
      *
      * @param buf:    The buffer to set the length in.
@@ -247,10 +255,24 @@ class Cloud {
     private void setDataLength(ByteBuffer buf, int length) {
         int position = buf.position();
         buf.position(tokenLength);
-        // Set apparent size to full buffer size so that "packets" are all the same size
-        //      buf.limit(BUFFER_SIZE);
         buf.putInt(length);
         buf.position(position);
+    }
+
+    private void setCRC32Checksum(ByteBuffer buf) {
+        int position = buf.position();
+        buf.position(tokenLength+lengthLength);
+        buf.putLong(getCRC32Checksum(buf));
+        buf.position(position);
+    }
+
+    private long readCRC32Checksum(ByteBuffer buf)
+    {
+        int position = buf.position();
+        buf.position(tokenLength+lengthLength);
+        long crc32Checksum = buf.getLong();
+        buf.position(position);
+        return crc32Checksum;
     }
 
     /**
@@ -261,7 +283,9 @@ class Cloud {
      */
     private int getDataLength(ByteBuffer buf) {
         buf.position(tokenLength);
-        return buf.getInt();
+        int length = buf.getInt();
+        buf.position(buf.position()+checkSumLength); // Leave the position where the data starts.
+        return length;
     }
 
     static int nextToken=0;
@@ -275,6 +299,12 @@ class Cloud {
         synchronized (getTokenLock) {
             return ++nextToken;
         }
+    }
+
+    public long getCRC32Checksum(ByteBuffer buf) {
+        Checksum crc32 = new CRC32();
+        crc32.update(buf.array(), headerLength, buf.limit()-headerLength);
+        return crc32.getValue();
     }
 
     /**
@@ -296,31 +326,30 @@ class Cloud {
         //       buf.limit(BUFFER_SIZE);
     }
 
-    ByteBuffer previousBuffer = null;
+    ByteBuffer remainsOfPreviousBuffer = null;
 
     void splitMessages(ByteBuffer buf) {
-        final int headerLength = tokenLength + Integer.BYTES;
         buf.flip();
         ByteBuffer combinedBuf;
 
-        if (previousBuffer != null) {
+        if (remainsOfPreviousBuffer != null) {
             // Append the new buffer onto the previous ones remaining content
-            combinedBuf = ByteBuffer.allocate(buf.limit() + previousBuffer.limit() - previousBuffer.position());
-            combinedBuf.put(previousBuffer);
+            combinedBuf = ByteBuffer.allocate(buf.limit() + remainsOfPreviousBuffer.limit() - remainsOfPreviousBuffer.position());
+            combinedBuf.put(remainsOfPreviousBuffer);
             combinedBuf.put(buf);
-            previousBuffer = null;
+            remainsOfPreviousBuffer = null;
         } else
             combinedBuf = buf;
         combinedBuf.rewind();
 
         while (combinedBuf.position() < combinedBuf.limit()) {
             if (combinedBuf.limit() - combinedBuf.position() < headerLength) {
-                previousBuffer = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.limit()));
+                remainsOfPreviousBuffer = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.limit()));
                 combinedBuf.position(combinedBuf.limit());
             } else {
                 int lengthThisMessage = getMessageLengthFromPosition(combinedBuf);
                 if (lengthThisMessage > combinedBuf.limit() - combinedBuf.position()) {
-                    previousBuffer = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.limit()));
+                    remainsOfPreviousBuffer = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.limit()));
                     combinedBuf.position(combinedBuf.limit());
                 } else {
                     try {
@@ -338,7 +367,7 @@ class Cloud {
     }
 
     private int getMessageLengthFromPosition(ByteBuffer buf) {
-        return buf.getInt(buf.position() + tokenLength) + tokenLength + Integer.BYTES;
+        return buf.getInt(buf.position() + tokenLength) + headerLength;
     }
 
     private void waitTillDone(final AtomicBoolean done, final int maxMicroseconds) {
@@ -356,7 +385,7 @@ class Cloud {
 
     private String log(ByteBuffer buf) {
         int position = buf.position();
-        buf.position(tokenLength + Integer.BYTES);
+        buf.position(tokenLength + lengthLength);
 
         int length = getDataLength(buf);
         byte[] dataBytes = new byte[length];

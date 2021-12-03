@@ -10,6 +10,8 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.zip.CRC32;
+import java.util.zip.Checksum;
 
 public class CloudProxy {
 
@@ -20,6 +22,10 @@ public class CloudProxy {
     private final int webserverPort;
     final Map<Integer, AsynchronousSocketChannel> tokenSocketMap = new LinkedHashMap<>();
     private final int tokenLength = Integer.BYTES;
+    private final int lengthLength = Integer.BYTES;
+    private final int checkSumLength = Long.BYTES;
+    private final int headerLength = tokenLength+lengthLength+checkSumLength;
+
     private AsynchronousSocketChannel cloudSocket;
 
     public static final int BUFFER_SIZE = 16000;
@@ -157,13 +163,12 @@ public class CloudProxy {
 
     void writeRequestToWebserver(final ByteBuffer buf, final AsynchronousSocketChannel webserverChannel, int token) {
         int length = getDataLength(buf);
-        buf.position(tokenLength + Integer.BYTES);
-        buf.limit(tokenLength + Integer.BYTES + length);
+        buf.position(headerLength);
+        buf.limit(headerLength + length);
         webserverChannel.write(buf, token, new CompletionHandler<>() {
             @Override
             public void completed(Integer result, Integer token) {
                 readResponseFromWebserver(webserverChannel, token);
-                //                   logger.log(Level.INFO, "writeRequestToWebserver: "+log(buf));
             }
 
             @Override
@@ -178,8 +183,9 @@ public class CloudProxy {
         webserverChannel.read(buf, null, new CompletionHandler<Integer, Void>() {
             @Override
             public void completed(Integer result, Void nothing) {
-                if (result > 0) {
+                if (result != -1) {
                     setDataLength(buf, result);
+                    setCRC32Checksum(buf);
 //                    logger.log(Level.INFO, "readResponseFromWebserver: "+log(buf));
                     sendResponseToCloud(buf);
                     readResponseFromWebserver(webserverChannel, token);
@@ -222,7 +228,7 @@ public class CloudProxy {
     }
 
     /**
-     * getBuffer: Get a buffer and place the token at the start. Reserve a further Integer.BYTES bytes to contain the length.
+     * getBuffer: Get a buffer and place the token at the start. Reserve a further lengthLength bytes to contain the length.
      *
      * @param token: The token
      * @return: The byte buffer with the token in place and length reservation set up.
@@ -232,28 +238,38 @@ public class CloudProxy {
 
         buf.putInt(token);
         buf.putInt(0);  // Reserve space for the data length
+        buf.putLong(0); // Reserve space for the checksum
         return buf;
     }
 
     /**
-     * setDataLength: Set the Integer.BYTES bytes following the token to the length of the data in the buffer
+     * setDataLength: Set the lengthLength bytes following the token to the length of the data in the buffer
      * (minus token and length bytes).
      *
      * @param buf:    The buffer to set the length in.
      * @param length: The length to set.
      */
     private void setDataLength(ByteBuffer buf, int length) {
-//        if(length > (BUFFER_SIZE-tokenLength-Integer.BYTES) || length < 0)
-//        {
-//            logger.log(Level.SEVERE, "Crazy length value ("+length+"}");
-//        }
-
         int position = buf.position();
         buf.position(tokenLength);
-        // Set apparent size to full buffer size so that "packets" are all the same size
-//        buf.limit(BUFFER_SIZE);
         buf.putInt(length);
         buf.position(position);
+    }
+
+    private void setCRC32Checksum(ByteBuffer buf) {
+        int position = buf.position();
+        buf.position(tokenLength+lengthLength);
+        buf.putLong(getCRC32Checksum(buf));
+        buf.position(position);
+    }
+
+    private long readCRC32Checksum(ByteBuffer buf)
+    {
+        int position = buf.position();
+        buf.position(tokenLength+lengthLength);
+        long crc32Checksum = buf.getLong();
+        buf.position(position);
+        return crc32Checksum;
     }
 
     /**
@@ -264,7 +280,7 @@ public class CloudProxy {
      */
     private int getDataLength(ByteBuffer buf) {
         int length = buf.getInt(tokenLength);
-        buf.position(tokenLength + Integer.BYTES);
+        buf.position(tokenLength + lengthLength);
         return length;
     }
 
@@ -282,36 +298,40 @@ public class CloudProxy {
         return token;
      }
 
-    void setBufferForSend(ByteBuffer buf) {
-        buf.flip();
-        //      buf.limit(BUFFER_SIZE);
+    public long getCRC32Checksum(ByteBuffer buf) {
+        Checksum crc32 = new CRC32();
+        crc32.update(buf.array(), headerLength, buf.limit()-headerLength);
+        return crc32.getValue();
     }
 
-    ByteBuffer previousBuffer = null;
+    void setBufferForSend(ByteBuffer buf) {
+        buf.flip();
+    }
+
+    ByteBuffer remainsOfPreviousBuffer = null;
 
     void splitMessages(ByteBuffer buf) {
-        final int headerLength = tokenLength + Integer.BYTES;
         buf.flip();
         ByteBuffer combinedBuf;
 
-        if (previousBuffer != null) {
+        if (remainsOfPreviousBuffer != null) {
             // Append the new buffer onto the previous ones remaining content
-            combinedBuf = ByteBuffer.allocate(buf.limit() + previousBuffer.limit() - previousBuffer.position());
-            combinedBuf.put(previousBuffer);
+            combinedBuf = ByteBuffer.allocate(buf.limit() + remainsOfPreviousBuffer.limit() - remainsOfPreviousBuffer.position());
+            combinedBuf.put(remainsOfPreviousBuffer);
             combinedBuf.put(buf);
-            previousBuffer = null;
+            remainsOfPreviousBuffer = null;
         } else
             combinedBuf = buf;
         combinedBuf.rewind();
 
         while (combinedBuf.position() < combinedBuf.limit()) {
             if (combinedBuf.limit() - combinedBuf.position() < headerLength) {
-                previousBuffer = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.limit()));
+                remainsOfPreviousBuffer = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.limit()));
                 combinedBuf.position(combinedBuf.limit());
             } else {
                 int lengthThisMessage = getMessageLengthFromPosition(combinedBuf);
                 if (lengthThisMessage > combinedBuf.limit() - combinedBuf.position()) {
-                    previousBuffer = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.limit()));
+                    remainsOfPreviousBuffer = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.limit()));
                     combinedBuf.position(combinedBuf.limit());
                 } else {
                     try {
@@ -328,25 +348,12 @@ public class CloudProxy {
     }
 
     private int getMessageLengthFromPosition(ByteBuffer buf) {
-        return buf.getInt(buf.position() + tokenLength) + tokenLength + Integer.BYTES;
-    }
-
-    private void waitTillDone(final AtomicBoolean done, final int maxMicroseconds) {
-        try {
-            done.set(false);
-            int countDown = maxMicroseconds;
-            while (--countDown > 0 && !done.get())
-                Thread.sleep(0, 1000);
-
-            logger.log(Level.INFO, "waitTillDone timed out after " + (maxMicroseconds - countDown) + " done = " + done.get());
-        } catch (Exception ex) {
-            logger.log(Level.INFO, "Exception in waitTillDone: " + ex.getClass().getName() + " " + ex.getMessage());
-        }
+        return buf.getInt(buf.position() + tokenLength) + headerLength;
     }
 
     private String log(ByteBuffer buf) {
         int position = buf.position();
-        buf.position(tokenLength + Integer.BYTES);
+        buf.position(tokenLength + lengthLength);
 
         int length = getDataLength(buf);
         byte[] dataBytes = new byte[length];
@@ -354,8 +361,5 @@ public class CloudProxy {
             dataBytes[i] = buf.get();
         buf.position(position);
         return new String(dataBytes);
-    }
-
-    static final class WebServerChannels extends LinkedHashMap<String, AsynchronousSocketChannel> {
     }
 }
