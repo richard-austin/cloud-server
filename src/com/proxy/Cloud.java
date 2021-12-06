@@ -3,217 +3,195 @@ package com.proxy;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.channels.AsynchronousServerSocketChannel;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
+import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.zip.CRC32;
 import java.util.zip.Checksum;
 
-class Cloud {
-    int frontEndFacingPort;
-    int clientFacingPort;
+public class Cloud {
+    final Queue<ByteBuffer> bufferQueue = new ConcurrentLinkedQueue<>();
+    final Queue<ByteBuffer> messageOutQueue = new ConcurrentLinkedQueue<>();
+    //    AsynchronousSocketChannel clientSocket;
+    private boolean running = true;
+    final Map<Integer, SocketChannel> tokenSocketMap = new LinkedHashMap<>();
+
+    private static final Logger logger = Logger.getLogger("CloudAsync");
+    public static final int BUFFER_SIZE = 16000;
     private final int tokenLength = Integer.BYTES;
     private final int lengthLength = Integer.BYTES;
-    private final int checkSumLength = Long.BYTES;
-    private final int headerLength = tokenLength+lengthLength+checkSumLength;
-
-    public static final int BUFFER_SIZE = 16000;
-    final Queue<ByteBuffer> bufferQueue = new ConcurrentLinkedQueue<>();
-    AsynchronousSocketChannel clientSocket;
-
-    final Map<Integer, AsynchronousSocketChannel> tokenSocketMap = new LinkedHashMap<>();
-
-    private static final Logger logger = Logger.getLogger("Cloud");
+    private final int checksumLength = Long.BYTES;
+    private final int headerLength = tokenLength + lengthLength+checksumLength;
+    private SocketChannel cloudProxy;
 
     public static void main(String[] args) {
-        new Cloud(8082, 8081).start();
+        new Cloud().start(8082, 8081);
     }
 
-    Cloud(int frontEndFacingPort, int clientFacingPort) {
-        this.frontEndFacingPort = frontEndFacingPort;
-        this.clientFacingPort = clientFacingPort;
+    private void start(final int browserFacingPort, final int cloudProxyFacingPort) {
+        acceptConnectionsFromCloudProxy(cloudProxyFacingPort);
+        acceptConnectionsFromBrowser(browserFacingPort); // Never returns
     }
 
-    static final Object LOCK = new Object();
+    private void acceptConnectionsFromBrowser(final int browserFacingPort) {
+        while (running) {
+            try {
+                // Creating a ServerSocket to listen for connections with
+                ServerSocketChannel s = ServerSocketChannel.open();
+                s.bind(new InetSocketAddress(browserFacingPort));
+                while (running) {
+                    try {
+                        // It will wait for a connection on the local port
+                        SocketChannel browser = s.accept();
+                        browser.configureBlocking(true);
+                        final int token = getToken();
+                        tokenSocketMap.put(token, browser);
 
-    void start() {
-        openServerSocketForCloudProxy();
-        acceptConnectionsFromFrontEnd();
-        startReadFromCloudProxy();
-        try {
-            synchronized (LOCK) {
-                LOCK.wait(0, 0);
+                        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+                        executor.execute(() -> readFromBrowser(browser, token));
+                    } catch (Exception ex) {
+                        logger.log(Level.SEVERE, "Exception in acceptConnectionsFromBrowser: " + ex.getClass().getName() + ": " + ex.getMessage());
+                    }
+                }
+            } catch (IOException ioex) {
+                logger.log(Level.SEVERE, "IOException in acceptConnectionsFromBrowser: " + ioex.getClass().getName() + ": " + ioex.getMessage());
             }
-        } catch (InterruptedException iex) {
-            logger.log(Level.WARNING, "Process interrupted: " + iex.getMessage());
         }
     }
 
-    void openServerSocketForCloudProxy() {
-        try {
-            AsynchronousServerSocketChannel openToClientProxy = AsynchronousServerSocketChannel.open();
-            final AsynchronousServerSocketChannel listenerToClientProxy =
-                    openToClientProxy.bind(new InetSocketAddress(clientFacingPort));
+    private void acceptConnectionsFromCloudProxy(final int cloudProxyFacingPort) {
+        startCloudProxyOutputProcess();
+        startCloudProxyInputProcess();
+        Executors.newSingleThreadExecutor().execute(() -> {
+            while (running) {
+                try {
+                    // Creating a ServerSocket to listen for connections with
+                    ServerSocketChannel s = ServerSocketChannel.open();
+                    s.bind(new InetSocketAddress(cloudProxyFacingPort));
+                    while (running) {
+                        try {
+                            // It will wait for a connection on the local port
+                            cloudProxy = s.accept();
+                            cloudProxy.configureBlocking(true);
 
-            // Open up a listening port for the ClientProxy on the client machine to connect to
-            // The client proxy should make a few connections
-            listenerToClientProxy.accept(null, new CompletionHandler<AsynchronousSocketChannel, Void>() {
-                public void completed(final AsynchronousSocketChannel client, Void nothing) {
-                    // accept the next connection
-                    listenerToClientProxy.accept(null, this);
-                    clientSocket = client;
+                            //requestProcessing(cloudProxy, server, host, remoteport);
+                        } catch (Exception ex) {
+                            logger.log(Level.SEVERE, "Exception in acceptConnectionsFromCloudProxy: " + ex.getClass().getName() + ": " + ex.getMessage());
+                        }
+                    }
+                } catch (IOException ioex) {
+                    logger.log(Level.SEVERE, "IOException in acceptConnectionsFromCloudProxy: " + ioex.getClass().getName() + ": " + ioex.getMessage());
                 }
-
-                @Override
-                public void failed(Throwable exc, Void nothing) {
-                    logger.log(Level.SEVERE, "Exception in Cloud.start.listener.accept: " + exc.getMessage());
-                }
-            });
-        } catch (IOException ioex) {
-            logger.log(Level.INFO, "IOException in openServerSocketForCloudProxy: " + ioex.getClass().getName() + " " + ioex.getMessage());
-        }
-    }
-
-    void acceptConnectionsFromFrontEnd() {
-        try {
-            AsynchronousServerSocketChannel openToFrontEnd = AsynchronousServerSocketChannel.open();
-            final AsynchronousServerSocketChannel listenerToFrontEnd =
-                    openToFrontEnd.bind(new InetSocketAddress(frontEndFacingPort));
-            // Open up a listening port for the front end to connect to
-            listenerToFrontEnd.accept(null, new CompletionHandler<AsynchronousSocketChannel, Void>() {
-                public void completed(final AsynchronousSocketChannel frontEnd, Void nothing) {
-                    // accept the next connection
-                    listenerToFrontEnd.accept(null, this);
-                    logger.log(Level.INFO, "Cloud.start accepted connection");
-
-                    if (frontEnd != null) {
-                        int token = getToken();
-                        tokenSocketMap.put(token, frontEnd);
-                        readFromFrontEnd(frontEnd, token);
-                    } else
-                        logger.log(Level.SEVERE, "accept socket was null");
-                }
-
-                @Override
-                public void failed(Throwable exc, Void nothing) {
-                    System.out.println("Exception in Cloud.start.listener.accept: " + exc.getMessage());
-                }
-            });
-        } catch (IOException ioex) {
-            logger.log(Level.INFO, "IOException in openServerSocketForFrontEnd: " + ioex.getClass().getName() + " " + ioex.getMessage());
-        }
-    }
-
-    final void readFromFrontEnd(AsynchronousSocketChannel channel, final int token) {
-        ByteBuffer buf = getBuffer(token);
-        channel.read(buf, null, new CompletionHandler<>() {
-            @Override
-            public void completed(Integer result, Object attachment) {
-                if (result != -1) {
-                    setDataLength(buf, result);
-                    setCRC32Checksum(buf);
-
-                    startWriteToCloudProxy(buf);
-                } else
-                    return;
-
-                readFromFrontEnd(channel, token);
-            }
-
-            @Override
-            public void failed(Throwable exc, Object attachment) {
-                logger.log(Level.INFO, "Failed read: " + exc.getMessage());
             }
         });
     }
 
-    final Object startWriteToCloudProxyLock = new Object();
-
-    void startWriteToCloudProxy(ByteBuffer buf) {
-        synchronized (startWriteToCloudProxyLock) {
-            try {
-                if (clientSocket != null) {
-                    setBufferForSend(buf);
-
-                    //                    logger.log(Level.INFO, "startWriteToCloudProxy: " + log(buf));
-                    clientSocket.write(buf, null, new CompletionHandler<>() {
-                        @Override
-                        public void completed(Integer result, Object attachment) {
-                            // Nothing more to do for now
-                        }
-
-                        @Override
-                        public void failed(Throwable exc, Object attachment) {
-                            logger.log(Level.INFO, "startWriteToCloudProxy failed: " + exc.getMessage());
-                        }
-                    });
-                }
-            } catch (Exception e) {
-                logger.log(Level.INFO, "Exception in startWriteToCloudProxy: " + e.getClass().getName() + ": " + e.getMessage());
-            }
-        }
-    }
-
-    void startReadFromCloudProxy() {
-        AtomicBoolean done = new AtomicBoolean(true);
+    private void startCloudProxyInputProcess() {
+        final AtomicBoolean busy = new AtomicBoolean(false);
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
         executor.scheduleAtFixedRate(() -> {
-            if (done.get()) {
+            if (cloudProxy != null && cloudProxy.isOpen() && !busy.get()) {
+                busy.set(true);
                 ByteBuffer buf = getBuffer();
-                readFromCloudProxy(done, buf);
+                try {
+                    while (cloudProxy.read(buf) != -1) {
+                        splitMessages(buf);
+                        buf.clear();
+                    }
+
+                }
+                catch(Exception ex)
+                {
+                    showExceptionDetails(ex, "startCloudProxyInputProcess");
+                }
+                busy.set(false);
             }
         }, 300, 1, TimeUnit.MILLISECONDS);
     }
 
-    void readFromCloudProxy(AtomicBoolean done, ByteBuffer buf) {
-        if (clientSocket != null && clientSocket.isOpen() && done.get()) {
-            done.set(false);
-            clientSocket.read(buf, done, new CompletionHandler<>() {
-                @Override
-                public void completed(Integer result, AtomicBoolean done) {
-                    if (result != -1) {
-//                        logger.log(Level.INFO, "readFromCloudProxy: " + log(buf));
-                        splitMessages(buf);
-                        buf.clear();
-                        readFromCloudProxy(done, buf);
-                    }
-                    done.set(true);
-                }
+    final Object startCloudProxyOutputProcessLock = new Object();
 
-                @Override
-                public void failed(Throwable exc, AtomicBoolean done) {
-                    logger.log(Level.INFO, "readFromCloudProxy failed: " + exc.getClass().getName() + " : " + exc.getMessage());
-                    done.set(true);
+    private void startCloudProxyOutputProcess() {
+        Executors.newSingleThreadExecutor().execute(() -> {
+            synchronized (startCloudProxyOutputProcessLock) {
+                try {
+                    while (running) {
+                        startCloudProxyOutputProcessLock.wait();
+                        while (!messageOutQueue.isEmpty()) {
+                            ByteBuffer buf = messageOutQueue.poll();
+                            int result;
+                            do {
+                                result = cloudProxy.write(buf);
+                            }
+                            while (result != -1 && buf.position() < buf.limit());
+                        }
+                    }
+                } catch (Exception ex) {
+                    showExceptionDetails(ex, "startCloudProxyOutputProcess");
                 }
-            });
+            }
+        });
+    }
+
+    final void readFromBrowser(SocketChannel channel, final int token) {
+        int result;
+        try {
+            ByteBuffer buf = getBuffer(token);
+            buf.position(headerLength);
+            while ((result = channel.read(buf)) != -1) {
+                int dataLength = 0;
+                dataLength += result;
+                setDataLength(buf, dataLength);
+                setBufferForSend(buf);
+                messageOutQueue.add(buf);
+                synchronized (startCloudProxyOutputProcessLock) {
+                    startCloudProxyOutputProcessLock.notify();
+                }
+                buf = getBuffer(token);
+                buf.position(headerLength);
+            }
+         } catch (Exception ex) {
+            showExceptionDetails(ex, "readFromBrowser");
         }
     }
 
-    void respondToFrontEnd(ByteBuffer buf) {
-        int token = getToken(buf);
-        int length = getDataLength(buf);
-        AsynchronousSocketChannel frontEndChannel = tokenSocketMap.get(token);  //Select the correct connection to respond to
-        buf.position(headerLength);
-        buf.limit(headerLength + length);
-        frontEndChannel.write(buf, null, new CompletionHandler<>() {
-            @Override
-            public void completed(Integer result, Object attachment) {
-                // Done, nothing more to do
-            }
+    private void respondToBrowser(ByteBuffer buf) {
+        try {
+            int token = getToken(buf);
+            int length = getDataLength(buf);
+            SocketChannel frontEndChannel = tokenSocketMap.get(token);  //Select the correct connection to respond to
+            if (frontEndChannel == null)
+                throw new Exception("Couldn't find a socket for token " + token);
+            buf.position(headerLength);
+            buf.limit(headerLength + length);
+            int result;
+            try {
+                do {
+                    result = frontEndChannel.write(buf);
+                }
+                while (result != -1 && buf.position() < buf.limit());
 
-            @Override
-            public void failed(Throwable exc, Object attachment) {
-                logger.log(Level.INFO, "startRespondToFrontEnd failed: " + exc.getClass().getName() + " : " + exc.getMessage());
+            } catch (IOException ioex) {
+                showExceptionDetails(ioex, "respondToFrontEnd");
             }
-        });
+        } catch (Exception ex) {
+            showExceptionDetails(ex, "respondToBrowser");
+        }
+    }
+
+    void showExceptionDetails(Throwable t, String functionName) {
+        logger.log(Level.SEVERE, t.getClass().getName() + " exception in " + functionName + ": " + t.getMessage()+"\n"+t.fillInStackTrace());
     }
 
     /**
@@ -241,10 +219,6 @@ class Cloud {
         return buf;
     }
 
-    private static void error(Throwable exc, Object attachment) {
-        logger.log(Level.WARNING, "IO failure in " + attachment, exc);
-    }
-
     /**
      * setDataLength: Set the lengthLength bytes following the token to the length of the data in the buffer
      * (minus token and length bytes).
@@ -259,22 +233,6 @@ class Cloud {
         buf.position(position);
     }
 
-    private void setCRC32Checksum(ByteBuffer buf) {
-        int position = buf.position();
-        buf.position(tokenLength+lengthLength);
-        buf.putLong(getCRC32Checksum(buf));
-        buf.position(position);
-    }
-
-    private long readCRC32Checksum(ByteBuffer buf)
-    {
-        int position = buf.position();
-        buf.position(tokenLength+lengthLength);
-        long crc32Checksum = buf.getLong();
-        buf.position(position);
-        return crc32Checksum;
-    }
-
     /**
      * getDataLength: Get the length of the data from the buffer. The actual data follows the token and length bytes.
      *
@@ -282,14 +240,16 @@ class Cloud {
      * @return: The length of the data in the buffer
      */
     private int getDataLength(ByteBuffer buf) {
+        final int position = buf.position();
         buf.position(tokenLength);
         int length = buf.getInt();
-        buf.position(buf.position()+checkSumLength); // Leave the position where the data starts.
+        buf.position(position); // Leave the position where the data starts.
         return length;
     }
 
-    static int nextToken=0;
+    static int nextToken = 0;
     final Object getTokenLock = new Object();
+
     /**
      * getToken: Get a sequential integer as a token
      *
@@ -303,7 +263,7 @@ class Cloud {
 
     public long getCRC32Checksum(ByteBuffer buf) {
         Checksum crc32 = new CRC32();
-        crc32.update(buf.array(), headerLength, buf.limit()-headerLength);
+        crc32.update(buf.array(), headerLength, buf.limit() - headerLength);
         return crc32.getValue();
     }
 
@@ -323,7 +283,6 @@ class Cloud {
 
     void setBufferForSend(ByteBuffer buf) {
         buf.flip();
-        //       buf.limit(BUFFER_SIZE);
     }
 
     ByteBuffer remainsOfPreviousBuffer = null;
@@ -357,9 +316,9 @@ class Cloud {
                         newBuf.rewind();
                         logger.log(Level.INFO, "Buffer size " + newBuf.limit() + " lengthThisMessage= " + lengthThisMessage);
                         combinedBuf.position(combinedBuf.position() + lengthThisMessage);
-                        respondToFrontEnd(newBuf);
+                        respondToBrowser(newBuf);
                     } catch (Exception ex) {
-                        Object x = ex;
+                        showExceptionDetails(ex, "splitMessages");
                     }
                 }
             }
@@ -369,29 +328,5 @@ class Cloud {
     private int getMessageLengthFromPosition(ByteBuffer buf) {
         return buf.getInt(buf.position() + tokenLength) + headerLength;
     }
-
-    private void waitTillDone(final AtomicBoolean done, final int maxMicroseconds) {
-        try {
-            done.set(false);
-            int countDown = maxMicroseconds;
-            while (--countDown > 0 && !done.get())
-                Thread.sleep(0, 1000);
-
-            logger.log(Level.INFO, "waitTillDone timed out after " + (maxMicroseconds - countDown) + " done = " + done.get());
-        } catch (Exception ex) {
-            logger.log(Level.INFO, "Exception in waitTillDone: " + ex.getClass().getName() + " " + ex.getMessage());
-        }
-    }
-
-    private String log(ByteBuffer buf) {
-        int position = buf.position();
-        buf.position(tokenLength + lengthLength);
-
-        int length = getDataLength(buf);
-        byte[] dataBytes = new byte[length];
-        for (int i = 0; i < length; ++i)
-            dataBytes[i] = buf.get();
-        buf.position(position);
-        return new String(dataBytes);
-    }
 }
+
