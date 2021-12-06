@@ -8,12 +8,13 @@ import java.nio.channels.CompletionHandler;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.zip.CRC32;
 import java.util.zip.Checksum;
 
-public class CloudProxy {
+public class CloudProxyAsynch {
 
     private static final String webServerAddress = "192.168.0.29:443";
     public final int cloudListeningPort;
@@ -24,18 +25,18 @@ public class CloudProxy {
     private final int tokenLength = Integer.BYTES;
     private final int lengthLength = Integer.BYTES;
     private final int checkSumLength = Long.BYTES;
-    private final int headerLength = tokenLength+lengthLength+checkSumLength;
+    private final int headerLength = tokenLength + lengthLength + checkSumLength;
 
     private AsynchronousSocketChannel cloudSocket;
 
     public static final int BUFFER_SIZE = 16000;
 
-    private static final Logger logger = Logger.getLogger("CloudProxy");
+    private static final Logger logger = Logger.getLogger("CloudProxyAsynch");
 
     final Queue<ByteBuffer> bufferQueue = new ConcurrentLinkedQueue<>();
     final private Queue<AsynchronousSocketChannel> cloudConnectionQueue = new ConcurrentLinkedQueue<>();
 
-    CloudProxy(String webServerHost, int webServerPort, String cloudHost, int cloudListeningPort) {
+    CloudProxyAsynch(String webServerHost, int webServerPort, String cloudHost, int cloudListeningPort) {
         this.webserverHost = webServerHost;
         this.webserverPort = webServerPort;
         this.cloudHost = cloudHost;
@@ -52,7 +53,7 @@ public class CloudProxy {
             }
             host = split[0];
             port = Integer.parseInt(split[1]);
-            new CloudProxy(host, port, "localhost", 8081).start();
+            new CloudProxyAsynch(host, port, "localhost", 8081).start();
         } catch (IllegalArgumentException e) {
             System.exit(1);
         }
@@ -134,41 +135,49 @@ public class CloudProxy {
     }
 
     void writeRequestsToWebserver(ByteBuffer buf) {
-            int token = getToken(buf);
-            if (tokenSocketMap.containsKey(token)) {
-                writeRequestToWebserver(buf, tokenSocketMap.get(token), token);
-            } else  // Make a new connection to the webserver
-            {
-                try {
-                    tokenSocketMap.put(token, null);
-                    final AsynchronousSocketChannel webserverChannel = AsynchronousSocketChannel.open();
-                    webserverChannel.connect(new InetSocketAddress(webserverHost, webserverPort), token, new CompletionHandler<Void, Integer>() {
+        int token = getToken(buf);
+        if (tokenSocketMap.containsKey(token)) {
+            writeRequestToWebserver(buf, tokenSocketMap.get(token), token);
+        } else  // Make a new connection to the webserver
+        {
+            try {
+                tokenSocketMap.put(token, null);
+                final AsynchronousSocketChannel webserverChannel = AsynchronousSocketChannel.open();
+                webserverChannel.connect(new InetSocketAddress(webserverHost, webserverPort), token, new CompletionHandler<Void, Integer>() {
+                    @Override
+                    public void completed(Void result, Integer token) {
+                        tokenSocketMap.put(token, webserverChannel);
+                        writeRequestToWebserver(buf, webserverChannel, token);
+                    }
 
-                        @Override
-                        public void completed(Void result, Integer token) {
-                            tokenSocketMap.put(token, webserverChannel);
-                            writeRequestToWebserver(buf, webserverChannel, token);
-                        }
-
-                        @Override
-                        public void failed(Throwable exc, Integer token) {
-                        }
-                    });
-                } catch (IOException ioex) {
-                    logger.log(Level.INFO, "writeRequestsToWebserver failed: " + ioex.getClass().getName() + " : " + ioex.getMessage());
-                }
+                    @Override
+                    public void failed(Throwable exc, Integer token) {
+                    }
+                });
+            } catch (IOException ioex) {
+                logger.log(Level.INFO, "writeRequestsToWebserver failed: " + ioex.getClass().getName() + " : " + ioex.getMessage());
             }
+        }
     }
 
-
     void writeRequestToWebserver(final ByteBuffer buf, final AsynchronousSocketChannel webserverChannel, int token) {
+        final AtomicInteger writeTotal = new AtomicInteger(headerLength);
         int length = getDataLength(buf);
         buf.position(headerLength);
         buf.limit(headerLength + length);
+        writeRequestToWebserver(buf, webserverChannel, token, writeTotal);
+    }
+
+    void writeRequestToWebserver(final ByteBuffer buf, final AsynchronousSocketChannel webserverChannel, int token, AtomicInteger writeTotal) {
         webserverChannel.write(buf, token, new CompletionHandler<>() {
             @Override
             public void completed(Integer result, Integer token) {
-                readResponseFromWebserver(webserverChannel, token);
+                if (result != -1) {
+                    if (writeTotal.addAndGet(result) < buf.limit())
+                        writeRequestToWebserver(buf, webserverChannel, token, writeTotal);
+                    else
+                        readResponseFromWebserver(webserverChannel, token);
+                }
             }
 
             @Override
@@ -187,6 +196,7 @@ public class CloudProxy {
                     setDataLength(buf, result);
                     setCRC32Checksum(buf);
 //                    logger.log(Level.INFO, "readResponseFromWebserver: "+log(buf));
+                    setBufferForSend(buf);
                     sendResponseToCloud(buf);
                     readResponseFromWebserver(webserverChannel, token);
                 }
@@ -202,19 +212,25 @@ public class CloudProxy {
 
     private void sendResponseToCloud(ByteBuffer buf) {
         synchronized (sendResponseToCloudLock) {
-            setBufferForSend(buf);
-            cloudSocket.write(buf, null, new CompletionHandler<>() {
-                @Override
-                public void completed(Integer result, Object attachment) {
-                    // Nothing more to do for now
-                }
-
-                @Override
-                public void failed(Throwable exc, Object attachment) {
-
-                }
-            });
+            AtomicInteger writeTotal = new AtomicInteger(0);
+            sendResponseToCloud(buf, writeTotal);
         }
+    }
+
+    private void sendResponseToCloud(ByteBuffer buf, AtomicInteger writeTotal) {
+        cloudSocket.write(buf, null, new CompletionHandler<>() {
+            @Override
+            public void completed(Integer result, Object attachment) {
+                if (result != -1)
+                    if (writeTotal.addAndGet(result) < buf.limit())
+                        sendResponseToCloud(buf, writeTotal);
+            }
+
+            @Override
+            public void failed(Throwable exc, Object attachment) {
+
+            }
+        });
     }
 
     /**
@@ -258,15 +274,14 @@ public class CloudProxy {
 
     private void setCRC32Checksum(ByteBuffer buf) {
         int position = buf.position();
-        buf.position(tokenLength+lengthLength);
+        buf.position(tokenLength + lengthLength);
         buf.putLong(getCRC32Checksum(buf));
         buf.position(position);
     }
 
-    private long readCRC32Checksum(ByteBuffer buf)
-    {
+    private long readCRC32Checksum(ByteBuffer buf) {
         int position = buf.position();
-        buf.position(tokenLength+lengthLength);
+        buf.position(tokenLength + lengthLength);
         long crc32Checksum = buf.getLong();
         buf.position(position);
         return crc32Checksum;
@@ -296,11 +311,11 @@ public class CloudProxy {
         int token = buf.getInt();
         buf.position(position);
         return token;
-     }
+    }
 
     public long getCRC32Checksum(ByteBuffer buf) {
         Checksum crc32 = new CRC32();
-        crc32.update(buf.array(), headerLength, buf.limit()-headerLength);
+        crc32.update(buf.array(), headerLength, buf.limit() - headerLength);
         return crc32.getValue();
     }
 
