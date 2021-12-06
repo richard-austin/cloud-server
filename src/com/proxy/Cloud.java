@@ -3,8 +3,6 @@ package com.proxy;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.channels.AsynchronousSocketChannel;
-import java.nio.channels.CompletionHandler;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.*;
@@ -13,8 +11,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.zip.CRC32;
@@ -31,8 +27,8 @@ public class Cloud {
     public static final int BUFFER_SIZE = 16000;
     private final int tokenLength = Integer.BYTES;
     private final int lengthLength = Integer.BYTES;
-    private final int checksumLength = Long.BYTES;
-    private final int headerLength = tokenLength + lengthLength+checksumLength;
+    private final int closedFlagLength = Byte.BYTES;
+    private final int headerLength = tokenLength + lengthLength + closedFlagLength;
     private SocketChannel cloudProxy;
 
     public static void main(String[] args) {
@@ -109,13 +105,11 @@ public class Cloud {
                         splitMessages(buf);
                         buf.clear();
                     }
-
-                }
-                catch(Exception ex)
-                {
+                } catch (Exception ex) {
                     showExceptionDetails(ex, "startCloudProxyInputProcess");
                 }
                 busy.set(false);
+                recycle(buf);
             }
         }, 300, 1, TimeUnit.MILLISECONDS);
     }
@@ -135,6 +129,7 @@ public class Cloud {
                                 result = cloudProxy.write(buf);
                             }
                             while (result != -1 && buf.position() < buf.limit());
+                            recycle(buf);
                         }
                     }
                 } catch (Exception ex) {
@@ -161,7 +156,8 @@ public class Cloud {
                 buf = getBuffer(token);
                 buf.position(headerLength);
             }
-         } catch (Exception ex) {
+            recycle(buf);
+        } catch (Exception ex) {
             showExceptionDetails(ex, "readFromBrowser");
         }
     }
@@ -173,17 +169,21 @@ public class Cloud {
             SocketChannel frontEndChannel = tokenSocketMap.get(token);  //Select the correct connection to respond to
             if (frontEndChannel == null)
                 throw new Exception("Couldn't find a socket for token " + token);
-            buf.position(headerLength);
-            buf.limit(headerLength + length);
-            int result;
-            try {
-                do {
-                    result = frontEndChannel.write(buf);
-                }
-                while (result != -1 && buf.position() < buf.limit());
+            if(getConnectionClosedFlag(buf) != 0)
+                frontEndChannel.close();
+            else if (frontEndChannel.isOpen()){
+                buf.position(headerLength);
+                buf.limit(headerLength + length);
+                int result;
+                try {
+                    do {
+                        result = frontEndChannel.write(buf);
+                    }
+                    while (result != -1 && buf.position() < buf.limit());
 
-            } catch (IOException ioex) {
-                showExceptionDetails(ioex, "respondToFrontEnd");
+                } catch (IOException ioex) {
+                    showExceptionDetails(ioex, "respondToFrontEnd");
+                }
             }
         } catch (Exception ex) {
             showExceptionDetails(ex, "respondToBrowser");
@@ -191,7 +191,7 @@ public class Cloud {
     }
 
     void showExceptionDetails(Throwable t, String functionName) {
-        logger.log(Level.SEVERE, t.getClass().getName() + " exception in " + functionName + ": " + t.getMessage()+"\n"+t.fillInStackTrace());
+        logger.log(Level.SEVERE, t.getClass().getName() + " exception in " + functionName + ": " + t.getMessage() + "\n" + t.fillInStackTrace());
     }
 
     /**
@@ -200,6 +200,7 @@ public class Cloud {
      * @return: The buffer
      */
     private ByteBuffer getBuffer() {
+        logger.log(Level.INFO, "Number of uffers in queue = "+bufferQueue.size());
         ByteBuffer poll = bufferQueue.poll();
         return Objects.requireNonNullElseGet(poll, () -> ByteBuffer.allocate(BUFFER_SIZE));
     }
@@ -215,8 +216,13 @@ public class Cloud {
 
         buf.putInt(token);
         buf.putInt(0);  // Reserve space for the data length
-        buf.putLong(0); // Reserve space for the checksum
+        buf.put((byte)0); // Reserve space for the checksum
         return buf;
+    }
+
+    private void recycle(ByteBuffer buf) {
+        buf.clear();
+        bufferQueue.add(buf);
     }
 
     /**
@@ -265,6 +271,14 @@ public class Cloud {
         Checksum crc32 = new CRC32();
         crc32.update(buf.array(), headerLength, buf.limit() - headerLength);
         return crc32.getValue();
+    }
+
+    private long getConnectionClosedFlag(ByteBuffer buf) {
+        int position = buf.position();
+        buf.position(tokenLength + lengthLength);
+        byte flag = buf.get();
+        buf.position(position);
+        return flag;
     }
 
     /**

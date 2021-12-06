@@ -24,8 +24,8 @@ public class CloudProxyAsynch {
     final Map<Integer, AsynchronousSocketChannel> tokenSocketMap = new LinkedHashMap<>();
     private final int tokenLength = Integer.BYTES;
     private final int lengthLength = Integer.BYTES;
-    private final int checkSumLength = Long.BYTES;
-    private final int headerLength = tokenLength + lengthLength + checkSumLength;
+    private final int closedFlagLength = Byte.BYTES;
+    private final int headerLength = tokenLength + lengthLength + closedFlagLength;
 
     private AsynchronousSocketChannel cloudSocket;
 
@@ -194,11 +194,15 @@ public class CloudProxyAsynch {
             public void completed(Integer result, Void nothing) {
                 if (result != -1) {
                     setDataLength(buf, result);
-                    setCRC32Checksum(buf);
 //                    logger.log(Level.INFO, "readResponseFromWebserver: "+log(buf));
                     setBufferForSend(buf);
                     sendResponseToCloud(buf);
                     readResponseFromWebserver(webserverChannel, token);
+                }
+                else {
+                    flagConnectionClosed(buf);
+                    setBufferForSend(buf);
+                    sendResponseToCloud(buf);
                 }
             }
 
@@ -254,7 +258,7 @@ public class CloudProxyAsynch {
 
         buf.putInt(token);
         buf.putInt(0);  // Reserve space for the data length
-        buf.putLong(0); // Reserve space for the checksum
+        buf.put((byte)0); // Reserve space for the coded connection flag
         return buf;
     }
 
@@ -272,19 +276,11 @@ public class CloudProxyAsynch {
         buf.position(position);
     }
 
-    private void setCRC32Checksum(ByteBuffer buf) {
+    private void flagConnectionClosed(ByteBuffer buf) {
         int position = buf.position();
         buf.position(tokenLength + lengthLength);
-        buf.putLong(getCRC32Checksum(buf));
+        buf.put((byte)1);
         buf.position(position);
-    }
-
-    private long readCRC32Checksum(ByteBuffer buf) {
-        int position = buf.position();
-        buf.position(tokenLength + lengthLength);
-        long crc32Checksum = buf.getLong();
-        buf.position(position);
-        return crc32Checksum;
     }
 
     /**
