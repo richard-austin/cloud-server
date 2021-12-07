@@ -34,7 +34,6 @@ public class CloudProxyAsynch {
     private static final Logger logger = Logger.getLogger("CloudProxyAsynch");
 
     final Queue<ByteBuffer> bufferQueue = new ConcurrentLinkedQueue<>();
-    final private Queue<AsynchronousSocketChannel> cloudConnectionQueue = new ConcurrentLinkedQueue<>();
 
     CloudProxyAsynch(String webServerHost, int webServerPort, String cloudHost, int cloudListeningPort) {
         this.webserverHost = webServerHost;
@@ -258,7 +257,7 @@ public class CloudProxyAsynch {
 
         buf.putInt(token);
         buf.putInt(0);  // Reserve space for the data length
-        buf.put((byte)0); // Reserve space for the coded connection flag
+        buf.put((byte)0); // Reserve space for the closed connection flag
         return buf;
     }
 
