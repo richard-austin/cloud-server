@@ -169,8 +169,10 @@ public class Cloud {
             SocketChannel frontEndChannel = tokenSocketMap.get(token);  //Select the correct connection to respond to
             if (frontEndChannel == null)
                 throw new Exception("Couldn't find a socket for token " + token);
-            if(getConnectionClosedFlag(buf) != 0)
+            else if(getConnectionClosedFlag(buf) != 0) {
                 frontEndChannel.close();
+                tokenSocketMap.remove(token);
+            }
             else if (frontEndChannel.isOpen()){
                 buf.position(headerLength);
                 buf.limit(headerLength + length);
@@ -185,6 +187,8 @@ public class Cloud {
                     showExceptionDetails(ioex, "respondToFrontEnd");
                 }
             }
+            else
+                logger.log(Level.SEVERE, "Socket for token "+token+" was closed");
         } catch (Exception ex) {
             showExceptionDetails(ex, "respondToBrowser");
         }
