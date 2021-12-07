@@ -204,9 +204,9 @@ public class Cloud {
      * @return: The buffer
      */
     private ByteBuffer getBuffer() {
-        logger.log(Level.INFO, "Number of uffers in queue = "+bufferQueue.size());
-        ByteBuffer poll = bufferQueue.poll();
-        return Objects.requireNonNullElseGet(poll, () -> ByteBuffer.allocate(BUFFER_SIZE));
+        ByteBuffer buf = Objects.requireNonNullElseGet(bufferQueue.poll(), () -> ByteBuffer.allocate(BUFFER_SIZE));
+        buf.clear();
+        return buf;
     }
 
     /**
@@ -217,10 +217,9 @@ public class Cloud {
      */
     private ByteBuffer getBuffer(int token) {
         ByteBuffer buf = getBuffer();
-
         buf.putInt(token);
         buf.putInt(0);  // Reserve space for the data length
-        buf.put((byte)0); // Reserve space for the checksum
+        buf.put((byte) 0); // Reserve space for the closed connection flag
         return buf;
     }
 
