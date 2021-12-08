@@ -3,7 +3,6 @@ package com.proxy;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.channels.AsynchronousCloseException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SocketChannel;
 import java.util.*;
@@ -168,17 +167,20 @@ public class CloudProxy {
         });
     }
 
+    final Object sendResponseToCloudLock = new Object();
     private void sendResponseToCloud(ByteBuffer buf) {
-        setBufferForSend(buf);
-        try {
-            int result;
-            do {
-                result = cloudChannel.write(buf);
+        synchronized (sendResponseToCloudLock) {
+            setBufferForSend(buf);
+            try {
+                int result;
+                do {
+                    result = cloudChannel.write(buf);
+                }
+                while (result != -1 && buf.position() < buf.limit());
+                recycle(buf);
+            } catch (Exception ex) {
+                showExceptionDetails(ex, "sendResponseToCloud");
             }
-            while (result != -1 && buf.position() < buf.limit());
-            recycle(buf);
-        } catch (Exception ex) {
-            showExceptionDetails(ex, "sendResponseToCloud");
         }
     }
 
