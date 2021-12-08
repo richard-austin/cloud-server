@@ -3,6 +3,7 @@ package com.proxy;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.channels.ClosedChannelException;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.*;
@@ -156,8 +157,20 @@ public class Cloud {
                 buf = getBuffer(token);
                 buf.position(headerLength);
             }
-            recycle(buf);
-        } catch (Exception ex) {
+            setConnectionClosedFlag(buf);
+            setDataLength(buf, 0);
+            setBufferForSend(buf);
+            messageOutQueue.add(buf);
+            synchronized (startCloudProxyOutputProcessLock) {
+                startCloudProxyOutputProcessLock.notify();
+            }
+        }
+        catch(ClosedChannelException ignored)
+        {
+            // Don't report AsynchronousCloseException or ClosedChannelException as these come up when the channel
+            // has been closed by a signal via getConnectionClosedFlag  from CloudProxy
+        }
+        catch (Exception ex) {
             showExceptionDetails(ex, "readFromBrowser");
         }
     }
@@ -184,7 +197,7 @@ public class Cloud {
                     while (result != -1 && buf.position() < buf.limit());
 
                 } catch (IOException ioex) {
-                    showExceptionDetails(ioex, "respondToFrontEnd");
+                    showExceptionDetails(ioex, "respondToBrowser");
                 }
             }
             else
@@ -270,13 +283,14 @@ public class Cloud {
         }
     }
 
-    public long getCRC32Checksum(ByteBuffer buf) {
-        Checksum crc32 = new CRC32();
-        crc32.update(buf.array(), headerLength, buf.limit() - headerLength);
-        return crc32.getValue();
+    private void setConnectionClosedFlag(ByteBuffer buf) {
+        int position = buf.position();
+        buf.position(tokenLength + lengthLength);
+        buf.put((byte) 1);
+        buf.position(position);
     }
 
-    private long getConnectionClosedFlag(ByteBuffer buf) {
+    private byte getConnectionClosedFlag(ByteBuffer buf) {
         int position = buf.position();
         buf.position(tokenLength + lengthLength);
         byte flag = buf.get();

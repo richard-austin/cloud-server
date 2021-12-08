@@ -3,12 +3,13 @@ package com.proxy;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.channels.AsynchronousCloseException;
+import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SocketChannel;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -48,7 +49,6 @@ public class CloudProxy {
 
     void start() {
         createConnectionToCloud();
-        //startCloudOutputProcess();
         synchronized (LOCK) {
             try {
                 LOCK.wait();
@@ -89,18 +89,26 @@ public class CloudProxy {
                 } catch (Exception ex) {
                     showExceptionDetails(ex, "startCloudProxyInputProcess");
                 }
+                recycle(buf);
                 busy.set(false);
             }
         });
     }
 
-    final Object startCloudProxyOutputProcessLock = new Object();
-
     private void writeRequestToWebserver(ByteBuffer buf) {
         int token = getToken(buf);
         if (tokenSocketMap.containsKey(token)) {
-            SocketChannel webserverChannel = tokenSocketMap.get(token);
-            writeRequestToWebserver(buf, webserverChannel, token);
+            if (getConnectionClosedFlag(buf) != 0) {
+                try {
+                    tokenSocketMap.get(token).close();
+                    tokenSocketMap.remove(token);
+                } catch (IOException e) {
+                    showExceptionDetails(e, "closing webserverChannel in writeRequestToWebserver");
+                }
+            } else {
+                SocketChannel webserverChannel = tokenSocketMap.get(token);
+                writeRequestToWebserver(buf, webserverChannel, token);
+            }
         } else  // Make a new connection to the webserver
         {
             try {
@@ -127,8 +135,13 @@ public class CloudProxy {
                     result = webserverChannel.write(buf);
                 }
                 while (result != -1 && buf.position() < buf.limit());
-                recycle(buf);
-            } catch (IOException e) {
+            }
+            catch(ClosedChannelException ignored)
+            {
+                // Don't report AsynchronousCloseException or ClosedChannelException as these come up when the channel
+                // has been closed by a signal via getConnectionClosedFlag  from CloudProxy
+            }
+            catch (IOException e) {
                 showExceptionDetails(e, "writeRequestToWebserver");
             }
         });
@@ -136,27 +149,27 @@ public class CloudProxy {
 
     private void readResponseFromWebserver(SocketChannel webserverChannel, int token) {
         Executors.newSingleThreadExecutor().execute(() -> {
-            ByteBuffer buf;
-            int result;
+            ByteBuffer buf = getBuffer(token);
+
             try {
-                do {
-                    buf = getBuffer(token);
-                    result = webserverChannel.read(buf);
+                while (webserverChannel.isOpen() && webserverChannel.read(buf) != -1) {
                     setDataLength(buf, buf.position() - headerLength);
-//                    logger.log(Level.INFO, "readResponseFromWebserver: "+log(buf));
-                    if (result == -1)
-                        flagConnectionClosed(buf);
-                    setBufferForSend(buf);
                     sendResponseToCloud(buf);
+                    buf = getBuffer(token);
                 }
-                while (result != -1);
+                setConnectionClosedFlag(buf);
+                sendResponseToCloud(buf);
             } catch (IOException e) {
-                showExceptionDetails(e, "readResponseFromWebserver");
+                // Don't report AsynchronousCloseException as these come up when the channel has been closed
+                //  by a signal via getConnectionClosedFlag  from Cloud
+                if(!e.getClass().getName().contains("AsynchronousCloseException"))
+                    showExceptionDetails(e, "readResponseFromWebserver");
             }
         });
     }
 
     private void sendResponseToCloud(ByteBuffer buf) {
+        setBufferForSend(buf);
         try {
             int result;
             do {
@@ -164,9 +177,7 @@ public class CloudProxy {
             }
             while (result != -1 && buf.position() < buf.limit());
             recycle(buf);
-        }
-        catch(Exception ex)
-        {
+        } catch (Exception ex) {
             showExceptionDetails(ex, "sendResponseToCloud");
         }
     }
@@ -215,14 +226,14 @@ public class CloudProxy {
         buf.position(position);
     }
 
-    private void flagConnectionClosed(ByteBuffer buf) {
+    private void setConnectionClosedFlag(ByteBuffer buf) {
         int position = buf.position();
         buf.position(tokenLength + lengthLength);
         buf.put((byte) 1);
         buf.position(position);
     }
 
-    private long getConnectionClosedFlag(ByteBuffer buf) {
+    private byte getConnectionClosedFlag(ByteBuffer buf) {
         int position = buf.position();
         buf.position(tokenLength + lengthLength);
         byte flag = buf.get();
@@ -295,7 +306,7 @@ public class CloudProxy {
                     try {
                         ByteBuffer newBuf = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.position() + lengthThisMessage));
                         newBuf.rewind();
-                    //    logger.log(Level.INFO, "Buffer size " + newBuf.limit() + " lengthThisMessage= " + lengthThisMessage);
+                        //    logger.log(Level.INFO, "Buffer size " + newBuf.limit() + " lengthThisMessage= " + lengthThisMessage);
                         combinedBuf.position(combinedBuf.position() + lengthThisMessage);
                         writeRequestToWebserver(newBuf);
                     } catch (Exception ex) {
