@@ -48,7 +48,7 @@ public class CloudProxy {
 
     void start() {
         createConnectionToCloud();
-        startCloudOutputProcess();
+        //startCloudOutputProcess();
         synchronized (LOCK) {
             try {
                 LOCK.wait();
@@ -74,7 +74,7 @@ public class CloudProxy {
     private void startCloudInputProcess(SocketChannel cloudChannel) {
         final AtomicBoolean busy = new AtomicBoolean(false);
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-        executor.scheduleAtFixedRate(() -> {
+        executor.execute(() -> {
             if (cloudChannel == null || !cloudChannel.isConnected() || !cloudChannel.isOpen()) {
                 executor.shutdown();
                 createConnectionToCloud();
@@ -90,41 +90,17 @@ public class CloudProxy {
                     showExceptionDetails(ex, "startCloudProxyInputProcess");
                 }
                 busy.set(false);
-                recycle(buf);
-            }
-        }, 300, 1, TimeUnit.MILLISECONDS);
-    }
-
-    final Object startCloudProxyOutputProcessLock = new Object();
-
-    private void startCloudOutputProcess() {
-        Executors.newSingleThreadExecutor().execute(() -> {
-            synchronized (startCloudProxyOutputProcessLock) {
-                try {
-                    while (running) {
-                        startCloudProxyOutputProcessLock.wait();
-                        while (!messageOutQueue.isEmpty()) {
-                            ByteBuffer buf = messageOutQueue.poll();
-                            int result;
-                            do {
-                                result = cloudChannel.write(buf);
-                            }
-                            while (result != -1 && buf.position() < buf.limit());
-                            recycle(buf);
-                        }
-                    }
-                } catch (Exception ex) {
-                    showExceptionDetails(ex, "startCloudProxyOutputProcess");
-                }
             }
         });
     }
 
+    final Object startCloudProxyOutputProcessLock = new Object();
 
     private void writeRequestToWebserver(ByteBuffer buf) {
         int token = getToken(buf);
         if (tokenSocketMap.containsKey(token)) {
-            writeRequestToWebserver(buf, tokenSocketMap.get(token), token);
+            SocketChannel webserverChannel = tokenSocketMap.get(token);
+            writeRequestToWebserver(buf, webserverChannel, token);
         } else  // Make a new connection to the webserver
         {
             try {
@@ -133,6 +109,7 @@ public class CloudProxy {
                 webserverChannel.configureBlocking(true);
                 tokenSocketMap.put(token, webserverChannel);
                 writeRequestToWebserver(buf, webserverChannel, token);
+                readResponseFromWebserver(webserverChannel, token);
             } catch (IOException ioex) {
                 showExceptionDetails(ioex, "writeRequestsToWebserver");
             }
@@ -150,37 +127,47 @@ public class CloudProxy {
                     result = webserverChannel.write(buf);
                 }
                 while (result != -1 && buf.position() < buf.limit());
+                recycle(buf);
             } catch (IOException e) {
                 showExceptionDetails(e, "writeRequestToWebserver");
             }
-            readResponseFromWebserver(webserverChannel, token);
         });
     }
 
     private void readResponseFromWebserver(SocketChannel webserverChannel, int token) {
-        ByteBuffer buf;
-        int result;
-        try {
-            do {
-                buf = getBuffer(token);
-                result = webserverChannel.read(buf);
-                setDataLength(buf, buf.position() - headerLength);
+        Executors.newSingleThreadExecutor().execute(() -> {
+            ByteBuffer buf;
+            int result;
+            try {
+                do {
+                    buf = getBuffer(token);
+                    result = webserverChannel.read(buf);
+                    setDataLength(buf, buf.position() - headerLength);
 //                    logger.log(Level.INFO, "readResponseFromWebserver: "+log(buf));
-                if (result == -1)
-                    flagConnectionClosed(buf);
-                setBufferForSend(buf);
-                sendResponseToCloud(buf);
+                    if (result == -1)
+                        flagConnectionClosed(buf);
+                    setBufferForSend(buf);
+                    sendResponseToCloud(buf);
+                }
+                while (result != -1);
+            } catch (IOException e) {
+                showExceptionDetails(e, "readResponseFromWebserver");
             }
-            while (result != -1);
-        } catch (IOException e) {
-            showExceptionDetails(e, "readResponseFromWebserver");
-        }
+        });
     }
 
     private void sendResponseToCloud(ByteBuffer buf) {
-        messageOutQueue.add(buf);
-        synchronized (startCloudProxyOutputProcessLock) {
-            startCloudProxyOutputProcessLock.notify();
+        try {
+            int result;
+            do {
+                result = cloudChannel.write(buf);
+            }
+            while (result != -1 && buf.position() < buf.limit());
+            recycle(buf);
+        }
+        catch(Exception ex)
+        {
+            showExceptionDetails(ex, "sendResponseToCloud");
         }
     }
 
@@ -308,7 +295,7 @@ public class CloudProxy {
                     try {
                         ByteBuffer newBuf = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.position() + lengthThisMessage));
                         newBuf.rewind();
-                        logger.log(Level.INFO, "Buffer size " + newBuf.limit() + " lengthThisMessage= " + lengthThisMessage);
+                    //    logger.log(Level.INFO, "Buffer size " + newBuf.limit() + " lengthThisMessage= " + lengthThisMessage);
                         combinedBuf.position(combinedBuf.position() + lengthThisMessage);
                         writeRequestToWebserver(newBuf);
                     } catch (Exception ex) {

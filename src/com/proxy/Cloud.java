@@ -331,7 +331,7 @@ public class Cloud {
                     try {
                         ByteBuffer newBuf = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.position() + lengthThisMessage));
                         newBuf.rewind();
-                        logger.log(Level.INFO, "Buffer size " + newBuf.limit() + " lengthThisMessage= " + lengthThisMessage);
+                   //     logger.log(Level.INFO, "Buffer size " + newBuf.limit() + " lengthThisMessage= " + lengthThisMessage);
                         combinedBuf.position(combinedBuf.position() + lengthThisMessage);
                         respondToBrowser(newBuf);
                     } catch (Exception ex) {
