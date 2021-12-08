@@ -14,13 +14,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.zip.CRC32;
-import java.util.zip.Checksum;
 
 public class Cloud {
     final Queue<ByteBuffer> bufferQueue = new ConcurrentLinkedQueue<>();
     final Queue<ByteBuffer> messageOutQueue = new ConcurrentLinkedQueue<>();
-    //    AsynchronousSocketChannel clientSocket;
     private boolean running = true;
     final Map<Integer, SocketChannel> tokenSocketMap = new LinkedHashMap<>();
 

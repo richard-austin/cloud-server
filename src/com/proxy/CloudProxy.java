@@ -41,7 +41,7 @@ public class CloudProxy {
     }
 
     public static void main(String[] args) {
-        new CloudProxy("192.168.0.29", 443, "localhost", 8081).start();
+        new CloudProxy("192.168.0.29", 443, "192.168.0.37", 8081).start();
     }
 
     final Object LOCK = new Object();
