@@ -64,6 +64,7 @@ public class Cloud {
         }
     }
 
+    private final Object acceptNewConnectionLock = new Object();
     private void acceptConnectionsFromCloudProxy(final int cloudProxyFacingPort) {
         startCloudProxyOutputProcess();
         startCloudProxyInputProcess();
@@ -76,10 +77,10 @@ public class Cloud {
                     while (running) {
                         try {
                             // It will wait for a connection on the local port
-                            cloudProxy = s.accept();
+                            SocketChannel cloudProxy = s.accept();
                             cloudProxy.configureBlocking(true);
-
-                            //requestProcessing(cloudProxy, server, host, remoteport);
+                            cleanUpForReconnect();
+                            this.cloudProxy=cloudProxy;
                         } catch (Exception ex) {
                             logger.log(Level.SEVERE, "Exception in acceptConnectionsFromCloudProxy: " + ex.getClass().getName() + ": " + ex.getMessage());
                         }
@@ -105,6 +106,8 @@ public class Cloud {
                     }
                 } catch (Exception ex) {
                     showExceptionDetails(ex, "startCloudProxyInputProcess");
+                    executor.shutdown();
+                    cleanUpForReconnect();
                 }
                 busy.set(false);
                 recycle(buf);
@@ -113,7 +116,6 @@ public class Cloud {
     }
 
     final Object startCloudProxyOutputProcessLock = new Object();
-
     private void startCloudProxyOutputProcess() {
         Executors.newSingleThreadExecutor().execute(() -> {
             synchronized (startCloudProxyOutputProcessLock) {
@@ -132,6 +134,7 @@ public class Cloud {
                     }
                 } catch (Exception ex) {
                     showExceptionDetails(ex, "startCloudProxyOutputProcess");
+                    cleanUpForReconnect();
                 }
             }
         });
@@ -204,8 +207,29 @@ public class Cloud {
         }
     }
 
+    private void cleanUpForReconnect() {
+        if (this.cloudProxy != null && this.cloudProxy.isOpen() && this.cloudProxy.isConnected()) {
+            try {
+                this.cloudProxy.close();
+            } catch (IOException ignored) {
+            }
+
+            tokenSocketMap.forEach((token, socket) -> {
+                try {
+                    socket.close();
+                } catch (IOException ignored) {
+                }
+            });
+            tokenSocketMap.clear();
+            messageOutQueue.clear();
+        }
+    }
+
     void showExceptionDetails(Throwable t, String functionName) {
         logger.log(Level.SEVERE, t.getClass().getName() + " exception in " + functionName + ": " + t.getMessage() + "\n" + t.fillInStackTrace());
+        for (StackTraceElement stackTraceElement : t.getStackTrace()) {
+            System.err.println(stackTraceElement.toString());
+        }
     }
 
     /**
