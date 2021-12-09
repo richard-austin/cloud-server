@@ -1,4 +1,4 @@
-package com.proxy;
+package com.proxy.Async;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
