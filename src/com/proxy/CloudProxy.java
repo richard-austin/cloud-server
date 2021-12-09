@@ -3,6 +3,7 @@ package com.proxy;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.channels.AsynchronousCloseException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SocketChannel;
 import java.util.*;
@@ -196,11 +197,14 @@ public class CloudProxy {
                 }
                 setConnectionClosedFlag(buf);
                 sendResponseToCloud(buf);
-            } catch (IOException e) {
+            }
+            catch(AsynchronousCloseException ignored)
+            {
                 // Don't report AsynchronousCloseException as these come up when the channel has been closed
                 //  by a signal via getConnectionClosedFlag  from Cloud
-                if (!e.getClass().getName().contains("AsynchronousCloseException"))
-                    showExceptionDetails(e, "readResponseFromWebserver");
+            }
+            catch (IOException e) {
+                showExceptionDetails(e, "readResponseFromWebserver");
             }
         });
     }
