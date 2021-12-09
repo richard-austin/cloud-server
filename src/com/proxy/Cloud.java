@@ -77,7 +77,7 @@ public class Cloud {
                             SocketChannel cloudProxy = s.accept();
                             cloudProxy.configureBlocking(true);
                             cleanUpForReconnect();
-                            this.cloudProxy=cloudProxy;
+                            this.cloudProxy = cloudProxy;
                         } catch (Exception ex) {
                             logger.log(Level.SEVERE, "Exception in acceptConnectionsFromCloudProxy: " + ex.getClass().getName() + ": " + ex.getMessage());
                         }
@@ -90,11 +90,9 @@ public class Cloud {
     }
 
     private void startCloudProxyInputProcess() {
-        final AtomicBoolean busy = new AtomicBoolean(false);
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
         executor.scheduleAtFixedRate(() -> {
-            if (cloudProxy != null && cloudProxy.isOpen() && !busy.get()) {
-                busy.set(true);
+            if (cloudProxy != null && cloudProxy.isOpen()) {
                 ByteBuffer buf = getBuffer();
                 try {
                     while (cloudProxy.read(buf) != -1) {
@@ -106,36 +104,35 @@ public class Cloud {
                     executor.shutdown();
                     cleanUpForReconnect();
                 }
-                busy.set(false);
                 recycle(buf);
             }
-        }, 300, 1, TimeUnit.MILLISECONDS);
+        }, 300, 100, TimeUnit.MILLISECONDS);
     }
 
     final Object startCloudProxyOutputProcessLock = new Object();
-    private void sendResponseToCloudProxy(ByteBuffer buf) {
- //       Executors.newSingleThreadExecutor().execute(() -> {
-            synchronized (startCloudProxyOutputProcessLock) {
-                try {
-                    int result;
-                    do {
-                        result = cloudProxy.write(buf);
-                    }
-                    while (result != -1 && buf.position() < buf.limit());
-                    recycle(buf);
 
-                } catch (Exception ex) {
-                    showExceptionDetails(ex, "startCloudProxyOutputProcess");
-                    cleanUpForReconnect();
+    private void sendResponseToCloudProxy(ByteBuffer buf) {
+        synchronized (startCloudProxyOutputProcessLock) {
+            try {
+                int result;
+                do {
+                    result = cloudProxy.write(buf);
                 }
+                while (result != -1 && buf.position() < buf.limit());
+                recycle(buf);
+
+            } catch (Exception ex) {
+                showExceptionDetails(ex, "startCloudProxyOutputProcess");
+                cleanUpForReconnect();
             }
- //       });
+        }
     }
 
     final void readFromBrowser(SocketChannel channel, final int token) {
         int result;
+        ByteBuffer buf = getBuffer(token);
         try {
-            ByteBuffer buf = getBuffer(token);
+
             buf.position(headerLength);
             while ((result = channel.read(buf)) != -1) {
                 int dataLength = 0;
@@ -147,12 +144,13 @@ public class Cloud {
                 buf.position(headerLength);
             }
             setConnectionClosedFlag(buf);
+            tokenSocketMap.remove(token);
             sendResponseToCloudProxy(buf);
-         }
-        catch(ClosedChannelException ignored)
-        {
-            // Don't report AsynchronousCloseException or ClosedChannelException as these come up when the channel
-            // has been closed by a signal via getConnectionClosedFlag  from CloudProxy
+        }
+        catch(IOException ignored) {
+            setConnectionClosedFlag(buf);
+            tokenSocketMap.remove(token);
+            sendResponseToCloudProxy(buf);
         }
         catch (Exception ex) {
             showExceptionDetails(ex, "readFromBrowser");
@@ -166,11 +164,10 @@ public class Cloud {
             SocketChannel frontEndChannel = tokenSocketMap.get(token);  //Select the correct connection to respond to
             if (frontEndChannel == null)
                 throw new Exception("Couldn't find a socket for token " + token);
-            else if(getConnectionClosedFlag(buf) != 0) {
+            else if (getConnectionClosedFlag(buf) != 0) {
                 frontEndChannel.close();
                 tokenSocketMap.remove(token);
-            }
-            else if (frontEndChannel.isOpen()){
+            } else if (frontEndChannel.isOpen()) {
                 buf.position(headerLength);
                 buf.limit(headerLength + length);
                 int result;
@@ -179,13 +176,11 @@ public class Cloud {
                         result = frontEndChannel.write(buf);
                     }
                     while (result != -1 && buf.position() < buf.limit());
-
                 } catch (IOException ioex) {
                     showExceptionDetails(ioex, "respondToBrowser");
                 }
-            }
-            else
-                logger.log(Level.SEVERE, "Socket for token "+token+" was closed");
+            } else
+                logger.log(Level.SEVERE, "Socket for token " + token + " was closed");
         } catch (Exception ex) {
             showExceptionDetails(ex, "respondToBrowser");
         }
@@ -350,7 +345,7 @@ public class Cloud {
                     try {
                         ByteBuffer newBuf = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.position() + lengthThisMessage));
                         newBuf.rewind();
-                   //     logger.log(Level.INFO, "Buffer size " + newBuf.limit() + " lengthThisMessage= " + lengthThisMessage);
+                        //     logger.log(Level.INFO, "Buffer size " + newBuf.limit() + " lengthThisMessage= " + lengthThisMessage);
                         combinedBuf.position(combinedBuf.position() + lengthThisMessage);
                         respondToBrowser(newBuf);
                     } catch (Exception ex) {
