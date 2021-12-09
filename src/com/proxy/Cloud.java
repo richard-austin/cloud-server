@@ -17,7 +17,6 @@ import java.util.logging.Logger;
 
 public class Cloud {
     final Queue<ByteBuffer> bufferQueue = new ConcurrentLinkedQueue<>();
-    final Queue<ByteBuffer> messageOutQueue = new ConcurrentLinkedQueue<>();
     private boolean running = true;
     final Map<Integer, SocketChannel> tokenSocketMap = new LinkedHashMap<>();
 
@@ -64,9 +63,7 @@ public class Cloud {
         }
     }
 
-    private final Object acceptNewConnectionLock = new Object();
     private void acceptConnectionsFromCloudProxy(final int cloudProxyFacingPort) {
-        startCloudProxyOutputProcess();
         startCloudProxyInputProcess();
         Executors.newSingleThreadExecutor().execute(() -> {
             while (running) {
@@ -116,28 +113,23 @@ public class Cloud {
     }
 
     final Object startCloudProxyOutputProcessLock = new Object();
-    private void startCloudProxyOutputProcess() {
-        Executors.newSingleThreadExecutor().execute(() -> {
+    private void sendResponseToCloudProxy(ByteBuffer buf) {
+ //       Executors.newSingleThreadExecutor().execute(() -> {
             synchronized (startCloudProxyOutputProcessLock) {
                 try {
-                    while (running) {
-                        startCloudProxyOutputProcessLock.wait();
-                        while (!messageOutQueue.isEmpty()) {
-                            ByteBuffer buf = messageOutQueue.poll();
-                            int result;
-                            do {
-                                result = cloudProxy.write(buf);
-                            }
-                            while (result != -1 && buf.position() < buf.limit());
-                            recycle(buf);
-                        }
+                    int result;
+                    do {
+                        result = cloudProxy.write(buf);
                     }
+                    while (result != -1 && buf.position() < buf.limit());
+                    recycle(buf);
+
                 } catch (Exception ex) {
                     showExceptionDetails(ex, "startCloudProxyOutputProcess");
                     cleanUpForReconnect();
                 }
             }
-        });
+ //       });
     }
 
     final void readFromBrowser(SocketChannel channel, final int token) {
@@ -150,21 +142,13 @@ public class Cloud {
                 dataLength += result;
                 setDataLength(buf, dataLength);
                 setBufferForSend(buf);
-                messageOutQueue.add(buf);
-                synchronized (startCloudProxyOutputProcessLock) {
-                    startCloudProxyOutputProcessLock.notify();
-                }
+                sendResponseToCloudProxy(buf);
                 buf = getBuffer(token);
                 buf.position(headerLength);
             }
             setConnectionClosedFlag(buf);
-            setDataLength(buf, 0);
-            setBufferForSend(buf);
-            messageOutQueue.add(buf);
-            synchronized (startCloudProxyOutputProcessLock) {
-                startCloudProxyOutputProcessLock.notify();
-            }
-        }
+            sendResponseToCloudProxy(buf);
+         }
         catch(ClosedChannelException ignored)
         {
             // Don't report AsynchronousCloseException or ClosedChannelException as these come up when the channel
@@ -221,7 +205,6 @@ public class Cloud {
                 }
             });
             tokenSocketMap.clear();
-            messageOutQueue.clear();
         }
     }
 
@@ -305,10 +288,11 @@ public class Cloud {
     }
 
     private void setConnectionClosedFlag(ByteBuffer buf) {
-        int position = buf.position();
         buf.position(tokenLength + lengthLength);
         buf.put((byte) 1);
-        buf.position(position);
+        setDataLength(buf, 0);
+        buf.limit(headerLength);
+        buf.position(0);
     }
 
     private byte getConnectionClosedFlag(ByteBuffer buf) {

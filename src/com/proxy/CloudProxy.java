@@ -272,10 +272,11 @@ public class CloudProxy {
     }
 
     private void setConnectionClosedFlag(ByteBuffer buf) {
-        int position = buf.position();
         buf.position(tokenLength + lengthLength);
         buf.put((byte) 1);
-        buf.position(position);
+        setDataLength(buf, 0);
+        buf.limit(headerLength);
+        buf.position(0);
     }
 
     private byte getConnectionClosedFlag(ByteBuffer buf) {
