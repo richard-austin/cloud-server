@@ -144,12 +144,12 @@ public class Cloud {
                 buf.position(headerLength);
             }
             setConnectionClosedFlag(buf);
-            tokenSocketMap.remove(token);
+            removeSocket(token);
             sendResponseToCloudProxy(buf);
         }
         catch(IOException ignored) {
             setConnectionClosedFlag(buf);
-            tokenSocketMap.remove(token);
+            removeSocket(token);
             sendResponseToCloudProxy(buf);
         }
         catch (Exception ex) {
@@ -166,7 +166,7 @@ public class Cloud {
                 throw new Exception("Couldn't find a socket for token " + token);
             else if (getConnectionClosedFlag(buf) != 0) {
                 frontEndChannel.close();
-                tokenSocketMap.remove(token);
+                removeSocket(token);
             } else if (frontEndChannel.isOpen()) {
                 buf.position(headerLength);
                 buf.limit(headerLength + length);
@@ -186,6 +186,11 @@ public class Cloud {
         }
     }
 
+    void removeSocket(int token)
+    {
+        tokenSocketMap.remove(token);
+    }
+
     private void cleanUpForReconnect() {
         if (this.cloudProxy != null && this.cloudProxy.isOpen() && this.cloudProxy.isConnected()) {
             try {
@@ -200,6 +205,7 @@ public class Cloud {
                 }
             });
             tokenSocketMap.clear();
+            remainsOfPreviousBuffer = null;
         }
     }
 

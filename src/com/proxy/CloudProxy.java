@@ -113,6 +113,11 @@ public class CloudProxy {
         });
     }
 
+    void removeSocket(int token)
+    {
+        tokenSocketMap.remove(token);
+    }
+
     /**
      * cleanUpForRestart: Some sort of problem occurred with the Cloud connection, ensure we restart cleanly
      */
@@ -126,6 +131,7 @@ public class CloudProxy {
         });
         // Clear the token/socket map
         tokenSocketMap.clear();
+        remainsOfPreviousBuffer = null;
         // Ensure the connection is actually closed
         if (cloudChannel != null && cloudChannel.isConnected() && cloudChannel.isOpen()) {
             try {
@@ -141,7 +147,7 @@ public class CloudProxy {
             if (getConnectionClosedFlag(buf) != 0) {
                 try {
                     tokenSocketMap.get(token).close();
-                    tokenSocketMap.remove(token);
+                    removeSocket(token);
                 } catch (IOException e) {
                     showExceptionDetails(e, "closing webserverChannel in writeRequestToWebserver");
                 }
@@ -319,7 +325,7 @@ public class CloudProxy {
 
     public long getCRC32Checksum(ByteBuffer buf) {
         Checksum crc32 = new CRC32();
-        crc32.update(buf.array(), headerLength, buf.limit() - headerLength);
+        crc32.update(buf.array(), 0, buf.limit() - headerLength);
         return crc32.getValue();
     }
 
