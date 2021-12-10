@@ -7,10 +7,7 @@ import java.nio.channels.AsynchronousCloseException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SocketChannel;
 import java.util.*;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -34,7 +31,7 @@ public class CloudProxy {
     private final int webserverPort;
     private final String cloudHost;
     private final int cloudPort;
-
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
     CloudProxy(String webServerHost, int webServerPort, String cloudHost, int cloudPort) {
         this.webserverHost = webServerHost;
         this.webserverPort = webServerPort;
@@ -67,8 +64,7 @@ public class CloudProxy {
                     showExceptionDetails(e, "start");
                 }
             }
-        }
-        finally {
+        } finally {
             cleanUpForRestart();
         }
     }
@@ -111,10 +107,10 @@ public class CloudProxy {
                 busy.set(false);
             }
         });
+        executor.shutdown();
     }
 
-    void removeSocket(int token)
-    {
+    void removeSocket(int token) {
         tokenSocketMap.remove(token);
     }
 
@@ -153,7 +149,7 @@ public class CloudProxy {
                 }
             } else {
                 SocketChannel webserverChannel = tokenSocketMap.get(token);
-                writeRequestToWebserver(buf, webserverChannel, token);
+                writeRequestToWebserver(buf, webserverChannel);
             }
         } else  // Make a new connection to the webserver
         {
@@ -162,7 +158,7 @@ public class CloudProxy {
                 webserverChannel.connect(new InetSocketAddress(webserverHost, webserverPort));
                 webserverChannel.configureBlocking(true);
                 tokenSocketMap.put(token, webserverChannel);
-                writeRequestToWebserver(buf, webserverChannel, token);
+                writeRequestToWebserver(buf, webserverChannel);
                 readResponseFromWebserver(webserverChannel, token);
             } catch (IOException ioex) {
                 showExceptionDetails(ioex, "writeRequestsToWebserver");
@@ -170,30 +166,30 @@ public class CloudProxy {
         }
     }
 
-    private void writeRequestToWebserver(final ByteBuffer buf, final SocketChannel webserverChannel, int token) {
-        Executors.newSingleThreadExecutor().execute(() -> {
-            int length = getDataLength(buf);
-            buf.position(headerLength);
-            buf.limit(headerLength + length);
-            int result;
-            try {
-                do {
-                    result = webserverChannel.write(buf);
+    private void writeRequestToWebserver(final ByteBuffer buf, final SocketChannel webserverChannel) {
+        this.executor.submit(() -> {  // submit rather than execute to ensure tasks (and hence messages) are run in order of submission
+                logMessageMetadata(buf, "To webserv");
+                int length = getDataLength(buf);
+                buf.position(headerLength);
+                buf.limit(headerLength + length);
+                int result;
+                try {
+                    do {
+                        result = webserverChannel.write(buf);
+                    }
+                    while (result != -1 && buf.position() < buf.limit());
+                } catch (ClosedChannelException ignored) {
+                    // Don't report AsynchronousCloseException or ClosedChannelException as these come up when the channel
+                    // has been closed by a signal via getConnectionClosedFlag  from CloudProxy
+                } catch (IOException e) {
+                    showExceptionDetails(e, "writeRequestToWebserver");
                 }
-                while (result != -1 && buf.position() < buf.limit());
-            } catch (ClosedChannelException ignored) {
-                // Don't report AsynchronousCloseException or ClosedChannelException as these come up when the channel
-                // has been closed by a signal via getConnectionClosedFlag  from CloudProxy
-            } catch (IOException e) {
-                showExceptionDetails(e, "writeRequestToWebserver");
-            }
         });
     }
 
     private void readResponseFromWebserver(SocketChannel webserverChannel, int token) {
         Executors.newSingleThreadExecutor().execute(() -> {
             ByteBuffer buf = getBuffer(token);
-
             try {
                 while (webserverChannel.isOpen() && webserverChannel.read(buf) != -1) {
                     setDataLength(buf, buf.position() - headerLength);
@@ -203,13 +199,10 @@ public class CloudProxy {
                 }
                 setConnectionClosedFlag(buf);
                 sendResponseToCloud(buf);
-            }
-            catch(AsynchronousCloseException ignored)
-            {
+            } catch (AsynchronousCloseException ignored) {
                 // Don't report AsynchronousCloseException as these come up when the channel has been closed
                 //  by a signal via getConnectionClosedFlag  from Cloud
-            }
-            catch (IOException e) {
+            } catch (IOException e) {
                 showExceptionDetails(e, "readResponseFromWebserver");
             }
         });
@@ -220,6 +213,7 @@ public class CloudProxy {
     private boolean sendResponseToCloud(ByteBuffer buf) {
         boolean retVal = true;
         synchronized (sendResponseToCloudLock) {
+//            logMessageMetadata(buf, "To cloud  ");
             setBufferForSend(buf);
             try {
                 int result;
@@ -235,6 +229,20 @@ public class CloudProxy {
             }
         }
         return retVal;
+    }
+
+    private int count = 0;
+    private int lengthTotal = 0;
+    private long checksumTotal = 0;
+
+    private void logMessageMetadata(ByteBuffer buf, String title) {
+        int position = buf.position();
+        lengthTotal += getDataLength(buf);
+        long checksum = getCRC32Checksum(buf);
+        checksumTotal += checksum;
+        boolean disconnect = getConnectionClosedFlag(buf) != 0;
+        System.out.println(title + (disconnect ? "*" : ".") + ".   #: " + ++count + ", Token: " + getToken(buf) + ", Length: " + getDataLength(buf) + ", lengthTotal: " + lengthTotal + ", Checksum: " + checksum + ", ChecksumTotal: " + checksumTotal);
+        buf.position(position);
     }
 
     /**
@@ -286,7 +294,6 @@ public class CloudProxy {
         buf.put((byte) 1);
         setDataLength(buf, 0);
         buf.limit(headerLength);
-        buf.position(0);
     }
 
     private byte getConnectionClosedFlag(ByteBuffer buf) {
@@ -324,8 +331,9 @@ public class CloudProxy {
     }
 
     public long getCRC32Checksum(ByteBuffer buf) {
+        int length = getDataLength(buf);
         Checksum crc32 = new CRC32();
-        crc32.update(buf.array(), 0, buf.limit() - headerLength);
+        crc32.update(buf.array(), 0, length + headerLength);
         return crc32.getValue();
     }
 

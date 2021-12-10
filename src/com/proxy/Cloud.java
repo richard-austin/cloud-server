@@ -3,7 +3,6 @@ package com.proxy;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.channels.ClosedChannelException;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.*;
@@ -11,9 +10,10 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.zip.CRC32;
+import java.util.zip.Checksum;
 
 public class Cloud {
     final Queue<ByteBuffer> bufferQueue = new ConcurrentLinkedQueue<>();
@@ -113,6 +113,8 @@ public class Cloud {
 
     private void sendResponseToCloudProxy(ByteBuffer buf) {
         synchronized (startCloudProxyOutputProcessLock) {
+            if(getConnectionClosedFlag(buf)==0)
+                logMessageMetadata(buf, "To CloudPx");
             try {
                 int result;
                 do {
@@ -144,7 +146,7 @@ public class Cloud {
                 buf.position(headerLength);
             }
             setConnectionClosedFlag(buf);
-            removeSocket(token);
+           // removeSocket(token);
             sendResponseToCloudProxy(buf);
         }
         catch(IOException ignored) {
@@ -159,15 +161,16 @@ public class Cloud {
 
     private void respondToBrowser(ByteBuffer buf) {
         try {
+//            logMessageMetadata(buf, "To browser");
             int token = getToken(buf);
             int length = getDataLength(buf);
             SocketChannel frontEndChannel = tokenSocketMap.get(token);  //Select the correct connection to respond to
-            if (frontEndChannel == null)
+            if (getConnectionClosedFlag(buf) != 0) {
+                removeSocket(token);  // Usually already gone
+            }
+            else if (frontEndChannel == null)
                 throw new Exception("Couldn't find a socket for token " + token);
-            else if (getConnectionClosedFlag(buf) != 0) {
-                frontEndChannel.close();
-                removeSocket(token);
-            } else if (frontEndChannel.isOpen()) {
+            else if (frontEndChannel.isOpen()) {
                 buf.position(headerLength);
                 buf.limit(headerLength + length);
                 int result;
@@ -186,7 +189,21 @@ public class Cloud {
         }
     }
 
-    void removeSocket(int token)
+    private int count = 0;
+    private int lengthTotal = 0;
+    private long checksumTotal = 0;
+    private void logMessageMetadata(ByteBuffer buf, String title)
+    {
+        int position = buf.position();
+        lengthTotal += getDataLength(buf);
+        long checksum = getCRC32Checksum(buf);
+        checksumTotal+=checksum;
+        boolean disconnect=getConnectionClosedFlag(buf)!=0;
+        System.out.println(title+(disconnect?"*":".")+".   #: "+ ++count+", Token: "+getToken(buf)+", Length: "+getDataLength(buf)+", lengthTotal: "+lengthTotal+", Checksum: "+checksum+", ChecksumTotal: "+checksumTotal);
+        buf.position(position);
+    }
+
+    private void removeSocket(int token)
     {
         tokenSocketMap.remove(token);
     }
@@ -316,6 +333,13 @@ public class Cloud {
         int token = buf.getInt();
         buf.position(position);
         return token;
+    }
+
+    public long getCRC32Checksum(ByteBuffer buf) {
+        int length = getDataLength(buf);
+        Checksum crc32 = new CRC32();
+        crc32.update(buf.array(), 0, length+headerLength);
+        return crc32.getValue();
     }
 
     void setBufferForSend(ByteBuffer buf) {
