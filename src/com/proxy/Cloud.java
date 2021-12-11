@@ -5,6 +5,7 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.logging.Level;
@@ -182,7 +183,7 @@ public class Cloud {
                         }
                         while (result != -1 && buf.position() < buf.limit());
                     } catch (IOException ioex) {
-                        showExceptionDetails(ioex, "respondToBrowser");
+               //         showExceptionDetails(ioex, "respondToBrowser");
                     }
                 } else
                     logger.log(Level.SEVERE, "Socket for token " + token + " was closed");
@@ -208,6 +209,7 @@ public class Cloud {
 
     private void removeSocket(int token)
     {
+        logger.log(Level.INFO, "Removing socket for token "+token);
         tokenSocketMap.remove(token);
     }
 
@@ -331,10 +333,21 @@ public class Cloud {
      * @return: The token
      */
     private int getToken(ByteBuffer buf) {
-        int position = buf.position();
-        buf.position(0);
-        int token = buf.getInt();
+        return getToken(buf, 0);
+    }
+
+    /**
+     * getToken: Get the token at position
+     * @param buf: Buffer to get the token from
+     * @param position: Position at which to get the token
+     * @return The token at position
+     */
+    private int getToken(ByteBuffer buf, int position)
+    {
+        int originalPosition = buf.position();
         buf.position(position);
+        int token = buf.getInt();
+        buf.position(originalPosition);
         return token;
     }
 
@@ -376,6 +389,18 @@ public class Cloud {
                         remainsOfPreviousBuffer = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.limit()));
                         combinedBuf.position(combinedBuf.limit());
                     } else {
+                        final int position = combinedBuf.position();
+                        final String ignored = "Ignore";
+                        if(getToken(combinedBuf, position) == -1 && (lengthThisMessage-headerLength)==ignored.length())
+                        {
+                            String strVal = new String(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position()+headerLength, combinedBuf.position()+lengthThisMessage), StandardCharsets.UTF_8);
+                            if(ignored.equals(strVal))
+                            {
+                                combinedBuf.position(position + lengthThisMessage);
+                                continue;  // Ignore if it's just the link test message
+                            }
+                            combinedBuf.position(position);
+                        }
                         try {
                             ByteBuffer newBuf = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.position() + lengthThisMessage));
                             newBuf.rewind();

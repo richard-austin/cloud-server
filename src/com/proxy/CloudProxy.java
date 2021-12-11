@@ -6,6 +6,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousCloseException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SocketChannel;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -24,17 +25,17 @@ public class CloudProxy {
     private static final Logger logger = Logger.getLogger("CloudProxy");
     final Queue<ByteBuffer> bufferQueue = new ConcurrentLinkedQueue<>();
     SocketChannel cloudChannel;
-    private boolean running = true;
+    private boolean running = false;
     private final String webserverHost;
     private final int webserverPort;
     private final String cloudHost;
     private final int cloudPort;
 
     private final int threadPoolSize = 15;
-    private final ExecutorService splitMessagesExecutor = Executors.newSingleThreadExecutor();
-    private final ExecutorService webserverReadExecutor = Executors.newFixedThreadPool(threadPoolSize);
-    private final ExecutorService webserverWriteExecutor = Executors.newSingleThreadExecutor();
-    private final ExecutorService sendResponseToCloudExecutor = Executors.newSingleThreadExecutor();
+    private ExecutorService splitMessagesExecutor = Executors.newSingleThreadExecutor();
+    private ExecutorService webserverReadExecutor = Executors.newFixedThreadPool(threadPoolSize);
+    private ExecutorService webserverWriteExecutor = Executors.newSingleThreadExecutor();
+    private ExecutorService sendResponseToCloudExecutor = Executors.newSingleThreadExecutor();
 
     CloudProxy(String webServerHost, int webServerPort, String cloudHost, int cloudPort) {
         this.webserverHost = webServerHost;
@@ -50,16 +51,9 @@ public class CloudProxy {
     final Object LOCK = new Object();
 
     void start() {
+        running=true;
         try {
             createConnectionToCloud();
-            // Thread to attempt to reconnect if connection lost
-            final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-            executor.scheduleAtFixedRate(() -> {
-                if (cloudChannel == null || !cloudChannel.isConnected() || !cloudChannel.isOpen()) {
-                    logger.log(Level.INFO, "No cloud connection, attempting reconnect");
-                    createConnectionToCloud();
-                }
-            }, 10, 10, TimeUnit.SECONDS);
 
             synchronized (LOCK) {
                 try {
@@ -68,8 +62,8 @@ public class CloudProxy {
                     showExceptionDetails(e, "start");
                 }
             }
-        } finally {
-            cleanUpForRestart();
+        } catch(Exception ex) {
+            showExceptionDetails(ex, "start");
         }
     }
 
@@ -83,6 +77,7 @@ public class CloudProxy {
                 this.cloudChannel = cloudChannel;
                 logger.log(Level.INFO, "Connected successfully to the Cloud");
                 startCloudInputProcess(cloudChannel);
+                startCloudConnectionCheck();
             }
 
         } catch (IOException e) {
@@ -105,13 +100,36 @@ public class CloudProxy {
                 } catch (Exception ex) {
                     showExceptionDetails(ex, "startCloudProxyInputProcess");
                     executor.shutdown();
-                    cleanUpForRestart();
+                    restart();
                 }
                 recycle(buf);
                 busy.set(false);
             }
         });
         executor.shutdown();
+    }
+
+    private void startCloudConnectionCheck()
+    {
+        final ByteBuffer buf = getBuffer(-1);
+        buf.put("Ignore".getBytes(StandardCharsets.UTF_8));
+        setDataLength(buf, buf.position()-headerLength);
+
+        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+        executor.scheduleAtFixedRate(() -> {
+            try {
+                if(cloudChannel != null && cloudChannel.isConnected() && cloudChannel.isOpen()) {
+                    setBufferForSend(buf);
+                    cloudChannel.write(buf);  // This will be ignored by the Cloud, just throws an exception if the link is down
+                }
+                else throw new Exception("Not connected");
+            }
+            catch(Exception ex)
+            {
+                logger.log(Level.WARNING, "Problem with connection to Cloud: "+ex.getMessage());
+                restart();
+            }
+        }, 10, 10, TimeUnit.SECONDS);
     }
 
     void removeSocket(int token) {
@@ -121,7 +139,22 @@ public class CloudProxy {
     /**
      * cleanUpForRestart: Some sort of problem occurred with the Cloud connection, ensure we restart cleanly
      */
-    private void cleanUpForRestart() {
+    private void restart() {
+        running = false;
+        synchronized (LOCK)
+        {
+            LOCK.notify(); // End the current start process
+        }
+        splitMessagesExecutor.shutdownNow();
+        webserverReadExecutor.shutdownNow();
+        webserverWriteExecutor.shutdownNow();
+        sendResponseToCloudExecutor.shutdownNow();
+
+        splitMessagesExecutor = Executors.newSingleThreadExecutor();
+        webserverReadExecutor = Executors.newFixedThreadPool(threadPoolSize);
+        webserverWriteExecutor = Executors.newSingleThreadExecutor();
+        sendResponseToCloudExecutor = Executors.newSingleThreadExecutor();
+
         // Ensure all sockets in the token/socket map are closed
         tokenSocketMap.forEach((token, socket) -> {
             try {
@@ -139,8 +172,9 @@ public class CloudProxy {
             } catch (IOException ignored) {
             }
         }
-        running = false;
-    }
+        // Restart the start process
+        new Thread(this::start).start();
+     }
 
     private void writeRequestToWebserver(ByteBuffer buf) {
         int token = getToken(buf);
@@ -227,7 +261,7 @@ public class CloudProxy {
                 recycle(buf);
             } catch (Exception ex) {
                 showExceptionDetails(ex, "sendResponseToCloud");
-                cleanUpForRestart();
+                restart();
                 retVal = false;
             }
             return retVal;
