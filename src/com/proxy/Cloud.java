@@ -6,10 +6,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.*;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.zip.CRC32;
@@ -18,6 +15,12 @@ import java.util.zip.Checksum;
 public class Cloud {
     final Queue<ByteBuffer> bufferQueue = new ConcurrentLinkedQueue<>();
     private boolean running = true;
+    private final int threadPoolSize = 15;
+    private final ExecutorService browserWriteExecutor = Executors.newSingleThreadExecutor();
+    private final ExecutorService browserReadExecutor = Executors.newFixedThreadPool(threadPoolSize);
+    private final ExecutorService splitMessagesExecutor = Executors.newSingleThreadExecutor();
+    private final ExecutorService sendToCloudProxyExecutor = Executors.newSingleThreadExecutor();
+
     final Map<Integer, SocketChannel> tokenSocketMap = new LinkedHashMap<>();
 
     private static final Logger logger = Logger.getLogger("CloudAsync");
@@ -50,9 +53,7 @@ public class Cloud {
                         browser.configureBlocking(true);
                         final int token = getToken();
                         tokenSocketMap.put(token, browser);
-
-                        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-                        executor.execute(() -> readFromBrowser(browser, token));
+                        readFromBrowser(browser, token);
                     } catch (Exception ex) {
                         logger.log(Level.SEVERE, "Exception in acceptConnectionsFromBrowser: " + ex.getClass().getName() + ": " + ex.getMessage());
                     }
@@ -97,7 +98,7 @@ public class Cloud {
                 try {
                     while (cloudProxy.read(buf) != -1) {
                         splitMessages(buf);
-                        buf.clear();
+                        buf = getBuffer();
                     }
                 } catch (Exception ex) {
                     showExceptionDetails(ex, "startCloudProxyInputProcess");
@@ -109,10 +110,8 @@ public class Cloud {
         }, 300, 100, TimeUnit.MILLISECONDS);
     }
 
-    final Object startCloudProxyOutputProcessLock = new Object();
-
     private void sendResponseToCloudProxy(ByteBuffer buf) {
-        synchronized (startCloudProxyOutputProcessLock) {
+        sendToCloudProxyExecutor.submit(()-> {
             if(getConnectionClosedFlag(buf)==0)
                 logMessageMetadata(buf, "To CloudPx");
             try {
@@ -127,66 +126,70 @@ public class Cloud {
                 showExceptionDetails(ex, "startCloudProxyOutputProcess");
                 cleanUpForReconnect();
             }
-        }
+        });
     }
 
     final void readFromBrowser(SocketChannel channel, final int token) {
-        int result;
-        ByteBuffer buf = getBuffer(token);
-        try {
+        browserReadExecutor.submit(() -> {
+            int result;
+            ByteBuffer buf = getBuffer(token);
+            try {
 
-            buf.position(headerLength);
-            while ((result = channel.read(buf)) != -1) {
-                int dataLength = 0;
-                dataLength += result;
-                setDataLength(buf, dataLength);
-                setBufferForSend(buf);
-                sendResponseToCloudProxy(buf);
-                buf = getBuffer(token);
                 buf.position(headerLength);
+                while ((result = channel.read(buf)) != -1) {
+                    int dataLength = 0;
+                    dataLength += result;
+                    setDataLength(buf, dataLength);
+                    setBufferForSend(buf);
+                    sendResponseToCloudProxy(buf);
+                    buf = getBuffer(token);
+                    buf.position(headerLength);
+                }
+                setConnectionClosedFlag(buf);
+                // removeSocket(token);
+                sendResponseToCloudProxy(buf);
             }
-            setConnectionClosedFlag(buf);
-           // removeSocket(token);
-            sendResponseToCloudProxy(buf);
-        }
-        catch(IOException ignored) {
-            setConnectionClosedFlag(buf);
-            removeSocket(token);
-            sendResponseToCloudProxy(buf);
-        }
-        catch (Exception ex) {
-            showExceptionDetails(ex, "readFromBrowser");
-        }
+            catch(IOException ignored) {
+                setConnectionClosedFlag(buf);
+                removeSocket(token);
+                sendResponseToCloudProxy(buf);
+            }
+            catch (Exception ex) {
+                showExceptionDetails(ex, "readFromBrowser");
+            }
+        });
     }
 
     private void respondToBrowser(ByteBuffer buf) {
-        try {
+        browserWriteExecutor.submit(()-> {
+            try {
 //            logMessageMetadata(buf, "To browser");
-            int token = getToken(buf);
-            int length = getDataLength(buf);
-            SocketChannel frontEndChannel = tokenSocketMap.get(token);  //Select the correct connection to respond to
-            if (getConnectionClosedFlag(buf) != 0) {
-                removeSocket(token);  // Usually already gone
-            }
-            else if (frontEndChannel == null)
-                throw new Exception("Couldn't find a socket for token " + token);
-            else if (frontEndChannel.isOpen()) {
-                buf.position(headerLength);
-                buf.limit(headerLength + length);
-                int result;
-                try {
-                    do {
-                        result = frontEndChannel.write(buf);
-                    }
-                    while (result != -1 && buf.position() < buf.limit());
-                } catch (IOException ioex) {
-                    showExceptionDetails(ioex, "respondToBrowser");
+                int token = getToken(buf);
+                int length = getDataLength(buf);
+                SocketChannel frontEndChannel = tokenSocketMap.get(token);  //Select the correct connection to respond to
+                if (getConnectionClosedFlag(buf) != 0) {
+                    removeSocket(token);  // Usually already gone
                 }
-            } else
-                logger.log(Level.SEVERE, "Socket for token " + token + " was closed");
-        } catch (Exception ex) {
-            showExceptionDetails(ex, "respondToBrowser");
-        }
+                else if (frontEndChannel == null)
+                    throw new Exception("Couldn't find a socket for token " + token);
+                else if (frontEndChannel.isOpen()) {
+                    buf.position(headerLength);
+                    buf.limit(headerLength + length);
+                    int result;
+                    try {
+                        do {
+                            result = frontEndChannel.write(buf);
+                        }
+                        while (result != -1 && buf.position() < buf.limit());
+                    } catch (IOException ioex) {
+                        showExceptionDetails(ioex, "respondToBrowser");
+                    }
+                } else
+                    logger.log(Level.SEVERE, "Socket for token " + token + " was closed");
+            } catch (Exception ex) {
+                showExceptionDetails(ex, "respondToBrowser");
+            }
+        });
     }
 
     private int count = 0;
@@ -349,41 +352,44 @@ public class Cloud {
     ByteBuffer remainsOfPreviousBuffer = null;
 
     void splitMessages(ByteBuffer buf) {
-        buf.flip();
-        ByteBuffer combinedBuf;
+        splitMessagesExecutor.submit(()-> {
+            buf.flip();
+            ByteBuffer combinedBuf;
 
-        if (remainsOfPreviousBuffer != null) {
-            // Append the new buffer onto the previous ones remaining content
-            combinedBuf = ByteBuffer.allocate(buf.limit() + remainsOfPreviousBuffer.limit() - remainsOfPreviousBuffer.position());
-            combinedBuf.put(remainsOfPreviousBuffer);
-            combinedBuf.put(buf);
-            remainsOfPreviousBuffer = null;
-        } else
-            combinedBuf = buf;
-        combinedBuf.rewind();
+            if (remainsOfPreviousBuffer != null) {
+                // Append the new buffer onto the previous ones remaining content
+                combinedBuf = ByteBuffer.allocate(buf.limit() + remainsOfPreviousBuffer.limit() - remainsOfPreviousBuffer.position());
+                combinedBuf.put(remainsOfPreviousBuffer);
+                combinedBuf.put(buf);
+                remainsOfPreviousBuffer = null;
+            } else
+                combinedBuf = buf;
+            combinedBuf.rewind();
 
-        while (combinedBuf.position() < combinedBuf.limit()) {
-            if (combinedBuf.limit() - combinedBuf.position() < headerLength) {
-                remainsOfPreviousBuffer = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.limit()));
-                combinedBuf.position(combinedBuf.limit());
-            } else {
-                int lengthThisMessage = getMessageLengthFromPosition(combinedBuf);
-                if (lengthThisMessage > combinedBuf.limit() - combinedBuf.position()) {
+            while (combinedBuf.position() < combinedBuf.limit()) {
+                if (combinedBuf.limit() - combinedBuf.position() < headerLength) {
                     remainsOfPreviousBuffer = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.limit()));
                     combinedBuf.position(combinedBuf.limit());
                 } else {
-                    try {
-                        ByteBuffer newBuf = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.position() + lengthThisMessage));
-                        newBuf.rewind();
-                        //     logger.log(Level.INFO, "Buffer size " + newBuf.limit() + " lengthThisMessage= " + lengthThisMessage);
-                        combinedBuf.position(combinedBuf.position() + lengthThisMessage);
-                        respondToBrowser(newBuf);
-                    } catch (Exception ex) {
-                        showExceptionDetails(ex, "splitMessages");
+                    int lengthThisMessage = getMessageLengthFromPosition(combinedBuf);
+                    if (lengthThisMessage > combinedBuf.limit() - combinedBuf.position()) {
+                        remainsOfPreviousBuffer = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.limit()));
+                        combinedBuf.position(combinedBuf.limit());
+                    } else {
+                        try {
+                            ByteBuffer newBuf = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.position() + lengthThisMessage));
+                            newBuf.rewind();
+                            //     logger.log(Level.INFO, "Buffer size " + newBuf.limit() + " lengthThisMessage= " + lengthThisMessage);
+                            combinedBuf.position(combinedBuf.position() + lengthThisMessage);
+                            respondToBrowser(newBuf);
+                        } catch (Exception ex) {
+                            showExceptionDetails(ex, "splitMessages");
+                        }
                     }
                 }
             }
-        }
+            recycle(buf);
+        });
     }
 
     private int getMessageLengthFromPosition(ByteBuffer buf) {

@@ -15,7 +15,6 @@ import java.util.zip.CRC32;
 import java.util.zip.Checksum;
 
 public class CloudProxy {
-
     final Map<Integer, SocketChannel> tokenSocketMap = new LinkedHashMap<>();
     private final int tokenLength = Integer.BYTES;
     private final int lengthLength = Integer.BYTES;
@@ -24,14 +23,19 @@ public class CloudProxy {
     public static final int BUFFER_SIZE = 16000;
     private static final Logger logger = Logger.getLogger("CloudProxy");
     final Queue<ByteBuffer> bufferQueue = new ConcurrentLinkedQueue<>();
-    final Queue<ByteBuffer> messageOutQueue = new ConcurrentLinkedQueue<>();
     SocketChannel cloudChannel;
     private boolean running = true;
     private final String webserverHost;
     private final int webserverPort;
     private final String cloudHost;
     private final int cloudPort;
-    private final ExecutorService executor = Executors.newSingleThreadExecutor();
+
+    private final int threadPoolSize = 15;
+    private final ExecutorService splitMessagesExecutor = Executors.newSingleThreadExecutor();
+    private final ExecutorService webserverReadExecutor = Executors.newFixedThreadPool(threadPoolSize);
+    private final ExecutorService webserverWriteExecutor = Executors.newSingleThreadExecutor();
+    private final ExecutorService sendResponseToCloudExecutor = Executors.newSingleThreadExecutor();
+
     CloudProxy(String webServerHost, int webServerPort, String cloudHost, int cloudPort) {
         this.webserverHost = webServerHost;
         this.webserverPort = webServerPort;
@@ -96,7 +100,7 @@ public class CloudProxy {
                 try {
                     while (cloudChannel.read(buf) != -1) {
                         splitMessages(buf);
-                        buf.clear();
+                        buf = getBuffer();
                     }
                 } catch (Exception ex) {
                     showExceptionDetails(ex, "startCloudProxyInputProcess");
@@ -135,6 +139,7 @@ public class CloudProxy {
             } catch (IOException ignored) {
             }
         }
+        running = false;
     }
 
     private void writeRequestToWebserver(ByteBuffer buf) {
@@ -167,34 +172,33 @@ public class CloudProxy {
     }
 
     private void writeRequestToWebserver(final ByteBuffer buf, final SocketChannel webserverChannel) {
-        this.executor.submit(() -> {  // submit rather than execute to ensure tasks (and hence messages) are run in order of submission
-                logMessageMetadata(buf, "To webserv");
-                int length = getDataLength(buf);
-                buf.position(headerLength);
-                buf.limit(headerLength + length);
-                int result;
-                try {
-                    do {
-                        result = webserverChannel.write(buf);
-                    }
-                    while (result != -1 && buf.position() < buf.limit());
-                } catch (ClosedChannelException ignored) {
-                    // Don't report AsynchronousCloseException or ClosedChannelException as these come up when the channel
-                    // has been closed by a signal via getConnectionClosedFlag  from CloudProxy
-                } catch (IOException e) {
-                    showExceptionDetails(e, "writeRequestToWebserver");
+        this.webserverWriteExecutor.submit(() -> {  // submit rather than execute to ensure tasks (and hence messages) are run in order of submission
+            logMessageMetadata(buf, "To webserv");
+            int length = getDataLength(buf);
+            buf.position(headerLength);
+            buf.limit(headerLength + length);
+            int result;
+            try {
+                do {
+                    result = webserverChannel.write(buf);
                 }
+                while (result != -1 && buf.position() < buf.limit());
+            } catch (ClosedChannelException ignored) {
+                // Don't report AsynchronousCloseException or ClosedChannelException as these come up when the channel
+                // has been closed by a signal via getConnectionClosedFlag  from CloudProxy
+            } catch (IOException e) {
+                showExceptionDetails(e, "writeRequestToWebserver");
+            }
         });
     }
 
     private void readResponseFromWebserver(SocketChannel webserverChannel, int token) {
-        Executors.newSingleThreadExecutor().execute(() -> {
+        webserverReadExecutor.submit(() -> {
             ByteBuffer buf = getBuffer(token);
             try {
-                while (webserverChannel.isOpen() && webserverChannel.read(buf) != -1) {
+                while (running && webserverChannel.isOpen() && webserverChannel.read(buf) != -1) {
                     setDataLength(buf, buf.position() - headerLength);
-                    if (!sendResponseToCloud(buf))
-                        break;
+                    sendResponseToCloud(buf);
                     buf = getBuffer(token);
                 }
                 setConnectionClosedFlag(buf);
@@ -208,11 +212,10 @@ public class CloudProxy {
         });
     }
 
-    final Object sendResponseToCloudLock = new Object();
+    private void sendResponseToCloud(ByteBuffer buf) {
+        sendResponseToCloudExecutor.submit(()->{
+            boolean retVal = true;
 
-    private boolean sendResponseToCloud(ByteBuffer buf) {
-        boolean retVal = true;
-        synchronized (sendResponseToCloudLock) {
 //            logMessageMetadata(buf, "To cloud  ");
             setBufferForSend(buf);
             try {
@@ -227,8 +230,8 @@ public class CloudProxy {
                 cleanUpForRestart();
                 retVal = false;
             }
-        }
-        return retVal;
+            return retVal;
+        });
     }
 
     private int count = 0;
@@ -344,41 +347,44 @@ public class CloudProxy {
     ByteBuffer remainsOfPreviousBuffer = null;
 
     void splitMessages(ByteBuffer buf) {
-        buf.flip();
-        ByteBuffer combinedBuf;
+        splitMessagesExecutor.submit(() -> {
+            buf.flip();
+            ByteBuffer combinedBuf;
 
-        if (remainsOfPreviousBuffer != null) {
-            // Append the new buffer onto the previous ones remaining content
-            combinedBuf = ByteBuffer.allocate(buf.limit() + remainsOfPreviousBuffer.limit() - remainsOfPreviousBuffer.position());
-            combinedBuf.put(remainsOfPreviousBuffer);
-            combinedBuf.put(buf);
-            remainsOfPreviousBuffer = null;
-        } else
-            combinedBuf = buf;
-        combinedBuf.rewind();
+            if (remainsOfPreviousBuffer != null) {
+                // Append the new buffer onto the previous ones remaining content
+                combinedBuf = ByteBuffer.allocate(buf.limit() + remainsOfPreviousBuffer.limit() - remainsOfPreviousBuffer.position());
+                combinedBuf.put(remainsOfPreviousBuffer);
+                combinedBuf.put(buf);
+                remainsOfPreviousBuffer = null;
+            } else
+                combinedBuf = buf;
+            combinedBuf.rewind();
 
-        while (combinedBuf.position() < combinedBuf.limit()) {
-            if (combinedBuf.limit() - combinedBuf.position() < headerLength) {
-                remainsOfPreviousBuffer = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.limit()));
-                combinedBuf.position(combinedBuf.limit());
-            } else {
-                int lengthThisMessage = getMessageLengthFromPosition(combinedBuf);
-                if (lengthThisMessage > combinedBuf.limit() - combinedBuf.position()) {
+            while (combinedBuf.position() < combinedBuf.limit()) {
+                if (combinedBuf.limit() - combinedBuf.position() < headerLength) {
                     remainsOfPreviousBuffer = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.limit()));
                     combinedBuf.position(combinedBuf.limit());
                 } else {
-                    try {
-                        ByteBuffer newBuf = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.position() + lengthThisMessage));
-                        newBuf.rewind();
-                        //    logger.log(Level.INFO, "Buffer size " + newBuf.limit() + " lengthThisMessage= " + lengthThisMessage);
-                        combinedBuf.position(combinedBuf.position() + lengthThisMessage);
-                        writeRequestToWebserver(newBuf);
-                    } catch (Exception ex) {
-                        showExceptionDetails(ex, "splitMessages");
+                    int lengthThisMessage = getMessageLengthFromPosition(combinedBuf);
+                    if (lengthThisMessage > combinedBuf.limit() - combinedBuf.position()) {
+                        remainsOfPreviousBuffer = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.limit()));
+                        combinedBuf.position(combinedBuf.limit());
+                    } else {
+                        try {
+                            ByteBuffer newBuf = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.position() + lengthThisMessage));
+                            newBuf.rewind();
+                            //    logger.log(Level.INFO, "Buffer size " + newBuf.limit() + " lengthThisMessage= " + lengthThisMessage);
+                            combinedBuf.position(combinedBuf.position() + lengthThisMessage);
+                            writeRequestToWebserver(newBuf);
+                        } catch (Exception ex) {
+                            showExceptionDetails(ex, "splitMessages");
+                        }
                     }
                 }
             }
-        }
+            recycle(buf);
+        });
     }
 
     private int getMessageLengthFromPosition(ByteBuffer buf) {
