@@ -112,8 +112,8 @@ public class Cloud {
 
     private void sendResponseToCloudProxy(ByteBuffer buf) {
         sendToCloudProxyExecutor.submit(()-> {
-            if(getConnectionClosedFlag(buf)==0)
-                logMessageMetadata(buf, "To CloudPx");
+//            if(getConnectionClosedFlag(buf)==0)
+//                logMessageMetadata(buf, "To CloudPx");
             try {
                 int result;
                 do {

@@ -173,7 +173,7 @@ public class CloudProxy {
 
     private void writeRequestToWebserver(final ByteBuffer buf, final SocketChannel webserverChannel) {
         this.webserverWriteExecutor.submit(() -> {  // submit rather than execute to ensure tasks (and hence messages) are run in order of submission
-            logMessageMetadata(buf, "To webserv");
+          //  logMessageMetadata(buf, "To webserv");
             int length = getDataLength(buf);
             buf.position(headerLength);
             buf.limit(headerLength + length);
