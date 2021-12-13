@@ -36,6 +36,8 @@ public class CloudProxy {
     private ExecutorService webserverReadExecutor = Executors.newFixedThreadPool(threadPoolSize);
     private ExecutorService webserverWriteExecutor = Executors.newSingleThreadExecutor();
     private ExecutorService sendResponseToCloudExecutor = Executors.newSingleThreadExecutor();
+    private ScheduledExecutorService cloudConnectionCheckExecutor = Executors.newSingleThreadScheduledExecutor();
+    private ExecutorService startCloudInputProcessExecutor = Executors.newSingleThreadExecutor();
 
     CloudProxy(String webServerHost, int webServerPort, String cloudHost, int cloudPort) {
         this.webserverHost = webServerHost;
@@ -77,18 +79,17 @@ public class CloudProxy {
                 this.cloudChannel = cloudChannel;
                 logger.log(Level.INFO, "Connected successfully to the Cloud");
                 startCloudInputProcess(cloudChannel);
-                startCloudConnectionCheck();
             }
 
         } catch (IOException e) {
             logger.log(Level.WARNING, "Couldn't connect to cloud service");
         }
+        startCloudConnectionCheck();
     }
 
     private void startCloudInputProcess(SocketChannel cloudChannel) {
         final AtomicBoolean busy = new AtomicBoolean(false);
-        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-        executor.execute(() -> {
+        startCloudInputProcessExecutor.execute(() -> {
             if (!busy.get()) {
                 busy.set(true);
                 ByteBuffer buf = getBuffer();
@@ -99,14 +100,12 @@ public class CloudProxy {
                     }
                 } catch (Exception ex) {
                     showExceptionDetails(ex, "startCloudProxyInputProcess");
-                    executor.shutdown();
-                    restart();
                 }
+
                 recycle(buf);
                 busy.set(false);
             }
         });
-        executor.shutdown();
     }
 
     private void startCloudConnectionCheck()
@@ -115,8 +114,7 @@ public class CloudProxy {
         buf.put("Ignore".getBytes(StandardCharsets.UTF_8));
         setDataLength(buf, buf.position()-headerLength);
 
-        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-        executor.scheduleAtFixedRate(() -> {
+        cloudConnectionCheckExecutor.scheduleAtFixedRate(() -> {
             try {
                 if(cloudChannel != null && cloudChannel.isConnected() && cloudChannel.isOpen()) {
                     setBufferForSend(buf);
@@ -140,20 +138,11 @@ public class CloudProxy {
      * cleanUpForRestart: Some sort of problem occurred with the Cloud connection, ensure we restart cleanly
      */
     private void restart() {
-        running = false;
-        synchronized (LOCK)
-        {
-            LOCK.notify(); // End the current start process
-        }
-        splitMessagesExecutor.shutdownNow();
-        webserverReadExecutor.shutdownNow();
-        webserverWriteExecutor.shutdownNow();
-        sendResponseToCloudExecutor.shutdownNow();
+         sendResponseToCloudExecutor.shutdownNow();
+        startCloudInputProcessExecutor.shutdownNow();
 
-        splitMessagesExecutor = Executors.newSingleThreadExecutor();
-        webserverReadExecutor = Executors.newFixedThreadPool(threadPoolSize);
-        webserverWriteExecutor = Executors.newSingleThreadExecutor();
         sendResponseToCloudExecutor = Executors.newSingleThreadExecutor();
+        startCloudInputProcessExecutor = Executors.newSingleThreadExecutor();
 
         // Ensure all sockets in the token/socket map are closed
         tokenSocketMap.forEach((token, socket) -> {
@@ -172,11 +161,21 @@ public class CloudProxy {
             } catch (IOException ignored) {
             }
         }
+        cloudChannel=null;
         // Restart the start process
-        new Thread(this::start).start();
+        new Thread(this::createConnectionToCloud).start();
      }
 
     private void writeRequestToWebserver(ByteBuffer buf) {
+        // Dump the connection test heartbeats
+        final String ignored = "Ignore";
+        if(getToken(buf) == -1 && getDataLength(buf)==ignored.length()) {
+            String strVal = new String(Arrays.copyOfRange(buf.array(), headerLength, buf.limit()), StandardCharsets.UTF_8);
+            if (ignored.equals(strVal)) {
+                return;
+            }
+        }
+
         int token = getToken(buf);
         if (tokenSocketMap.containsKey(token)) {
             if (getConnectionClosedFlag(buf) != 0) {
@@ -261,7 +260,6 @@ public class CloudProxy {
                 recycle(buf);
             } catch (Exception ex) {
                 showExceptionDetails(ex, "sendResponseToCloud");
-                restart();
                 retVal = false;
             }
             return retVal;
@@ -443,5 +441,4 @@ public class CloudProxy {
         buf.position(position);
         return new String(dataBytes);
     }
-
 }

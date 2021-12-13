@@ -17,10 +17,12 @@ public class Cloud {
     final Queue<ByteBuffer> bufferQueue = new ConcurrentLinkedQueue<>();
     private boolean running = true;
     private final int threadPoolSize = 15;
-    private final ExecutorService browserWriteExecutor = Executors.newSingleThreadExecutor();
-    private final ExecutorService browserReadExecutor = Executors.newFixedThreadPool(threadPoolSize);
-    private final ExecutorService splitMessagesExecutor = Executors.newSingleThreadExecutor();
-    private final ExecutorService sendToCloudProxyExecutor = Executors.newSingleThreadExecutor();
+    private ExecutorService browserWriteExecutor = Executors.newSingleThreadExecutor();
+    private ExecutorService browserReadExecutor = Executors.newFixedThreadPool(threadPoolSize);
+    private ExecutorService splitMessagesExecutor = Executors.newSingleThreadExecutor();
+    private ExecutorService sendToCloudProxyExecutor = Executors.newSingleThreadExecutor();
+    private ScheduledExecutorService startCloudProxyInputProcessExecutor = Executors.newSingleThreadScheduledExecutor();
+    private ExecutorService acceptConnectionsFromCloudProxyExecutor = Executors.newSingleThreadExecutor();
 
     final Map<Integer, SocketChannel> tokenSocketMap = new LinkedHashMap<>();
 
@@ -31,12 +33,13 @@ public class Cloud {
     private final int closedFlagLength = Byte.BYTES;
     private final int headerLength = tokenLength + lengthLength + closedFlagLength;
     private SocketChannel cloudProxy;
+    private final int browserFacingPort = 8082, cloudProxyFacingPort = 8081;
 
     public static void main(String[] args) {
-        new Cloud().start(8082, 8081);
+        new Cloud().start();
     }
 
-    private void start(final int browserFacingPort, final int cloudProxyFacingPort) {
+    private void start() {
         acceptConnectionsFromCloudProxy(cloudProxyFacingPort);
         acceptConnectionsFromBrowser(browserFacingPort); // Never returns
     }
@@ -67,7 +70,7 @@ public class Cloud {
 
     private void acceptConnectionsFromCloudProxy(final int cloudProxyFacingPort) {
         startCloudProxyInputProcess();
-        Executors.newSingleThreadExecutor().execute(() -> {
+        acceptConnectionsFromCloudProxyExecutor.execute(() -> {
             while (running) {
                 try {
                     // Creating a ServerSocket to listen for connections with
@@ -78,7 +81,6 @@ public class Cloud {
                             // It will wait for a connection on the local port
                             SocketChannel cloudProxy = s.accept();
                             cloudProxy.configureBlocking(true);
-                            cleanUpForReconnect();
                             this.cloudProxy = cloudProxy;
                         } catch (Exception ex) {
                             logger.log(Level.SEVERE, "Exception in acceptConnectionsFromCloudProxy: " + ex.getClass().getName() + ": " + ex.getMessage());
@@ -92,8 +94,7 @@ public class Cloud {
     }
 
     private void startCloudProxyInputProcess() {
-        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-        executor.scheduleAtFixedRate(() -> {
+        startCloudProxyInputProcessExecutor.scheduleAtFixedRate(() -> {
             if (cloudProxy != null && cloudProxy.isOpen()) {
                 ByteBuffer buf = getBuffer();
                 try {
@@ -103,8 +104,7 @@ public class Cloud {
                     }
                 } catch (Exception ex) {
                     showExceptionDetails(ex, "startCloudProxyInputProcess");
-                    executor.shutdown();
-                    cleanUpForReconnect();
+                    startCloudProxyInputProcessExecutor.shutdown();
                 }
                 recycle(buf);
             }
@@ -113,8 +113,6 @@ public class Cloud {
 
     private void sendResponseToCloudProxy(ByteBuffer buf) {
         sendToCloudProxyExecutor.submit(()-> {
-//            if(getConnectionClosedFlag(buf)==0)
-//                logMessageMetadata(buf, "To CloudPx");
             try {
                 int result;
                 do {
@@ -125,7 +123,6 @@ public class Cloud {
 
             } catch (Exception ex) {
                 showExceptionDetails(ex, "startCloudProxyOutputProcess");
-                cleanUpForReconnect();
             }
         });
     }
@@ -162,6 +159,15 @@ public class Cloud {
     }
 
     private void respondToBrowser(ByteBuffer buf) {
+        // Dump the connection test heartbeats
+        final String ignored = "Ignore";
+        if(getToken(buf) == -1 && getDataLength(buf)==ignored.length()) {
+            String strVal = new String(Arrays.copyOfRange(buf.array(), headerLength, buf.limit()), StandardCharsets.UTF_8);
+            if (ignored.equals(strVal)) {
+                return;
+             }
+        }
+
         browserWriteExecutor.submit(()-> {
             try {
 //            logMessageMetadata(buf, "To browser");
@@ -213,25 +219,7 @@ public class Cloud {
         tokenSocketMap.remove(token);
     }
 
-    private void cleanUpForReconnect() {
-        if (this.cloudProxy != null && this.cloudProxy.isOpen() && this.cloudProxy.isConnected()) {
-            try {
-                this.cloudProxy.close();
-            } catch (IOException ignored) {
-            }
-
-            tokenSocketMap.forEach((token, socket) -> {
-                try {
-                    socket.close();
-                } catch (IOException ignored) {
-                }
-            });
-            tokenSocketMap.clear();
-            remainsOfPreviousBuffer = null;
-        }
-    }
-
-    void showExceptionDetails(Throwable t, String functionName) {
+     void showExceptionDetails(Throwable t, String functionName) {
         logger.log(Level.SEVERE, t.getClass().getName() + " exception in " + functionName + ": " + t.getMessage() + "\n" + t.fillInStackTrace());
         for (StackTraceElement stackTraceElement : t.getStackTrace()) {
             System.err.println(stackTraceElement.toString());
@@ -389,18 +377,6 @@ public class Cloud {
                         remainsOfPreviousBuffer = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.limit()));
                         combinedBuf.position(combinedBuf.limit());
                     } else {
-                        final int position = combinedBuf.position();
-                        final String ignored = "Ignore";
-                        if(getToken(combinedBuf, position) == -1 && (lengthThisMessage-headerLength)==ignored.length())
-                        {
-                            String strVal = new String(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position()+headerLength, combinedBuf.position()+lengthThisMessage), StandardCharsets.UTF_8);
-                            if(ignored.equals(strVal))
-                            {
-                                combinedBuf.position(position + lengthThisMessage);
-                                continue;  // Ignore if it's just the link test message
-                            }
-                            combinedBuf.position(position);
-                        }
                         try {
                             ByteBuffer newBuf = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.position() + lengthThisMessage));
                             newBuf.rewind();
