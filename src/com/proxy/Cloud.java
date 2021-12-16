@@ -17,12 +17,12 @@ public class Cloud {
     final Queue<ByteBuffer> bufferQueue = new ConcurrentLinkedQueue<>();
     private boolean running = true;
     private final int threadPoolSize = 15;
-    private ExecutorService browserWriteExecutor = Executors.newSingleThreadExecutor();
-    private ExecutorService browserReadExecutor = Executors.newFixedThreadPool(threadPoolSize);
-    private ExecutorService splitMessagesExecutor = Executors.newSingleThreadExecutor();
-    private ExecutorService sendToCloudProxyExecutor = Executors.newSingleThreadExecutor();
-    private ScheduledExecutorService startCloudProxyInputProcessExecutor = Executors.newSingleThreadScheduledExecutor();
-    private ExecutorService acceptConnectionsFromCloudProxyExecutor = Executors.newSingleThreadExecutor();
+    private final ExecutorService browserWriteExecutor = Executors.newSingleThreadExecutor();
+    private final ExecutorService browserReadExecutor = Executors.newFixedThreadPool(threadPoolSize);
+    private final ExecutorService splitMessagesExecutor = Executors.newSingleThreadExecutor();
+    private final ExecutorService sendToCloudProxyExecutor = Executors.newSingleThreadExecutor();
+    private final ScheduledExecutorService startCloudProxyInputProcessExecutor = Executors.newSingleThreadScheduledExecutor();
+    private final ExecutorService acceptConnectionsFromCloudProxyExecutor = Executors.newSingleThreadExecutor();
 
     final Map<Integer, SocketChannel> tokenSocketMap = new LinkedHashMap<>();
 
