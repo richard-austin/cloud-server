@@ -20,7 +20,7 @@ import static com.proxy.SslUtil.*;
 public class CloudHttpsProxy implements SslContextProvider {
     public static void main(String[] args) throws IOException {
         try {
-            new CloudHttpsProxy().runServer("192.168.0.29", 443, 8082);
+            new CloudHttpsProxy().runServer("localhost", 443, 8082);
         } catch (Exception e) {
             System.err.println(e); //Prints the standard errors
         }
@@ -54,8 +54,8 @@ public class CloudHttpsProxy implements SslContextProvider {
             os.write(output.getBytes(StandardCharsets.UTF_8));
             os.flush();
 
-            int read = is.read(buf);
-            HttpMessage hdrs = new HttpMessage(buf);
+            int bytesRead = is.read(buf);
+            HttpMessage hdrs = new HttpMessage(buf, bytesRead);
             hdrs.buildHeaders();
 
             var l = hdrs.getHeader("Location");
@@ -152,15 +152,22 @@ public class CloudHttpsProxy implements SslContextProvider {
                     while ((bytesRead = streamFromClient.read(request)) != -1) {
                         if(firstRead) {
                             firstRead = false;
-                            HttpMessage msg = new HttpMessage(request);
+                            HttpMessage msg = new HttpMessage(request, bytesRead);
                             msg.buildHeaders();
                             List<String> js = new ArrayList<String>();
                             js.add("JSESSIONID="+JSESSIONID);
                             msg.put("Cookie", js);
                             String headers = msg.getHeaders();
-                            String messageBody = new String(msg.getMessageBody());
-                            streamToServer.write(headers.getBytes(StandardCharsets.UTF_8));
-                            streamToServer.write(msg.getMessageBody(), 0, bytesRead-headers.length()+1);
+//                            int hdrLength = msg.getHeadersLength();
+//                            int mbLength = msg.getMessageBodyLength();
+//                            int hl = headers.length();
+//                            if(hdrLength+mbLength != bytesRead)
+//                            {
+//                                System.out.println("Header length + message body length = "+(hdrLength+mbLength)+": bytesRead = "+bytesRead);
+//                            }
+                            streamToServer.write(headers.getBytes(StandardCharsets.UTF_8), 0, headers.length());
+                            if(msg.getMessageBodyLength() > 0)
+                                streamToServer.write(msg.getMessageBody(), 0, msg.getMessageBodyLength());
                             streamToServer.flush();
                         }
                         else {
