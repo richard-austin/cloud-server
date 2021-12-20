@@ -1,18 +1,17 @@
 package cloudwebapp
 
-import javax.servlet.http.HttpServletRequest
 import java.nio.ByteBuffer
-import java.nio.channels.SocketChannel
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
 
 class LinkController {
 
     RestfulInterfaceService restfulInterfaceService
 
-    def proxy() {
-        restfulInterfaceService.authenticate("https://192.168.0.29")
+    def auth() {
+        String JSESSIONID = restfulInterfaceService.authenticate("https://192.168.0.29:443")
+        render JSESSIONID
+    }
 
+    def proxy() {
         restfulInterfaceService.sendRequest(request, response)
     }
 

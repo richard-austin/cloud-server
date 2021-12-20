@@ -106,6 +106,10 @@ dataSource:
 
 environments:
     development:
+        plugin:
+         cors:
+            enabled: true
+
         dataSource:
             dbCreate: create-drop
             url: jdbc:h2:mem:devDb;LOCK_TIMEOUT=10000;DB_CLOSE_ON_EXIT=FALSE

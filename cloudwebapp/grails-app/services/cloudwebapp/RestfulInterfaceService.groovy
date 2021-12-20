@@ -2,9 +2,8 @@ package cloudwebapp
 
 import cloudservice.entityobjects.RestfulResponseStatusEnum
 import cloudservice.interfaceobjects.RestfulResponse
+import com.sun.net.httpserver.HttpServer
 import grails.gorm.transactions.Transactional
-import groovy.json.JsonException
-import groovy.json.JsonSlurper
 
 import javax.net.ssl.HostnameVerifier
 import javax.net.ssl.HttpsURLConnection
@@ -23,6 +22,8 @@ import java.security.KeyStore
 import java.security.SecureRandom
 import java.security.cert.CertificateException
 import java.security.cert.X509Certificate
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 @Transactional
 class RestfulInterfaceService {
@@ -30,6 +31,9 @@ class RestfulInterfaceService {
     boolean initialised = false
     String JSESSIONID
     String baseUrl
+    private final int threadPoolSize = 20
+
+    private final ExecutorService inputReadExecutor = Executors.newFixedThreadPool(threadPoolSize);
 
     void initialise() {
         if (!initialised) {
@@ -105,37 +109,58 @@ class RestfulInterfaceService {
             logService.cloud.debug("Method is ${x}")
             conn.setRequestMethod(x)
             conn.setDoOutput(true)
-            conn.setRequestProperty("Cookie", JSESSIONID)
+//            conn.setRequestProperty("Content-Type", "application/json; utf-8")
+//            conn.setRequestProperty("Accept", "application/json")
+//            conn.setRequestProperty("Accept-Charset", "UTF-8")
             def headerNames = req.getHeaderNames()
             for (String headername : headerNames)
                 conn.setRequestProperty(headername, req.getHeader(headername))
+
+            conn.setRequestProperty("Cookie", JSESSIONID)
 
             conn.setConnectTimeout(RestfulProperties.REQUEST_TIMEOUT_SECS * 1000)
             conn.setReadTimeout(RestfulProperties.REQUEST_TIMEOUT_SECS * 1000)
             conn.setInstanceFollowRedirects(false)
 
-            def responseCode = conn.getResponseCode()
+            final InputStream apiIn = req.getInputStream()
+            final OutputStream cloudOut = conn.getOutputStream()
+             inputReadExecutor.submit(() -> {
+                def bis = new BufferedInputStream(apiIn)
+                final char[] buf = new char[0x10000]
+                StringBuilder out = new StringBuilder()
+                inp = new InputStreamReader(bis, "UTF-8")
+                int readCount
+                while((readCount = inp.read(buf, 0, buf.length)) != -1)
+                {
+                    out.append(buf, 0, readCount)
+                    logService.cloud.info(log(toBytes(buf, readCount), readCount))
+                    cloudOut.write(toBytes(buf, out.length()))
+                    cloudOut.flush()
+                }
+            })
+
+            def responseCode = conn.getResponseCurlconnectionode()
 
             if (responseCode == HttpURLConnection.HTTP_OK) {
                 is = conn.getInputStream()
             } else {
                 is = conn.getErrorStream()
             }
+            def os = res.getOutputStream()
 
             // get the response or error message from the relevant stream and store as a string
             def bis = new BufferedInputStream(is)
             final char[] buffer = new char[0x10000]
             StringBuilder out = new StringBuilder()
             inp = new InputStreamReader(bis, "UTF-8")
-            int readCount = 1
-            while (readCount > 0) {
-                readCount = inp.read(buffer, 0, buffer.length)
+            int readCount
+            while ((readCount = inp.read(buffer, 0, buffer.length)) != -1) {
                 if (readCount > 0) {
                     out.append(buffer, 0, readCount)
+                    os.write(toBytes(buffer, readCount))
+                    os.flush()
                 }
             }
-            def os = res.getOutputStream()
-            os.write(toBytes(buffer, out.length()))
             os.close()
             res.setStatus(responseCode)
         }
@@ -192,11 +217,11 @@ class RestfulInterfaceService {
         conn.setReadTimeout(RestfulProperties.REQUEST_TIMEOUT_SECS * 1000)
         conn.setInstanceFollowRedirects(false)
         OutputStream os = conn.getOutputStream()
-        byte[] byteParams = ("username="+RestfulProperties.USERNAME+"&password="+RestfulProperties.PASSWORD).getBytes()
+        byte[] byteParams = ("username=" + RestfulProperties.USERNAME + "&password=" + RestfulProperties.PASSWORD).getBytes()
         os.write(byteParams)
         result.responseCode = conn.getResponseCode()
 
-        if (result.responseCode == HttpURLConnection.HTTP_MOVED_TEMP) {
+        if (result.responseCode == HttpURLConnection.HTTP_MOVED_TEMP ) {
             {
                 String tmp = conn.getHeaderField("Set-Cookie")
                 result.responseObject = JSESSIONID = tmp.substring(0, 43)
@@ -217,6 +242,7 @@ class RestfulInterfaceService {
             }
             result.responseObject = out.toString()
         }
+        return JSESSIONID
     }
 
     /**
@@ -265,4 +291,9 @@ class RestfulInterfaceService {
         json.append("}")
         return json.toString()
     }
+
+    private String log(byte[] dataBytes, int length) {
+        return new String(Arrays.copyOfRange(dataBytes, 0, length))
+    }
+
 }
