@@ -7,11 +7,17 @@ class HttpMessage extends HashMap<String, List<String>> {
     final byte[] crlfcrlf = {'\r', '\n','\r', '\n'};
     final byte [] crlf = {'\r', '\n'};
     final byte[] colon = {':'};
+    final int totalBytes;
+    final int messageBodyLength;
+    final int headersLength;
     String firstLine;
 
-    HttpMessage(byte[] httpMessage)
+    HttpMessage(byte[] httpMessage, int bytesRead)
     {
         this.httpMessage = httpMessage;
+        totalBytes = bytesRead;
+        headersLength = indexOf(crlfcrlf, 0)+crlfcrlf.length;
+        messageBodyLength = bytesRead-headersLength;
     }
 
     boolean buildHeaders()
@@ -70,8 +76,18 @@ class HttpMessage extends HashMap<String, List<String>> {
     byte[] getMessageBody()
     {
         int idxMsgBodyStart = indexOf(crlfcrlf, 0)+crlfcrlf.length;
-        return Arrays.copyOfRange(httpMessage, idxMsgBodyStart, httpMessage.length);
+        return Arrays.copyOfRange(httpMessage, idxMsgBodyStart, idxMsgBodyStart+messageBodyLength);
     }
+
+    int getMessageBodyLength()
+    {
+        return messageBodyLength;
+    }
+
+//    int getHeadersLength()
+//    {
+//        return getHeaders().length();
+//    }
 
     private int indexOf(byte[] smallerArray, int startIdx) {
         for(int i = startIdx; i < httpMessage.length - smallerArray.length+1; ++i) {
