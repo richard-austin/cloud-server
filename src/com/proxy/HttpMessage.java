@@ -8,8 +8,9 @@ class HttpMessage extends HashMap<String, List<String>> {
     final byte [] crlf = {'\r', '\n'};
     final byte[] colon = {':'};
     final int totalBytes;
-    final int messageBodyLength;
     final int headersLength;
+    final boolean headersBuilt;
+
     String firstLine;
 
     HttpMessage(byte[] httpMessage, int bytesRead)
@@ -17,10 +18,11 @@ class HttpMessage extends HashMap<String, List<String>> {
         this.httpMessage = httpMessage;
         totalBytes = bytesRead;
         headersLength = indexOf(crlfcrlf, 0)+crlfcrlf.length;
-        messageBodyLength = bytesRead-headersLength;
+        if(!(headersBuilt=buildHeaders()))
+            System.out.println("ERROR: Couldn't build HTTP headers");
     }
 
-    boolean buildHeaders()
+    private boolean buildHeaders()
     {
         boolean retVal = true;
 
@@ -63,6 +65,15 @@ class HttpMessage extends HashMap<String, List<String>> {
         return sb.toString();
     }
 
+    int getContentLength()
+    {
+        var cl =this.get("Content-Length");
+        if(cl != null)
+            return Integer.parseInt(cl.get(0));
+        else
+            return 0;
+    }
+
     List<String> getHeader(String name)
     {
         return get(name);
@@ -76,12 +87,7 @@ class HttpMessage extends HashMap<String, List<String>> {
     byte[] getMessageBody()
     {
         int idxMsgBodyStart = indexOf(crlfcrlf, 0)+crlfcrlf.length;
-        return Arrays.copyOfRange(httpMessage, idxMsgBodyStart, idxMsgBodyStart+messageBodyLength);
-    }
-
-    int getMessageBodyLength()
-    {
-        return messageBodyLength;
+        return Arrays.copyOfRange(httpMessage, idxMsgBodyStart, idxMsgBodyStart+getContentLength());
     }
 
 //    int getHeadersLength()
