@@ -2,6 +2,7 @@ package com.proxy;
 
 
 import groovyjarjarantlr4.v4.runtime.misc.NotNull;
+import org.apache.commons.lang3.ArrayUtils;
 
 import javax.net.ssl.*;
 import java.io.*;
@@ -13,6 +14,7 @@ import java.security.GeneralSecurityException;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Logger;
 
 import static com.proxy.SslUtil.*;
@@ -20,7 +22,7 @@ import static com.proxy.SslUtil.*;
 public class CloudHttpsProxy implements SslContextProvider {
     public static void main(String[] args) throws IOException {
         try {
-            new CloudHttpsProxy().runServer("localhost", 443, 8082);
+            new CloudHttpsProxy().runServer("localhost", 8083, 8082);
         } catch (Exception e) {
             System.err.println(e); //Prints the standard errors
         }
@@ -30,7 +32,7 @@ public class CloudHttpsProxy implements SslContextProvider {
     private final int threadPoolSize = 20;
     private final ExecutorService threadPoolExecutor = Executors.newFixedThreadPool(threadPoolSize);
 
-    static String JSESSIONID="";
+    static String JSESSIONID = "";
     static String baseUrl;
 
     String authenticate(SSLSocket socket) {
@@ -41,7 +43,7 @@ public class CloudHttpsProxy implements SslContextProvider {
             socket.setReceiveBufferSize(buf.length);
             //System.out.printf("Connected to server (%s). Writing ping...%n", getPeerIdentity(socket));
 
-            String payload = "username="+RestfulProperties.USERNAME+"&password="+RestfulProperties.PASSWORD;
+            String payload = "username=" + RestfulProperties.USERNAME + "&password=" + RestfulProperties.PASSWORD;
 
             String output = "POST /login/authenticate HTTP/1.1\r\n" +
                     "Host: host\r\n" +
@@ -56,21 +58,18 @@ public class CloudHttpsProxy implements SslContextProvider {
 
             int bytesRead = is.read(buf);
             HttpMessage hdrs = new HttpMessage(buf, bytesRead);
-            hdrs.buildHeaders();
-
             var l = hdrs.getHeader("Location");
             String location = l.size() == 1 ? l.get(0) : null;
-            if(Objects.equals(location, "/")) {
+            if (Objects.equals(location, "/")) {
                 List<String> setCookie = hdrs.getHeader("Set-Cookie");
-                for(String cookie: setCookie) {
-                    if(cookie.startsWith("JSESSIONID"))
-                    {
-                        JSESSIONID=cookie.substring(11, 43);
+                for (String cookie : setCookie) {
+                    if (cookie.startsWith("JSESSIONID")) {
+                        JSESSIONID = cookie.substring(11, 43);
                         break;
-                    }
-                    else
+                    } else
                         JSESSIONID = "";
-                };
+                }
+                ;
             }
 
             String response = new String(buf);
@@ -106,8 +105,7 @@ public class CloudHttpsProxy implements SslContextProvider {
         }
     }
 
-    void requestProcessing(@NotNull Socket client, String host, int remoteport)
-    {
+    void requestProcessing(@NotNull Socket client, String host, int remoteport) {
         threadPoolExecutor.execute(() -> handleClientRequest(client, host, remoteport));
     }
 
@@ -115,6 +113,7 @@ public class CloudHttpsProxy implements SslContextProvider {
         SSLSocket server = null;
         try {
             final byte[] request = new byte[1024];
+            final AtomicReference<byte[]> remainsOfPreviousMessage = new AtomicReference<byte[]>(null);
             byte[] reply = new byte[4096];
 
             final InputStream streamFromClient = client.getInputStream();
@@ -124,8 +123,8 @@ public class CloudHttpsProxy implements SslContextProvider {
             // If we cannot connect to the server, send an error to the
             // client, disconnect, and continue waiting for connections.
             try {
-                server =  createSSLSocket(host, remoteport);
-                if(Objects.equals(JSESSIONID, ""))
+                server = createSSLSocket(host, remoteport);
+                if (Objects.equals(JSESSIONID, ""))
                     authenticate(server);
             } catch (IOException e) {
                 PrintWriter out = new PrintWriter(streamToClient);
@@ -148,32 +147,8 @@ public class CloudHttpsProxy implements SslContextProvider {
             threadPoolExecutor.execute(() -> {
                 int bytesRead;
                 try {
-                    boolean firstRead = true;
-                    while ((bytesRead = streamFromClient.read(request)) != -1) {
-                        if(firstRead) {
-                            firstRead = false;
-                            HttpMessage msg = new HttpMessage(request, bytesRead);
-                            msg.buildHeaders();
-                            List<String> js = new ArrayList<String>();
-                            js.add("JSESSIONID="+JSESSIONID);
-                            msg.put("Cookie", js);
-                            String headers = msg.getHeaders();
-//                            int hdrLength = msg.getHeadersLength();
-//                            int mbLength = msg.getMessageBodyLength();
-//                            int hl = headers.length();
-//                            if(hdrLength+mbLength != bytesRead)
-//                            {
-//                                System.out.println("Header length + message body length = "+(hdrLength+mbLength)+": bytesRead = "+bytesRead);
-//                            }
-                            streamToServer.write(headers.getBytes(StandardCharsets.UTF_8), 0, headers.length());
-                            if(msg.getMessageBodyLength() > 0)
-                                streamToServer.write(msg.getMessageBody(), 0, msg.getMessageBodyLength());
-                            streamToServer.flush();
-                        }
-                        else {
-                            streamToServer.write(request, 0, bytesRead);
-                            streamToServer.flush();
-                        }
+                    while ((bytesRead=streamFromClient.read(request)) != -1) {
+                        splitMessages(request, bytesRead, streamToServer, remainsOfPreviousMessage);
                     }
                 } catch (IOException e) {
                 }
@@ -208,6 +183,55 @@ public class CloudHttpsProxy implements SslContextProvider {
                 if (client != null)
                     client.close();
             } catch (IOException e) {
+            }
+        }
+    }
+
+    void splitMessages(final byte[] buf, final int bytesRead, final OutputStream os, final AtomicReference<byte[]> remainsOfPreviousMessage) {
+        byte[] workBuf = remainsOfPreviousMessage.get() == null ? Arrays.copyOfRange(buf, 0, bytesRead) :
+                ArrayUtils.addAll(remainsOfPreviousMessage.get(), Arrays.copyOfRange(buf, 0, bytesRead));
+        int startIndex = 0;
+        final int workBufInitialLength = workBuf.length;
+
+        while (startIndex < workBuf.length) {
+            final HttpMessage msg = new HttpMessage(workBuf, workBuf.length);
+            if (!msg.headersBuilt) {
+                System.out.println("startIndex = "+startIndex+" workBuf.length = "+workBuf.length);
+                remainsOfPreviousMessage.set(null);
+                try {
+                    os.write(workBuf, 0, workBuf.length);
+                    os.flush();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                //remainsOfPreviousMessage.set(Arrays.copyOfRange(workBuf, startIndex, workBuf.length));
+                break;
+            }
+            String hdrs =  msg.getHeaders();
+            int headersLength = hdrs.length();
+            int messageLength = headersLength + msg.getContentLength();
+
+            if(startIndex+messageLength <= workBuf.length) {
+                List<String> js = new ArrayList<String>();
+                js.add("JSESSIONID=" + JSESSIONID);
+                msg.put("Cookie", js);
+
+                try {
+                    String headers = msg.getHeaders();
+                    os.write(headers.getBytes(StandardCharsets.UTF_8), 0, headers.length());
+                    if (msg.getContentLength() > 0)
+                        os.write(msg.getMessageBody(), 0, msg.getContentLength());
+                    os.flush();
+                } catch (Exception ex) {
+                    System.out.println("ERROR: Exception in splitMessage when writing to stream: " + ex.getMessage());
+                }
+                startIndex += messageLength;
+                //workBuf = Arrays.copyOfRange(workBuf, startIndex, workBuf.length - 1);
+                remainsOfPreviousMessage.set(null);
+            }
+            else {
+                remainsOfPreviousMessage.set(Arrays.copyOfRange(workBuf, startIndex, workBuf.length));
+                break;
             }
         }
     }
