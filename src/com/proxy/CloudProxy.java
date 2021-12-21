@@ -3,12 +3,12 @@ package com.proxy;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.channels.AsynchronousCloseException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SocketChannel;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -16,7 +16,6 @@ import java.util.zip.CRC32;
 import java.util.zip.Checksum;
 
 public class CloudProxy {
-
     final Map<Integer, SocketChannel> tokenSocketMap = new LinkedHashMap<>();
     private final int tokenLength = Integer.BYTES;
     private final int lengthLength = Integer.BYTES;
@@ -25,13 +24,20 @@ public class CloudProxy {
     public static final int BUFFER_SIZE = 16000;
     private static final Logger logger = Logger.getLogger("CloudProxy");
     final Queue<ByteBuffer> bufferQueue = new ConcurrentLinkedQueue<>();
-    final Queue<ByteBuffer> messageOutQueue = new ConcurrentLinkedQueue<>();
     SocketChannel cloudChannel;
-    private boolean running = true;
+    private boolean running = false;
     private final String webserverHost;
     private final int webserverPort;
     private final String cloudHost;
     private final int cloudPort;
+
+    private final int threadPoolSize = 15;
+    private ExecutorService splitMessagesExecutor = Executors.newSingleThreadExecutor();
+    private ExecutorService webserverReadExecutor = Executors.newFixedThreadPool(threadPoolSize);
+    private ExecutorService webserverWriteExecutor = Executors.newSingleThreadExecutor();
+    private ExecutorService sendResponseToCloudExecutor = Executors.newSingleThreadExecutor();
+    private ScheduledExecutorService cloudConnectionCheckExecutor = Executors.newSingleThreadScheduledExecutor();
+    private ExecutorService startCloudInputProcessExecutor = Executors.newSingleThreadExecutor();
 
     CloudProxy(String webServerHost, int webServerPort, String cloudHost, int cloudPort) {
         this.webserverHost = webServerHost;
@@ -47,66 +53,141 @@ public class CloudProxy {
     final Object LOCK = new Object();
 
     void start() {
-        createConnectionToCloud();
-        synchronized (LOCK) {
-            try {
-                LOCK.wait();
-            } catch (InterruptedException e) {
-                showExceptionDetails(e, "start");
+        running=true;
+        try {
+            createConnectionToCloud();
+
+            synchronized (LOCK) {
+                try {
+                    LOCK.wait();
+                } catch (InterruptedException e) {
+                    showExceptionDetails(e, "start");
+                }
             }
+        } catch(Exception ex) {
+            showExceptionDetails(ex, "start");
         }
     }
 
     private void createConnectionToCloud() {
         try {
-            SocketChannel cloudChannel = SocketChannel.open();
-            cloudChannel.connect(new InetSocketAddress(cloudHost, cloudPort));
-            cloudChannel.configureBlocking(true);
-            this.cloudChannel = cloudChannel;
-            startCloudInputProcess(cloudChannel);
+
+            if (this.cloudChannel == null || !this.cloudChannel.isConnected() || !this.cloudChannel.isOpen()) {
+                SocketChannel cloudChannel = SocketChannel.open();
+                cloudChannel.connect(new InetSocketAddress(cloudHost, cloudPort));
+                cloudChannel.configureBlocking(true);
+                this.cloudChannel = cloudChannel;
+                logger.log(Level.INFO, "Connected successfully to the Cloud");
+                startCloudInputProcess(cloudChannel);
+            }
 
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.log(Level.WARNING, "Couldn't connect to cloud service");
         }
+        startCloudConnectionCheck();
     }
 
     private void startCloudInputProcess(SocketChannel cloudChannel) {
         final AtomicBoolean busy = new AtomicBoolean(false);
-        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-        executor.execute(() -> {
-            if (cloudChannel == null || !cloudChannel.isConnected() || !cloudChannel.isOpen()) {
-                executor.shutdown();
-                createConnectionToCloud();
-            } else if (!busy.get()) {
+        startCloudInputProcessExecutor.execute(() -> {
+            if (!busy.get()) {
                 busy.set(true);
                 ByteBuffer buf = getBuffer();
                 try {
                     while (cloudChannel.read(buf) != -1) {
                         splitMessages(buf);
-                        buf.clear();
+                        buf = getBuffer();
                     }
                 } catch (Exception ex) {
                     showExceptionDetails(ex, "startCloudProxyInputProcess");
                 }
+
                 recycle(buf);
                 busy.set(false);
             }
         });
     }
 
+    private void startCloudConnectionCheck()
+    {
+        final ByteBuffer buf = getBuffer(-1);
+        buf.put("Ignore".getBytes(StandardCharsets.UTF_8));
+        setDataLength(buf, buf.position()-headerLength);
+
+        cloudConnectionCheckExecutor.scheduleAtFixedRate(() -> {
+            try {
+                if(cloudChannel != null && cloudChannel.isConnected() && cloudChannel.isOpen()) {
+                    setBufferForSend(buf);
+                    cloudChannel.write(buf);  // This will be ignored by the Cloud, just throws an exception if the link is down
+                }
+                else throw new Exception("Not connected");
+            }
+            catch(Exception ex)
+            {
+                logger.log(Level.WARNING, "Problem with connection to Cloud: "+ex.getMessage());
+                restart();
+            }
+        }, 10, 10, TimeUnit.SECONDS);
+    }
+
+    void removeSocket(int token) {
+        tokenSocketMap.remove(token);
+    }
+
+    /**
+     * cleanUpForRestart: Some sort of problem occurred with the Cloud connection, ensure we restart cleanly
+     */
+    private void restart() {
+         sendResponseToCloudExecutor.shutdownNow();
+        startCloudInputProcessExecutor.shutdownNow();
+
+        sendResponseToCloudExecutor = Executors.newSingleThreadExecutor();
+        startCloudInputProcessExecutor = Executors.newSingleThreadExecutor();
+
+        // Ensure all sockets in the token/socket map are closed
+        tokenSocketMap.forEach((token, socket) -> {
+            try {
+                socket.close();
+            } catch (IOException ignore) {
+            }
+        });
+        // Clear the token/socket map
+        tokenSocketMap.clear();
+        remainsOfPreviousBuffer = null;
+        // Ensure the connection is actually closed
+        if (cloudChannel != null && cloudChannel.isConnected() && cloudChannel.isOpen()) {
+            try {
+                cloudChannel.close();
+            } catch (IOException ignored) {
+            }
+        }
+        cloudChannel=null;
+        // Restart the start process
+        new Thread(this::createConnectionToCloud).start();
+     }
+
     private void writeRequestToWebserver(ByteBuffer buf) {
+        // Dump the connection test heartbeats
+        final String ignored = "Ignore";
+        if(getToken(buf) == -1 && getDataLength(buf)==ignored.length()) {
+            String strVal = new String(Arrays.copyOfRange(buf.array(), headerLength, buf.limit()), StandardCharsets.UTF_8);
+            if (ignored.equals(strVal)) {
+                return;
+            }
+        }
+
         int token = getToken(buf);
         if (tokenSocketMap.containsKey(token)) {
             if (getConnectionClosedFlag(buf) != 0) {
                 try {
                     tokenSocketMap.get(token).close();
-                    tokenSocketMap.remove(token);
+                    removeSocket(token);
                 } catch (IOException e) {
                     showExceptionDetails(e, "closing webserverChannel in writeRequestToWebserver");
                 }
             } else {
                 SocketChannel webserverChannel = tokenSocketMap.get(token);
-                writeRequestToWebserver(buf, webserverChannel, token);
+                writeRequestToWebserver(buf, webserverChannel);
             }
         } else  // Make a new connection to the webserver
         {
@@ -115,7 +196,7 @@ public class CloudProxy {
                 webserverChannel.connect(new InetSocketAddress(webserverHost, webserverPort));
                 webserverChannel.configureBlocking(true);
                 tokenSocketMap.put(token, webserverChannel);
-                writeRequestToWebserver(buf, webserverChannel, token);
+                writeRequestToWebserver(buf, webserverChannel);
                 readResponseFromWebserver(webserverChannel, token);
             } catch (IOException ioex) {
                 showExceptionDetails(ioex, "writeRequestsToWebserver");
@@ -123,8 +204,9 @@ public class CloudProxy {
         }
     }
 
-    private void writeRequestToWebserver(final ByteBuffer buf, final SocketChannel webserverChannel, int token) {
-        Executors.newSingleThreadExecutor().execute(() -> {
+    private void writeRequestToWebserver(final ByteBuffer buf, final SocketChannel webserverChannel) {
+        this.webserverWriteExecutor.submit(() -> {  // submit rather than execute to ensure tasks (and hence messages) are run in order of submission
+          //  logMessageMetadata(buf, "To webserv");
             int length = getDataLength(buf);
             buf.position(headerLength);
             buf.limit(headerLength + length);
@@ -134,42 +216,40 @@ public class CloudProxy {
                     result = webserverChannel.write(buf);
                 }
                 while (result != -1 && buf.position() < buf.limit());
-            }
-            catch(ClosedChannelException ignored)
-            {
+            } catch (ClosedChannelException ignored) {
                 // Don't report AsynchronousCloseException or ClosedChannelException as these come up when the channel
                 // has been closed by a signal via getConnectionClosedFlag  from CloudProxy
-            }
-            catch (IOException e) {
+            } catch (IOException e) {
                 showExceptionDetails(e, "writeRequestToWebserver");
             }
         });
     }
 
     private void readResponseFromWebserver(SocketChannel webserverChannel, int token) {
-        Executors.newSingleThreadExecutor().execute(() -> {
+        webserverReadExecutor.submit(() -> {
             ByteBuffer buf = getBuffer(token);
-
             try {
-                while (webserverChannel.isOpen() && webserverChannel.read(buf) != -1) {
+                while (running && webserverChannel.isOpen() && webserverChannel.read(buf) != -1) {
                     setDataLength(buf, buf.position() - headerLength);
                     sendResponseToCloud(buf);
                     buf = getBuffer(token);
                 }
                 setConnectionClosedFlag(buf);
                 sendResponseToCloud(buf);
-            } catch (IOException e) {
+            } catch (AsynchronousCloseException ignored) {
                 // Don't report AsynchronousCloseException as these come up when the channel has been closed
                 //  by a signal via getConnectionClosedFlag  from Cloud
-                if(!e.getClass().getName().contains("AsynchronousCloseException"))
-                    showExceptionDetails(e, "readResponseFromWebserver");
+            } catch (IOException e) {
+                showExceptionDetails(e, "readResponseFromWebserver");
             }
         });
     }
 
-    final Object sendResponseToCloudLock = new Object();
     private void sendResponseToCloud(ByteBuffer buf) {
-        synchronized (sendResponseToCloudLock) {
+        sendResponseToCloudExecutor.submit(()->{
+            boolean retVal = true;
+
+//            logMessageMetadata(buf, "To cloud  ");
             setBufferForSend(buf);
             try {
                 int result;
@@ -180,8 +260,24 @@ public class CloudProxy {
                 recycle(buf);
             } catch (Exception ex) {
                 showExceptionDetails(ex, "sendResponseToCloud");
+                retVal = false;
             }
-        }
+            return retVal;
+        });
+    }
+
+    private int count = 0;
+    private int lengthTotal = 0;
+    private long checksumTotal = 0;
+
+    private void logMessageMetadata(ByteBuffer buf, String title) {
+        int position = buf.position();
+        lengthTotal += getDataLength(buf);
+        long checksum = getCRC32Checksum(buf);
+        checksumTotal += checksum;
+        boolean disconnect = getConnectionClosedFlag(buf) != 0;
+        System.out.println(title + (disconnect ? "*" : ".") + ".   #: " + ++count + ", Token: " + getToken(buf) + ", Length: " + getDataLength(buf) + ", lengthTotal: " + lengthTotal + ", Checksum: " + checksum + ", ChecksumTotal: " + checksumTotal);
+        buf.position(position);
     }
 
     /**
@@ -229,10 +325,10 @@ public class CloudProxy {
     }
 
     private void setConnectionClosedFlag(ByteBuffer buf) {
-        int position = buf.position();
         buf.position(tokenLength + lengthLength);
         buf.put((byte) 1);
-        buf.position(position);
+        setDataLength(buf, 0);
+        buf.limit(headerLength);
     }
 
     private byte getConnectionClosedFlag(ByteBuffer buf) {
@@ -270,8 +366,9 @@ public class CloudProxy {
     }
 
     public long getCRC32Checksum(ByteBuffer buf) {
+        int length = getDataLength(buf);
         Checksum crc32 = new CRC32();
-        crc32.update(buf.array(), headerLength, buf.limit() - headerLength);
+        crc32.update(buf.array(), 0, length + headerLength);
         return crc32.getValue();
     }
 
@@ -282,41 +379,44 @@ public class CloudProxy {
     ByteBuffer remainsOfPreviousBuffer = null;
 
     void splitMessages(ByteBuffer buf) {
-        buf.flip();
-        ByteBuffer combinedBuf;
+        splitMessagesExecutor.submit(() -> {
+            buf.flip();
+            ByteBuffer combinedBuf;
 
-        if (remainsOfPreviousBuffer != null) {
-            // Append the new buffer onto the previous ones remaining content
-            combinedBuf = ByteBuffer.allocate(buf.limit() + remainsOfPreviousBuffer.limit() - remainsOfPreviousBuffer.position());
-            combinedBuf.put(remainsOfPreviousBuffer);
-            combinedBuf.put(buf);
-            remainsOfPreviousBuffer = null;
-        } else
-            combinedBuf = buf;
-        combinedBuf.rewind();
+            if (remainsOfPreviousBuffer != null) {
+                // Append the new buffer onto the previous ones remaining content
+                combinedBuf = ByteBuffer.allocate(buf.limit() + remainsOfPreviousBuffer.limit() - remainsOfPreviousBuffer.position());
+                combinedBuf.put(remainsOfPreviousBuffer);
+                combinedBuf.put(buf);
+                remainsOfPreviousBuffer = null;
+            } else
+                combinedBuf = buf;
+            combinedBuf.rewind();
 
-        while (combinedBuf.position() < combinedBuf.limit()) {
-            if (combinedBuf.limit() - combinedBuf.position() < headerLength) {
-                remainsOfPreviousBuffer = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.limit()));
-                combinedBuf.position(combinedBuf.limit());
-            } else {
-                int lengthThisMessage = getMessageLengthFromPosition(combinedBuf);
-                if (lengthThisMessage > combinedBuf.limit() - combinedBuf.position()) {
+            while (combinedBuf.position() < combinedBuf.limit()) {
+                if (combinedBuf.limit() - combinedBuf.position() < headerLength) {
                     remainsOfPreviousBuffer = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.limit()));
                     combinedBuf.position(combinedBuf.limit());
                 } else {
-                    try {
-                        ByteBuffer newBuf = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.position() + lengthThisMessage));
-                        newBuf.rewind();
-                        //    logger.log(Level.INFO, "Buffer size " + newBuf.limit() + " lengthThisMessage= " + lengthThisMessage);
-                        combinedBuf.position(combinedBuf.position() + lengthThisMessage);
-                        writeRequestToWebserver(newBuf);
-                    } catch (Exception ex) {
-                        showExceptionDetails(ex, "splitMessages");
+                    int lengthThisMessage = getMessageLengthFromPosition(combinedBuf);
+                    if (lengthThisMessage > combinedBuf.limit() - combinedBuf.position()) {
+                        remainsOfPreviousBuffer = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.limit()));
+                        combinedBuf.position(combinedBuf.limit());
+                    } else {
+                        try {
+                            ByteBuffer newBuf = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.position() + lengthThisMessage));
+                            newBuf.rewind();
+                            //    logger.log(Level.INFO, "Buffer size " + newBuf.limit() + " lengthThisMessage= " + lengthThisMessage);
+                            combinedBuf.position(combinedBuf.position() + lengthThisMessage);
+                            writeRequestToWebserver(newBuf);
+                        } catch (Exception ex) {
+                            showExceptionDetails(ex, "splitMessages");
+                        }
                     }
                 }
             }
-        }
+            recycle(buf);
+        });
     }
 
     private int getMessageLengthFromPosition(ByteBuffer buf) {
@@ -324,7 +424,7 @@ public class CloudProxy {
     }
 
     void showExceptionDetails(Throwable t, String functionName) {
-        logger.log(Level.SEVERE, t.getClass().getName() + " exception in " + functionName + ": " + t.getMessage() + "\n");
+        logger.log(Level.SEVERE, t.getClass().getName() + " exception in " + functionName + ": " + t.getMessage());
         for (StackTraceElement stackTraceElement : t.getStackTrace()) {
             System.err.println(stackTraceElement.toString());
         }
