@@ -29,7 +29,7 @@ public class CloudHttpsProxy implements SslContextProvider {
     }
 
     private static final Logger logger = Logger.getLogger("CloudProxy");
-    private final int threadPoolSize = 20;
+    private final int threadPoolSize = 40;
     private final ExecutorService threadPoolExecutor = Executors.newFixedThreadPool(threadPoolSize);
 
     static String JSESSIONID = "";
