@@ -31,9 +31,8 @@ public class CloudProxy {
     private final String cloudHost;
     private final int cloudPort;
 
-    private final int threadPoolSize = 15;
     private ExecutorService splitMessagesExecutor = Executors.newSingleThreadExecutor();
-    private ExecutorService webserverReadExecutor = Executors.newFixedThreadPool(threadPoolSize);
+    private ExecutorService webserverReadExecutor = Executors.newCachedThreadPool();
     private ExecutorService webserverWriteExecutor = Executors.newSingleThreadExecutor();
     private ExecutorService sendResponseToCloudExecutor = Executors.newSingleThreadExecutor();
     private ScheduledExecutorService cloudConnectionCheckExecutor = Executors.newSingleThreadScheduledExecutor();
@@ -229,7 +228,7 @@ public class CloudProxy {
     }
 
     private void writeRequestToWebserver(final ByteBuffer buf, final SocketChannel webserverChannel) {
-        this.webserverWriteExecutor.submit(() -> {  // submit rather than execute to ensure tasks (and hence messages) are run in order of submission
+        this.webserverWriteExecutor.submit(() -> {
             //  logMessageMetadata(buf, "To webserv");
             try {
                 int length = getDataLength(buf);
