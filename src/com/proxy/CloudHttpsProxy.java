@@ -29,7 +29,7 @@ public class CloudHttpsProxy implements SslContextProvider {
     }
 
     private static final Logger logger = Logger.getLogger("CloudProxy");
-    private final int threadPoolSize = 20;
+    private final int threadPoolSize = 40;
     private final ExecutorService threadPoolExecutor = Executors.newFixedThreadPool(threadPoolSize);
 
     static String JSESSIONID = "";
@@ -196,7 +196,7 @@ public class CloudHttpsProxy implements SslContextProvider {
         while (startIndex < workBuf.length) {
             final HttpMessage msg = new HttpMessage(workBuf, workBuf.length);
             if (!msg.headersBuilt) {
-                System.out.println("startIndex = "+startIndex+" workBuf.length = "+workBuf.length);
+                // Don't know what this message is, just send it
                 remainsOfPreviousMessage.set(null);
                 try {
                     os.write(workBuf, 0, workBuf.length);
@@ -204,7 +204,6 @@ public class CloudHttpsProxy implements SslContextProvider {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-                //remainsOfPreviousMessage.set(Arrays.copyOfRange(workBuf, startIndex, workBuf.length));
                 break;
             }
             String hdrs =  msg.getHeaders();
@@ -226,7 +225,6 @@ public class CloudHttpsProxy implements SslContextProvider {
                     System.out.println("ERROR: Exception in splitMessage when writing to stream: " + ex.getMessage());
                 }
                 startIndex += messageLength;
-                //workBuf = Arrays.copyOfRange(workBuf, startIndex, workBuf.length - 1);
                 remainsOfPreviousMessage.set(null);
             }
             else {

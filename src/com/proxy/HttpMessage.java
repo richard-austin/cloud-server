@@ -19,7 +19,7 @@ class HttpMessage extends HashMap<String, List<String>> {
         totalBytes = bytesRead;
         headersLength = indexOf(crlfcrlf, 0)+crlfcrlf.length;
         if(!(headersBuilt=buildHeaders()))
-            System.out.println("ERROR: Couldn't build HTTP headers");
+            System.out.println("INFO: not an HTTP message");
     }
 
     private boolean buildHeaders()
