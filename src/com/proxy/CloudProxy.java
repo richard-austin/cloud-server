@@ -118,7 +118,6 @@ public class CloudProxy {
             cloudConnectionCheckExecutor.scheduleAtFixedRate(() -> {
                 try {
                     if (cloudChannel != null && cloudChannel.isConnected() && cloudChannel.isOpen()) {
-                        throwEx();
                         setBufferForSend(buf);
                         cloudChannel.write(buf);  // This will be ignored by the Cloud, just throws an exception if the link is down
                     } else throw new Exception("Not connected");
