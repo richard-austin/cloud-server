@@ -33,7 +33,7 @@ public class Cloud {
     private final int closedFlagLength = Byte.BYTES;
     private final int headerLength = tokenLength + lengthLength + closedFlagLength;
     private SocketChannel cloudProxy;
-    private final int browserFacingPort = 8082, cloudProxyFacingPort = 8081;
+    private final int browserFacingPort = 8083, cloudProxyFacingPort = 8081;
 
     public static void main(String[] args) {
         new Cloud().start();
@@ -81,6 +81,7 @@ public class Cloud {
                             // It will wait for a connection on the local port
                             SocketChannel cloudProxy = s.accept();
                             cloudProxy.configureBlocking(true);
+                            remainsOfPreviousBuffer = null;
                             this.cloudProxy = cloudProxy;
                         } catch (Exception ex) {
                             logger.log(Level.SEVERE, "Exception in acceptConnectionsFromCloudProxy: " + ex.getClass().getName() + ": " + ex.getMessage());
