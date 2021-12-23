@@ -55,7 +55,7 @@ public class Cloud {
                         SocketChannel browser = s.accept();
                         browser.configureBlocking(true);
                         final int token = getToken();
-                        tokenSocketMap.put(token, browser);
+                        updateSocketMap(browser, token);
                         readFromBrowser(browser, token);
                     } catch (Exception ex) {
                         logger.log(Level.SEVERE, "Exception in acceptConnectionsFromBrowser: " + ex.getClass().getName() + ": " + ex.getMessage());
@@ -82,12 +82,14 @@ public class Cloud {
                             cloudProxy.configureBlocking(true);
                             remainsOfPreviousBuffer = null;
                             this.cloudProxy = cloudProxy;
-                        } catch (Exception ex) {
+                            clearSocketMap();
+                        }
+                        catch (Exception ex) {
                             logger.log(Level.SEVERE, "Exception in acceptConnectionsFromCloudProxy: " + ex.getClass().getName() + ": " + ex.getMessage());
                         }
                     }
                 } catch (IOException ioex) {
-                    logger.log(Level.SEVERE, "IOException in acceptConnectionsFromCloudProxy: " + ioex.getClass().getName() + ": " + ioex.getMessage());
+                    logger.severe("IOException in acceptConnectionsFromCloudProxy: " + ioex.getClass().getName() + ": " + ioex.getMessage());
                 }
             }
         });
@@ -219,7 +221,29 @@ public class Cloud {
         tokenSocketMap.remove(token);
     }
 
-     void showExceptionDetails(Throwable t, String functionName) {
+    private void updateSocketMap(SocketChannel browser, int token) {
+        tokenSocketMap.put(token, browser);
+        List<Integer> tokens = new ArrayList<Integer>();
+        tokenSocketMap.forEach((tok, socket)-> {
+            if(socket != null && !(socket.isOpen() || socket.isConnected()))
+                tokens.add(tok);
+        });
+        tokens.forEach(tokenSocketMap::remove);
+    }
+
+    private void clearSocketMap()
+    {
+        Set<Integer> tokens = new HashSet<>(tokenSocketMap.keySet());
+        tokens.forEach((tok) -> {
+            try {
+                tokenSocketMap.get(tok).close();
+                tokenSocketMap.remove(tok);
+            }
+            catch(Exception ignored){}
+        });
+    }
+
+    void showExceptionDetails(Throwable t, String functionName) {
         logger.log(Level.SEVERE, t.getClass().getName() + " exception in " + functionName + ": " + t.getMessage() + "\n" + t.fillInStackTrace());
         for (StackTraceElement stackTraceElement : t.getStackTrace()) {
             System.err.println(stackTraceElement.toString());
