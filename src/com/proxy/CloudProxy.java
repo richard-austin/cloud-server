@@ -79,10 +79,14 @@ public class CloudProxy {
                 startCloudInputProcess(cloudChannel);
             }
 
-        } catch (IOException e) {
-            logger.log(Level.WARNING, "Couldn't connect to cloud service");
-        } catch (Exception ex) {
-            showExceptionDetails(ex, "createConnectionToCloud");
+        } catch (Exception e) {
+            showExceptionDetails(e, "createConnectionToCloud: Couldn't connect to cloud service");
+            if (this.cloudChannel != null) {
+                try {
+                    this.cloudChannel.close();
+                } catch (IOException ignored) {
+                }
+            }
         }
         startCloudConnectionCheck();
     }
@@ -122,13 +126,13 @@ public class CloudProxy {
                     } else throw new Exception("Not connected");
                 } catch (Exception ex) {
                     logger.log(Level.WARNING, "Problem with connection to Cloud: " + ex.getMessage());
-                    if(cloudChannel != null && cloudChannel.isOpen()) {
+                    if (cloudChannel != null && cloudChannel.isOpen()) {
                         try {
                             cloudChannel.close();
                         } catch (IOException ignored) {
                         }
                     }
-                     restart();
+                    restart();
                 }
             }, 10, 10, TimeUnit.SECONDS);
         } catch (Exception ex) {
@@ -185,11 +189,10 @@ public class CloudProxy {
     int c = 0;
 
     void throwEx() throws Exception {
-        if (c++ >= 5) {
+        if (c++ >= 900) {
             c = 0;
             throw new Exception("Contrived exception");
         }
-
     }
 
     private void writeRequestToWebserver(ByteBuffer buf) {
@@ -308,7 +311,7 @@ public class CloudProxy {
      *
      * @return: The buffer
      */
-    private ByteBuffer getBuffer() throws Exception {
+    private ByteBuffer getBuffer() {
         ByteBuffer buf = Objects.requireNonNullElseGet(bufferQueue.poll(), () -> ByteBuffer.allocate(BUFFER_SIZE));
         buf.clear();
         return buf;
@@ -320,7 +323,7 @@ public class CloudProxy {
      * @param token: The token
      * @return: The byte buffer with the token in place and length reservation set up.
      */
-    private ByteBuffer getBuffer(int token) throws Exception {
+    private ByteBuffer getBuffer(int token) {
         ByteBuffer buf = getBuffer();
         buf.putInt(token);
         buf.putInt(0);  // Reserve space for the data length
@@ -395,7 +398,7 @@ public class CloudProxy {
         return crc32.getValue();
     }
 
-    void setBufferForSend(ByteBuffer buf) {
+    void setBufferForSend(ByteBuffer buf) throws Exception {
         buf.flip();
     }
 
@@ -403,42 +406,43 @@ public class CloudProxy {
 
     void splitMessages(ByteBuffer buf) {
         splitMessagesExecutor.submit(() -> {
-            buf.flip();
-            ByteBuffer combinedBuf;
+            try {
+                buf.flip();
+                ByteBuffer combinedBuf;
 
-            if (remainsOfPreviousBuffer != null) {
-                // Append the new buffer onto the previous ones remaining content
-                combinedBuf = ByteBuffer.allocate(buf.limit() + remainsOfPreviousBuffer.limit() - remainsOfPreviousBuffer.position());
-                combinedBuf.put(remainsOfPreviousBuffer);
-                combinedBuf.put(buf);
-                remainsOfPreviousBuffer = null;
-            } else
-                combinedBuf = buf;
-            combinedBuf.rewind();
+                if (remainsOfPreviousBuffer != null) {
+                    // Append the new buffer onto the previous ones remaining content
+                    combinedBuf = ByteBuffer.allocate(buf.limit() + remainsOfPreviousBuffer.limit() - remainsOfPreviousBuffer.position());
+                    combinedBuf.put(remainsOfPreviousBuffer);
+                    combinedBuf.put(buf);
+                    remainsOfPreviousBuffer = null;
+                } else
+                    combinedBuf = buf;
+                combinedBuf.rewind();
 
-            while (combinedBuf.position() < combinedBuf.limit()) {
-                if (combinedBuf.limit() - combinedBuf.position() < headerLength) {
-                    remainsOfPreviousBuffer = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.limit()));
-                    combinedBuf.position(combinedBuf.limit());
-                } else {
-                    int lengthThisMessage = getMessageLengthFromPosition(combinedBuf);
-                    if (lengthThisMessage > combinedBuf.limit() - combinedBuf.position()) {
+                while (combinedBuf.position() < combinedBuf.limit()) {
+                    if (combinedBuf.limit() - combinedBuf.position() < headerLength) {
                         remainsOfPreviousBuffer = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.limit()));
                         combinedBuf.position(combinedBuf.limit());
                     } else {
-                        try {
+                        int lengthThisMessage = getMessageLengthFromPosition(combinedBuf);
+                        if (lengthThisMessage > combinedBuf.limit() - combinedBuf.position()) {
+                            remainsOfPreviousBuffer = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.limit()));
+                            combinedBuf.position(combinedBuf.limit());
+                        } else {
                             ByteBuffer newBuf = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.position() + lengthThisMessage));
                             newBuf.rewind();
                             //    logger.log(Level.INFO, "Buffer size " + newBuf.limit() + " lengthThisMessage= " + lengthThisMessage);
                             combinedBuf.position(combinedBuf.position() + lengthThisMessage);
                             writeRequestToWebserver(newBuf);
-                        } catch (Exception ex) {
-                            showExceptionDetails(ex, "splitMessages");
                         }
                     }
                 }
+                recycle(buf);
+            } catch (Exception ex) {
+                showExceptionDetails(ex, "splitMessages");
+                restart();
             }
-            recycle(buf);
         });
     }
 

@@ -68,7 +68,6 @@ public class Cloud {
     }
 
     private void acceptConnectionsFromCloudProxy(final int cloudProxyFacingPort) {
-        startCloudProxyInputProcess();
         acceptConnectionsFromCloudProxyExecutor.execute(() -> {
             while (running) {
                 try {
@@ -83,9 +82,10 @@ public class Cloud {
                             remainsOfPreviousBuffer = null;
                             this.cloudProxy = cloudProxy;
                             clearSocketMap();
+                            startCloudProxyInputProcess();
                         }
                         catch (Exception ex) {
-                            logger.log(Level.SEVERE, "Exception in acceptConnectionsFromCloudProxy: " + ex.getClass().getName() + ": " + ex.getMessage());
+                            logger.severe("Exception in acceptConnectionsFromCloudProxy: " + ex.getClass().getName() + ": " + ex.getMessage());
                         }
                     }
                 } catch (IOException ioex) {
@@ -106,11 +106,10 @@ public class Cloud {
                     }
                 } catch (Exception ex) {
                     showExceptionDetails(ex, "startCloudProxyInputProcess");
-                    startCloudProxyInputProcessExecutor.shutdown();
                 }
                 recycle(buf);
             }
-        }, 300, 100, TimeUnit.MILLISECONDS);
+        }, 0, 100, TimeUnit.MILLISECONDS);
     }
 
     private void sendResponseToCloudProxy(ByteBuffer buf) {
@@ -221,17 +220,17 @@ public class Cloud {
         tokenSocketMap.remove(token);
     }
 
-    private void updateSocketMap(SocketChannel browser, int token) {
-        tokenSocketMap.put(token, browser);
-        List<Integer> tokens = new ArrayList<Integer>();
-        tokenSocketMap.forEach((tok, socket)-> {
-            if(socket != null && !(socket.isOpen() || socket.isConnected()))
-                tokens.add(tok);
-        });
-        tokens.forEach(tokenSocketMap::remove);
+    private synchronized void updateSocketMap(SocketChannel browser, int token) {
+            tokenSocketMap.put(token, browser);
+            List<Integer> tokens = new ArrayList<Integer>();
+            tokenSocketMap.forEach((tok, socket) -> {
+                if (socket != null && !(socket.isOpen() || socket.isConnected()))
+                    tokens.add(tok);
+            });
+            tokens.forEach(tokenSocketMap::remove);
     }
 
-    private void clearSocketMap()
+    private synchronized void clearSocketMap()
     {
         Set<Integer> tokens = new HashSet<>(tokenSocketMap.keySet());
         tokens.forEach((tok) -> {
