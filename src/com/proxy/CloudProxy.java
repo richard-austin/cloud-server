@@ -46,7 +46,7 @@ public class CloudProxy {
     }
 
     public static void main(String[] args) {
-        new CloudProxy("192.168.0.29", 443, "192.168.0.37", 8081).start();
+        new CloudProxy("192.168.0.29", 443, "localhost", 8081).start();
     }
 
     final Object LOCK = new Object();
@@ -183,15 +183,6 @@ public class CloudProxy {
             new Thread(this::createConnectionToCloud).start();
         } catch (Exception ex) {
             showExceptionDetails(ex, "restart");
-        }
-    }
-
-    int c = 0;
-
-    void throwEx() throws Exception {
-        if (c++ >= 900) {
-            c = 0;
-            throw new Exception("Contrived exception");
         }
     }
 

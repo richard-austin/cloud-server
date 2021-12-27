@@ -79,17 +79,18 @@ public class Cloud {
                             // It will wait for a connection on the local port
                             SocketChannel cloudProxy = s.accept();
                             cloudProxy.configureBlocking(true);
-                            remainsOfPreviousBuffer = null;
                             this.cloudProxy = cloudProxy;
+                            remainsOfPreviousBuffer = null;
                             clearSocketMap();
                             startCloudProxyInputProcess();
-                        }
-                        catch (Exception ex) {
-                            logger.severe("Exception in acceptConnectionsFromCloudProxy: " + ex.getClass().getName() + ": " + ex.getMessage());
+                        } catch (IOException ioex) {
+                            logger.severe("IOException in acceptConnectionsFromCloudProxy: " + ioex.getClass().getName() + ": " + ioex.getMessage());
+                            reset();
                         }
                     }
-                } catch (IOException ioex) {
-                    logger.severe("IOException in acceptConnectionsFromCloudProxy: " + ioex.getClass().getName() + ": " + ioex.getMessage());
+                } catch (Exception ioex) {
+                    logger.severe("Exception in acceptConnectionsFromCloudProxy: " + ioex.getClass().getName() + ": " + ioex.getMessage());
+                    reset();
                 }
             }
         });
@@ -97,23 +98,24 @@ public class Cloud {
 
     private void startCloudProxyInputProcess() {
         startCloudProxyInputProcessExecutor.scheduleAtFixedRate(() -> {
-            if (cloudProxy != null && cloudProxy.isOpen()) {
-                ByteBuffer buf = getBuffer();
-                try {
+            try {
+                if (cloudProxy != null && cloudProxy.isOpen()) {
+                    ByteBuffer buf = getBuffer();
                     while (cloudProxy.read(buf) != -1) {
                         splitMessages(buf);
                         buf = getBuffer();
                     }
-                } catch (Exception ex) {
-                    showExceptionDetails(ex, "startCloudProxyInputProcess");
+                    recycle(buf);
                 }
-                recycle(buf);
+            } catch (Exception ex) {
+                showExceptionDetails(ex, "startCloudProxyInputProcess");
+                reset();
             }
         }, 0, 100, TimeUnit.MILLISECONDS);
     }
 
     private void sendResponseToCloudProxy(ByteBuffer buf) {
-        sendToCloudProxyExecutor.submit(()-> {
+        sendToCloudProxyExecutor.submit(() -> {
             try {
                 int result;
                 do {
@@ -124,6 +126,7 @@ public class Cloud {
 
             } catch (Exception ex) {
                 showExceptionDetails(ex, "startCloudProxyOutputProcess");
+                reset();
             }
         });
     }
@@ -133,7 +136,6 @@ public class Cloud {
             int result;
             ByteBuffer buf = getBuffer(token);
             try {
-
                 buf.position(headerLength);
                 while ((result = channel.read(buf)) != -1) {
                     int dataLength = 0;
@@ -147,14 +149,14 @@ public class Cloud {
                 setConnectionClosedFlag(buf);
                 // removeSocket(token);
                 sendResponseToCloudProxy(buf);
-            }
-            catch(IOException ignored) {
-                setConnectionClosedFlag(buf);
+            } catch (IOException ignored) {
+               // setConnectionClosedFlag(buf);
                 removeSocket(token);
-                sendResponseToCloudProxy(buf);
-            }
-            catch (Exception ex) {
+               // sendResponseToCloudProxy(buf);
+                reset();
+            } catch (Exception ex) {
                 showExceptionDetails(ex, "readFromBrowser");
+                reset();
             }
         });
     }
@@ -162,14 +164,14 @@ public class Cloud {
     private void respondToBrowser(ByteBuffer buf) {
         // Dump the connection test heartbeats
         final String ignored = "Ignore";
-        if(getToken(buf) == -1 && getDataLength(buf)==ignored.length()) {
+        if (getToken(buf) == -1 && getDataLength(buf) == ignored.length()) {
             String strVal = new String(Arrays.copyOfRange(buf.array(), headerLength, buf.limit()), StandardCharsets.UTF_8);
             if (ignored.equals(strVal)) {
                 return;
-             }
+            }
         }
 
-        browserWriteExecutor.submit(()-> {
+        browserWriteExecutor.submit(() -> {
             try {
 //            logMessageMetadata(buf, "To browser");
                 int token = getToken(buf);
@@ -177,8 +179,7 @@ public class Cloud {
                 SocketChannel frontEndChannel = tokenSocketMap.get(token);  //Select the correct connection to respond to
                 if (getConnectionClosedFlag(buf) != 0) {
                     removeSocket(token);  // Usually already gone
-                }
-                else if (frontEndChannel == null)
+                } else if (frontEndChannel == null)
                     throw new Exception("Couldn't find a socket for token " + token);
                 else if (frontEndChannel.isOpen()) {
                     buf.position(headerLength);
@@ -190,10 +191,10 @@ public class Cloud {
                         }
                         while (result != -1 && buf.position() < buf.limit());
                     } catch (IOException ioex) {
-               //         showExceptionDetails(ioex, "respondToBrowser");
+                        logger.severe("IOException in respondToBrowser: "+ioex.getMessage());
                     }
                 } else
-                    logger.log(Level.SEVERE, "Socket for token " + token + " was closed");
+                    logger.severe("Socket for token " + token + " was closed");
             } catch (Exception ex) {
                 showExceptionDetails(ex, "respondToBrowser");
             }
@@ -203,42 +204,40 @@ public class Cloud {
     private int count = 0;
     private int lengthTotal = 0;
     private long checksumTotal = 0;
-    private void logMessageMetadata(ByteBuffer buf, String title)
-    {
+
+    private void logMessageMetadata(ByteBuffer buf, String title) {
         int position = buf.position();
         lengthTotal += getDataLength(buf);
         long checksum = getCRC32Checksum(buf);
-        checksumTotal+=checksum;
-        boolean disconnect=getConnectionClosedFlag(buf)!=0;
-        System.out.println(title+(disconnect?"*":".")+".   #: "+ ++count+", Token: "+getToken(buf)+", Length: "+getDataLength(buf)+", lengthTotal: "+lengthTotal+", Checksum: "+checksum+", ChecksumTotal: "+checksumTotal);
+        checksumTotal += checksum;
+        boolean disconnect = getConnectionClosedFlag(buf) != 0;
+        System.out.println(title + (disconnect ? "*" : ".") + ".   #: " + ++count + ", Token: " + getToken(buf) + ", Length: " + getDataLength(buf) + ", lengthTotal: " + lengthTotal + ", Checksum: " + checksum + ", ChecksumTotal: " + checksumTotal);
         buf.position(position);
     }
 
-    private void removeSocket(int token)
-    {
-        logger.log(Level.INFO, "Removing socket for token "+token);
+    private void removeSocket(int token) {
+        logger.log(Level.INFO, "Removing socket for token " + token);
         tokenSocketMap.remove(token);
     }
 
     private synchronized void updateSocketMap(SocketChannel browser, int token) {
-            tokenSocketMap.put(token, browser);
-            List<Integer> tokens = new ArrayList<Integer>();
-            tokenSocketMap.forEach((tok, socket) -> {
-                if (socket != null && !(socket.isOpen() || socket.isConnected()))
-                    tokens.add(tok);
-            });
-            tokens.forEach(tokenSocketMap::remove);
+        tokenSocketMap.put(token, browser);
+        List<Integer> tokens = new ArrayList<Integer>();
+        tokenSocketMap.forEach((tok, socket) -> {
+            if (socket != null && !(socket.isOpen() || socket.isConnected()))
+                tokens.add(tok);
+        });
+        tokens.forEach(tokenSocketMap::remove);
     }
 
-    private synchronized void clearSocketMap()
-    {
+    private synchronized void clearSocketMap() {
         Set<Integer> tokens = new HashSet<>(tokenSocketMap.keySet());
         tokens.forEach((tok) -> {
             try {
                 tokenSocketMap.get(tok).close();
                 tokenSocketMap.remove(tok);
+            } catch (Exception ignored) {
             }
-            catch(Exception ignored){}
         });
     }
 
@@ -349,12 +348,12 @@ public class Cloud {
 
     /**
      * getToken: Get the token at position
-     * @param buf: Buffer to get the token from
+     *
+     * @param buf:      Buffer to get the token from
      * @param position: Position at which to get the token
      * @return The token at position
      */
-    private int getToken(ByteBuffer buf, int position)
-    {
+    private int getToken(ByteBuffer buf, int position) {
         int originalPosition = buf.position();
         buf.position(position);
         int token = buf.getInt();
@@ -365,7 +364,7 @@ public class Cloud {
     public long getCRC32Checksum(ByteBuffer buf) {
         int length = getDataLength(buf);
         Checksum crc32 = new CRC32();
-        crc32.update(buf.array(), 0, length+headerLength);
+        crc32.update(buf.array(), 0, length + headerLength);
         return crc32.getValue();
     }
 
@@ -376,48 +375,73 @@ public class Cloud {
     ByteBuffer remainsOfPreviousBuffer = null;
 
     void splitMessages(ByteBuffer buf) {
-        splitMessagesExecutor.submit(()-> {
-            buf.flip();
-            ByteBuffer combinedBuf;
+        splitMessagesExecutor.submit(() -> {
+            try {
+                buf.flip();
+                ByteBuffer combinedBuf;
 
-            if (remainsOfPreviousBuffer != null) {
-                // Append the new buffer onto the previous ones remaining content
-                combinedBuf = ByteBuffer.allocate(buf.limit() + remainsOfPreviousBuffer.limit() - remainsOfPreviousBuffer.position());
-                combinedBuf.put(remainsOfPreviousBuffer);
-                combinedBuf.put(buf);
-                remainsOfPreviousBuffer = null;
-            } else
-                combinedBuf = buf;
-            combinedBuf.rewind();
+                if (remainsOfPreviousBuffer != null) {
+                    // Append the new buffer onto the previous ones remaining content
+                    combinedBuf = ByteBuffer.allocate(buf.limit() + remainsOfPreviousBuffer.limit() - remainsOfPreviousBuffer.position());
+                    combinedBuf.put(remainsOfPreviousBuffer);
+                    combinedBuf.put(buf);
+                    remainsOfPreviousBuffer = null;
+                } else
+                    combinedBuf = buf;
+                combinedBuf.rewind();
 
-            while (combinedBuf.position() < combinedBuf.limit()) {
-                if (combinedBuf.limit() - combinedBuf.position() < headerLength) {
-                    remainsOfPreviousBuffer = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.limit()));
-                    combinedBuf.position(combinedBuf.limit());
-                } else {
-                    int lengthThisMessage = getMessageLengthFromPosition(combinedBuf);
-                    if (lengthThisMessage > combinedBuf.limit() - combinedBuf.position()) {
+                while (combinedBuf.position() < combinedBuf.limit()) {
+                    if (combinedBuf.limit() - combinedBuf.position() < headerLength) {
                         remainsOfPreviousBuffer = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.limit()));
                         combinedBuf.position(combinedBuf.limit());
                     } else {
-                        try {
-                            ByteBuffer newBuf = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.position() + lengthThisMessage));
-                            newBuf.rewind();
-                            //     logger.log(Level.INFO, "Buffer size " + newBuf.limit() + " lengthThisMessage= " + lengthThisMessage);
-                            combinedBuf.position(combinedBuf.position() + lengthThisMessage);
-                            respondToBrowser(newBuf);
-                        } catch (Exception ex) {
-                            showExceptionDetails(ex, "splitMessages");
+                        int lengthThisMessage = getMessageLengthFromPosition(combinedBuf);
+                        if (lengthThisMessage > combinedBuf.limit() - combinedBuf.position()) {
+                            remainsOfPreviousBuffer = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.limit()));
+                            combinedBuf.position(combinedBuf.limit());
+                        } else {
+                            try {
+                                ByteBuffer newBuf = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.position() + lengthThisMessage));
+                                newBuf.rewind();
+                                //     logger.log(Level.INFO, "Buffer size " + newBuf.limit() + " lengthThisMessage= " + lengthThisMessage);
+                                combinedBuf.position(combinedBuf.position() + lengthThisMessage);
+                                respondToBrowser(newBuf);
+                            } catch (Exception ex) {
+                                showExceptionDetails(ex, "splitMessages");
+                            }
                         }
                     }
                 }
+                recycle(buf);
+            } catch (Exception ex) {
+                showExceptionDetails(ex, "splitMessages");
+                reset();
             }
-            recycle(buf);
         });
+    }
+
+    void reset() {
+        if (cloudProxy != null && cloudProxy.isOpen()) {
+            try {
+                cloudProxy.close();
+            } catch (IOException ignored) {
+            }
+        }
+        remainsOfPreviousBuffer = null;
+        clearSocketMap();
     }
 
     private int getMessageLengthFromPosition(ByteBuffer buf) {
         return buf.getInt(buf.position() + tokenLength) + headerLength;
+    }
+
+    int c = 0;
+
+    void throwEx() throws Exception {
+        if (c++ >= 20) {
+            c = 0;
+            throw new Exception("Contrived exception");
+        }
     }
 }
 
