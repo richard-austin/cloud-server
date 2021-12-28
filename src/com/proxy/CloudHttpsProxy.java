@@ -9,6 +9,7 @@ import java.io.*;
 
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.util.*;
@@ -68,7 +69,6 @@ public class CloudHttpsProxy implements SslContextProvider {
                     } else
                         JSESSIONID = "";
                 }
-                ;
             }
 
             String response = new String(buf);
@@ -186,6 +186,20 @@ public class CloudHttpsProxy implements SslContextProvider {
         }
     }
 
+    private void write(OutputStream os, ByteBuffer buf) throws IOException
+    {
+        os.write(buf.array(), buf.position(), buf.limit()-buf.position());
+        os.flush();
+        buf.position(buf.limit());
+    }
+
+    private int read(InputStream is, ByteBuffer buf) throws IOException {
+        final int retVal = is.read(buf.array(), buf.position(),  buf.capacity()-buf.position());
+        buf.position(buf.position()+retVal);
+        buf.limit(buf.position());
+        return retVal;
+    }
+
     void splitMessages(final byte[] buf, final int bytesRead, final OutputStream os, final AtomicReference<byte[]> remainsOfPreviousMessage) {
         byte[] workBuf = remainsOfPreviousMessage.get() == null ? Arrays.copyOfRange(buf, 0, bytesRead) :
                 ArrayUtils.addAll(remainsOfPreviousMessage.get(), Arrays.copyOfRange(buf, 0, bytesRead));
@@ -239,7 +253,7 @@ public class CloudHttpsProxy implements SslContextProvider {
 
     @Override
     public KeyManager[] getKeyManagers() throws GeneralSecurityException, IOException {
-        return createKeyManagers(RestfulProperties.KEYSTORE_PATH, RestfulProperties.KEYSTORE_PASSWORD.toCharArray());
+        return createKeyManagers(RestfulProperties.CLOUD_PROXY_KEYSTORE_PATH, RestfulProperties.CLOUD_PROXY_KEYSTORE_PASSWORD.toCharArray());
     }
 
     @Override

@@ -1,12 +1,18 @@
 package com.proxy;
 
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.TrustManager;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousCloseException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -15,7 +21,9 @@ import java.util.logging.Logger;
 import java.util.zip.CRC32;
 import java.util.zip.Checksum;
 
-public class CloudProxy {
+import static com.proxy.SslUtil.*;
+
+public class CloudProxy implements SslContextProvider {
     final Map<Integer, SocketChannel> tokenSocketMap = new LinkedHashMap<>();
     private final int tokenLength = Integer.BYTES;
     private final int lengthLength = Integer.BYTES;
@@ -24,7 +32,7 @@ public class CloudProxy {
     public static final int BUFFER_SIZE = 16000;
     private static final Logger logger = Logger.getLogger("CloudProxy");
     final Queue<ByteBuffer> bufferQueue = new ConcurrentLinkedQueue<>();
-    SocketChannel cloudChannel;
+    SSLSocket cloudChannel;
     private boolean running = false;
     private final String webserverHost;
     private final int webserverPort;
@@ -46,7 +54,7 @@ public class CloudProxy {
     }
 
     public static void main(String[] args) {
-        new CloudProxy("192.168.0.29", 443, "localhost", 8081).start();
+        new CloudProxy("192.168.0.31", 8088, "localhost", 8081).start();
     }
 
     final Object LOCK = new Object();
@@ -70,10 +78,8 @@ public class CloudProxy {
 
     private void createConnectionToCloud() {
         try {
-            if (this.cloudChannel == null || !this.cloudChannel.isConnected() || !this.cloudChannel.isOpen()) {
-                SocketChannel cloudChannel = SocketChannel.open();
-                cloudChannel.connect(new InetSocketAddress(cloudHost, cloudPort));
-                cloudChannel.configureBlocking(true);
+            if (this.cloudChannel == null || !this.cloudChannel.isConnected() || this.cloudChannel.isClosed()) {
+                SSLSocket cloudChannel = createSSLSocket(cloudHost, cloudPort, this);
                 this.cloudChannel = cloudChannel;
                 logger.log(Level.INFO, "Connected successfully to the Cloud");
                 startCloudInputProcess(cloudChannel);
@@ -91,14 +97,15 @@ public class CloudProxy {
         startCloudConnectionCheck();
     }
 
-    private void startCloudInputProcess(SocketChannel cloudChannel) {
+    private void startCloudInputProcess(SSLSocket cloudChannel) {
         final AtomicBoolean busy = new AtomicBoolean(false);
         startCloudInputProcessExecutor.execute(() -> {
             try {
                 if (!busy.get()) {
                     busy.set(true);
+                    InputStream is = cloudChannel.getInputStream();
                     ByteBuffer buf = getBuffer();
-                    while (cloudChannel.read(buf) != -1) {
+                    while (read(is, buf) != -1) {
                         splitMessages(buf);
                         buf = getBuffer();
                     }
@@ -120,13 +127,14 @@ public class CloudProxy {
 
             cloudConnectionCheckExecutor.scheduleAtFixedRate(() -> {
                 try {
-                    if (cloudChannel != null && cloudChannel.isConnected() && cloudChannel.isOpen()) {
+                    OutputStream os = cloudChannel.getOutputStream();
+                    if (cloudChannel != null && cloudChannel.isConnected() && !cloudChannel.isClosed()) {
                         setBufferForSend(buf);
-                        cloudChannel.write(buf);  // This will be ignored by the Cloud, just throws an exception if the link is down
+                        write(os, buf);  // This will be ignored by the Cloud, just throws an exception if the link is down
                     } else throw new Exception("Not connected");
                 } catch (Exception ex) {
                     logger.log(Level.WARNING, "Problem with connection to Cloud: " + ex.getMessage());
-                    if (cloudChannel != null && cloudChannel.isOpen()) {
+                    if (cloudChannel != null && !cloudChannel.isClosed()) {
                         try {
                             cloudChannel.close();
                         } catch (IOException ignored) {
@@ -171,7 +179,7 @@ public class CloudProxy {
             tokenSocketMap.clear();
             remainsOfPreviousBuffer = null;
             // Ensure the connection is actually closed
-            if (cloudChannel != null && cloudChannel.isConnected() && cloudChannel.isOpen()) {
+            if (cloudChannel != null && cloudChannel.isConnected() && !cloudChannel.isClosed()) {
                 try {
                     cloudChannel.close();
                 } catch (IOException ignored) {
@@ -267,13 +275,14 @@ public class CloudProxy {
             boolean retVal = true;
 
             try {
+                OutputStream os = cloudChannel.getOutputStream();
                 setBufferForSend(buf);
 
                 int result;
                 do {
-                    result = cloudChannel.write(buf);
+                    write(os, buf);
                 }
-                while (result != -1 && buf.position() < buf.limit());
+                while (buf.position() < buf.limit());
                 recycle(buf);
             } catch (Exception ex) {
                 showExceptionDetails(ex, "sendResponseToCloud");
@@ -393,6 +402,20 @@ public class CloudProxy {
         buf.flip();
     }
 
+    private void write(OutputStream os, ByteBuffer buf) throws IOException
+    {
+        os.write(buf.array(), buf.position(), buf.limit()-buf.position());
+        os.flush();
+        buf.position(buf.limit());
+    }
+
+    private int read(InputStream is, ByteBuffer buf) throws IOException {
+        final int retVal = is.read(buf.array(), buf.position(),  buf.capacity()-buf.position());
+        buf.limit(buf.position()+retVal);
+        buf.position(buf.limit());
+        return retVal;
+    }
+
     ByteBuffer remainsOfPreviousBuffer = null;
 
     void splitMessages(ByteBuffer buf) {
@@ -446,6 +469,21 @@ public class CloudProxy {
         for (StackTraceElement stackTraceElement : t.getStackTrace()) {
             System.err.println(stackTraceElement.toString());
         }
+    }
+
+    @Override
+    public KeyManager[] getKeyManagers() throws GeneralSecurityException, IOException {
+        return createKeyManagers(RestfulProperties.CLOUD_PROXY_KEYSTORE_PATH, RestfulProperties.CLOUD_PROXY_KEYSTORE_PASSWORD.toCharArray());
+    }
+
+    @Override
+    public String getProtocol() {
+        return "TLSv1.2";
+    }
+
+    @Override
+    public TrustManager[] getTrustManagers() throws GeneralSecurityException, IOException {
+        return createTrustManagers(RestfulProperties.TRUSTSTORE_PATH, RestfulProperties.TRUSTSTORE_PASSWORD.toCharArray());
     }
 
     private String log(ByteBuffer buf) {
