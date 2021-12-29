@@ -36,7 +36,7 @@ public class Cloud implements SslContextProvider {
     private final ExecutorService acceptConnectionsFromCloudProxyExecutor = Executors.newSingleThreadExecutor();
     private String JSESSIONID = "";
 
-    final Map<Integer, SocketChannel> tokenSocketMap = new LinkedHashMap<>();
+    final Map<Integer, SocketChannel> tokenSocketMap = new ConcurrentHashMap<>();
 
     private static final Logger logger = Logger.getLogger("CloudAsync");
     public static final int BUFFER_SIZE = 16000;
@@ -55,6 +55,7 @@ public class Cloud implements SslContextProvider {
         acceptConnectionsFromCloudProxy(cloudProxyFacingPort);
         acceptConnectionsFromBrowser(browserFacingPort); // Never returns
     }
+
 
     private void acceptConnectionsFromBrowser(final int browserFacingPort) {
         while (running) {
@@ -172,7 +173,7 @@ public class Cloud implements SslContextProvider {
             write(os, buf);
             System.out.print(output);
             buf.clear();
-            if(read(is, buf) != -1) {
+            if (read(is, buf) != -1) {
                 HttpMessage hdrs = new HttpMessage(buf.array(), headerLength);
                 var l = hdrs.getHeader("Location");
                 String location = l.size() == 1 ? l.get(0) : null;
@@ -198,6 +199,7 @@ public class Cloud implements SslContextProvider {
     }
 
     final private AtomicReference<byte[]> lastBitOfPreviousBuffer = new AtomicReference<>(null);
+
     final void readFromBrowser(SocketChannel channel, final int token) {
         browserReadExecutor.submit(() -> {
             int result;
@@ -211,9 +213,9 @@ public class Cloud implements SslContextProvider {
                 // removeSocket(token);
                 sendResponseToCloudProxy(buf);
             } catch (IOException ignored) {
-               // setConnectionClosedFlag(buf);
+                // setConnectionClosedFlag(buf);
                 removeSocket(token);
-               // sendResponseToCloudProxy(buf);
+                // sendResponseToCloudProxy(buf);
                 reset();
             } catch (Exception ex) {
                 showExceptionDetails(ex, "readFromBrowser");
@@ -252,7 +254,7 @@ public class Cloud implements SslContextProvider {
                         }
                         while (result != -1 && buf.position() < buf.limit());
                     } catch (IOException ioex) {
-                        logger.severe("IOException in respondToBrowser: "+ioex.getMessage());
+                        logger.severe("IOException in respondToBrowser: " + ioex.getMessage());
                         setConnectionClosedFlag(buf);
                         sendResponseToCloudProxy(buf);
                         frontEndChannel.shutdownOutput().shutdownOutput().close();
@@ -436,16 +438,15 @@ public class Cloud implements SslContextProvider {
         buf.flip();
     }
 
-    private void write(OutputStream os, ByteBuffer buf) throws IOException
-    {
-        os.write(buf.array(), buf.position(), buf.limit()-buf.position());
+    private void write(OutputStream os, ByteBuffer buf) throws IOException {
+        os.write(buf.array(), buf.position(), buf.limit() - buf.position());
         os.flush();
         buf.position(buf.limit());
     }
 
     private int read(InputStream is, ByteBuffer buf) throws IOException {
-        final int retVal = is.read(buf.array(), buf.position(),  buf.capacity()-buf.position());
-        if(retVal != -1) {
+        final int retVal = is.read(buf.array(), buf.position(), buf.capacity() - buf.position());
+        if (retVal != -1) {
             buf.limit(buf.position() + retVal);
             buf.position(buf.limit());
         }
@@ -454,56 +455,53 @@ public class Cloud implements SslContextProvider {
 
     ByteBuffer remainsOfPreviousBuffer = null;
     void splitMessages(ByteBuffer buf) {
-        splitMessagesExecutor.submit(() -> {
-            try {
-                buf.flip();
-                ByteBuffer combinedBuf;
+        try {
+            buf.flip();
+            ByteBuffer combinedBuf;
 
-                if (remainsOfPreviousBuffer != null) {
-                    // Append the new buffer onto the previous ones remaining content
-                    combinedBuf = ByteBuffer.allocate(buf.limit() + remainsOfPreviousBuffer.limit() - remainsOfPreviousBuffer.position());
-                    combinedBuf.put(remainsOfPreviousBuffer);
-                    combinedBuf.put(buf);
-                    remainsOfPreviousBuffer = null;
-                } else
-                    combinedBuf = buf;
-                combinedBuf.rewind();
+            if (remainsOfPreviousBuffer != null) {
+                // Append the new buffer onto the previous ones remaining content
+                combinedBuf = ByteBuffer.allocate(buf.limit() + remainsOfPreviousBuffer.limit() - remainsOfPreviousBuffer.position());
+                combinedBuf.put(remainsOfPreviousBuffer);
+                combinedBuf.put(buf);
+                remainsOfPreviousBuffer = null;
+            } else
+                combinedBuf = buf;
+            combinedBuf.rewind();
 
-                while (combinedBuf.position() < combinedBuf.limit()) {
-                    if (combinedBuf.limit() - combinedBuf.position() < headerLength) {
+            while (combinedBuf.position() < combinedBuf.limit()) {
+                if (combinedBuf.limit() - combinedBuf.position() < headerLength) {
+                    remainsOfPreviousBuffer = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.limit()));
+                    combinedBuf.position(combinedBuf.limit());
+                } else {
+                    int lengthThisMessage = getMessageLengthFromPosition(combinedBuf);
+                    if (lengthThisMessage > combinedBuf.limit() - combinedBuf.position()) {
                         remainsOfPreviousBuffer = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.limit()));
                         combinedBuf.position(combinedBuf.limit());
                     } else {
-                        int lengthThisMessage = getMessageLengthFromPosition(combinedBuf);
-                        if (lengthThisMessage > combinedBuf.limit() - combinedBuf.position()) {
-                            remainsOfPreviousBuffer = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.limit()));
-                            combinedBuf.position(combinedBuf.limit());
-                        } else {
-                            try {
-                                ByteBuffer newBuf = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.position() + lengthThisMessage));
-                                newBuf.rewind();
-                                //     logger.log(Level.INFO, "Buffer size " + newBuf.limit() + " lengthThisMessage= " + lengthThisMessage);
-                                combinedBuf.position(combinedBuf.position() + lengthThisMessage);
-                                respondToBrowser(newBuf);
-                            } catch (Exception ex) {
-                                showExceptionDetails(ex, "splitMessages");
-                            }
+                        try {
+                            ByteBuffer newBuf = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.position() + lengthThisMessage));
+                            newBuf.rewind();
+                            //     logger.log(Level.INFO, "Buffer size " + newBuf.limit() + " lengthThisMessage= " + lengthThisMessage);
+                            combinedBuf.position(combinedBuf.position() + lengthThisMessage);
+                            respondToBrowser(newBuf);
+                        } catch (Exception ex) {
+                            showExceptionDetails(ex, "splitMessages");
                         }
                     }
                 }
-                recycle(buf);
-            } catch (Exception ex) {
-                showExceptionDetails(ex, "splitMessages");
-                reset();
             }
-        });
+            recycle(buf);
+        } catch (Exception ex) {
+            showExceptionDetails(ex, "splitMessages");
+            reset();
+        }
     }
 
     void splitHttpMessages(final byte[] buf, final int bytesRead, final OutputStream os, int token, final AtomicReference<byte[]> remainsOfPreviousMessage) {
         byte[] workBuf = remainsOfPreviousMessage.get() == null ? Arrays.copyOfRange(buf, 0, bytesRead) :
                 ArrayUtils.addAll(remainsOfPreviousMessage.get(), Arrays.copyOfRange(buf, 0, bytesRead));
         int startIndex = 0;
-        final int workBufInitialLength = workBuf.length;
 
         while (startIndex < workBuf.length) {
             final HttpMessage msg = new HttpMessage(workBuf, workBuf.length);
@@ -514,7 +512,7 @@ public class Cloud implements SslContextProvider {
                     ByteBuffer nonHttp = getBuffer(token);
                     nonHttp.put(workBuf, 0, workBuf.length);
                     setDataLength(nonHttp, workBuf.length);
-                    os.write(nonHttp.array(), 0, workBuf.length+headerLength);
+                    os.write(nonHttp.array(), 0, workBuf.length + headerLength);
                     os.flush();
                     recycle(nonHttp);
                 } catch (IOException e) {
@@ -522,11 +520,11 @@ public class Cloud implements SslContextProvider {
                 }
                 break;
             }
-            String hdrs =  msg.getHeaders();
+            String hdrs = msg.getHeaders();
             int headersLength = hdrs.length();
             int messageLength = headersLength + msg.getContentLength();
 
-            if(startIndex+messageLength <= workBuf.length) {
+            if (startIndex + messageLength <= workBuf.length) {
                 List<String> js = new ArrayList<String>();
                 js.add("JSESSIONID=" + JSESSIONID);
                 msg.put("Cookie", js);
@@ -537,7 +535,7 @@ public class Cloud implements SslContextProvider {
                     output.put(headers.getBytes(StandardCharsets.UTF_8));
                     if (msg.getContentLength() > 0)
                         output.put(msg.getMessageBody());
-                    int dataLength = output.position()-headerLength;
+                    int dataLength = output.position() - headerLength;
                     setDataLength(output, dataLength);
                     setBufferForSend(output);
                     sendResponseToCloudProxy(output);
@@ -546,8 +544,7 @@ public class Cloud implements SslContextProvider {
                 }
                 startIndex += messageLength;
                 remainsOfPreviousMessage.set(null);
-            }
-            else {
+            } else {
                 remainsOfPreviousMessage.set(Arrays.copyOfRange(workBuf, startIndex, workBuf.length));
                 break;
             }
@@ -587,6 +584,7 @@ public class Cloud implements SslContextProvider {
     public TrustManager[] getTrustManagers() throws GeneralSecurityException, IOException {
         return createTrustManagers(RestfulProperties.TRUSTSTORE_PATH, RestfulProperties.TRUSTSTORE_PASSWORD.toCharArray());
     }
+
     int c = 0;
 
     void throwEx() throws Exception {

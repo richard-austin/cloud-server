@@ -24,7 +24,7 @@ import java.util.zip.Checksum;
 import static com.proxy.SslUtil.*;
 
 public class CloudProxy implements SslContextProvider {
-    final Map<Integer, SocketChannel> tokenSocketMap = new LinkedHashMap<>();
+    final Map<Integer, SocketChannel> tokenSocketMap = new ConcurrentHashMap<>();
     private final int tokenLength = Integer.BYTES;
     private final int lengthLength = Integer.BYTES;
     private final int closedFlagLength = Byte.BYTES;
@@ -39,8 +39,8 @@ public class CloudProxy implements SslContextProvider {
     private final String cloudHost;
     private final int cloudPort;
 
-    private ExecutorService splitMessagesExecutor = Executors.newSingleThreadExecutor();
-    private ExecutorService webserverReadExecutor = Executors.newCachedThreadPool();
+    private final ExecutorService splitMessagesExecutor = Executors.newSingleThreadExecutor();
+    private final ExecutorService webserverReadExecutor = Executors.newCachedThreadPool();
     private ExecutorService webserverWriteExecutor = Executors.newSingleThreadExecutor();
     private ExecutorService sendResponseToCloudExecutor = Executors.newSingleThreadExecutor();
     private ScheduledExecutorService cloudConnectionCheckExecutor = Executors.newSingleThreadScheduledExecutor();
