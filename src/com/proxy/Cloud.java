@@ -1,5 +1,7 @@
 package com.proxy;
 
+import org.apache.commons.lang3.ArrayUtils;
+
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLSocket;
@@ -15,6 +17,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.zip.CRC32;
@@ -31,6 +34,7 @@ public class Cloud implements SslContextProvider {
     private final ExecutorService sendToCloudProxyExecutor = Executors.newSingleThreadExecutor();
     private final ScheduledExecutorService startCloudProxyInputProcessExecutor = Executors.newSingleThreadScheduledExecutor();
     private final ExecutorService acceptConnectionsFromCloudProxyExecutor = Executors.newSingleThreadExecutor();
+    private String JSESSIONID = "";
 
     final Map<Integer, SocketChannel> tokenSocketMap = new LinkedHashMap<>();
 
@@ -86,12 +90,13 @@ public class Cloud implements SslContextProvider {
                         try {
                             // It will wait for a connection on the local port
                             SSLSocket cloudProxy = (SSLSocket) s.accept();
-                            cloudProxy.setSoTimeout(10000);
+                            cloudProxy.setSoTimeout(0);
                             cloudProxy.setSoLinger(true, 5);
 
                             this.cloudProxy = cloudProxy;
                             remainsOfPreviousBuffer = null;
                             clearSocketMap();
+                            authenticate(cloudProxy);
                             startCloudProxyInputProcess();
                         } catch (IOException ioex) {
                             logger.severe("IOException in acceptConnectionsFromCloudProxy: " + ioex.getClass().getName() + ": " + ioex.getMessage());
@@ -143,20 +148,64 @@ public class Cloud implements SslContextProvider {
         });
     }
 
+    String authenticate(SSLSocket socket) {
+        try {
+            InputStream is = socket.getInputStream();
+            OutputStream os = socket.getOutputStream();
+
+            ByteBuffer buf = getBuffer(getToken());
+            //socket.setReceiveBufferSize(buf.length);
+
+            String payload = "username=" + RestfulProperties.USERNAME + "&password=" + RestfulProperties.PASSWORD;
+
+            String output = "POST /login/authenticate HTTP/1.1\r\n" +
+                    "Host: host\r\n" +
+                    "DNT: 1\r\n" +
+                    "Upgrade-Insecure-Requests: 1\r\n" +
+                    "Content-type: application/x-www-form-urlencoded\r\n" +
+                    "Content-Length: " + payload.length() + "\r\n\r\n" +
+                    payload + "\r\n";
+
+            setDataLength(buf, output.length());
+            buf.put(output.getBytes());
+            setBufferForSend(buf);
+            write(os, buf);
+            System.out.print(output);
+            buf.clear();
+            if(read(is, buf) != -1) {
+                HttpMessage hdrs = new HttpMessage(buf.array(), headerLength);
+                var l = hdrs.getHeader("Location");
+                String location = l.size() == 1 ? l.get(0) : null;
+                if (Objects.equals(location, "/")) {
+                    List<String> setCookie = hdrs.getHeader("Set-Cookie");
+                    for (String cookie : setCookie) {
+                        if (cookie.startsWith("JSESSIONID")) {
+                            JSESSIONID = cookie.substring(11, 43);
+                            break;
+                        } else
+                            JSESSIONID = "";
+                    }
+                }
+            }
+            String response = new String(buf.array());
+            System.out.print(response);
+
+        } catch (Exception ex) {
+            System.out.println("Exception in authenticate: " + ex.getMessage());
+        }
+
+        return JSESSIONID;
+    }
+
+    final private AtomicReference<byte[]> lastBitOfPreviousBuffer = new AtomicReference<>(null);
     final void readFromBrowser(SocketChannel channel, final int token) {
         browserReadExecutor.submit(() -> {
             int result;
-            ByteBuffer buf = getBuffer(token);
+            ByteBuffer buf = getBuffer();
             try {
-                buf.position(headerLength);
                 while ((result = channel.read(buf)) != -1) {
-                    int dataLength = 0;
-                    dataLength += result;
-                    setDataLength(buf, dataLength);
-                    setBufferForSend(buf);
-                    sendResponseToCloudProxy(buf);
-                    buf = getBuffer(token);
-                    buf.position(headerLength);
+                    splitHttpMessages(buf.array(), result, cloudProxy.getOutputStream(), token, lastBitOfPreviousBuffer);
+                    buf = getBuffer();
                 }
                 setConnectionClosedFlag(buf);
                 // removeSocket(token);
@@ -204,6 +253,9 @@ public class Cloud implements SslContextProvider {
                         while (result != -1 && buf.position() < buf.limit());
                     } catch (IOException ioex) {
                         logger.severe("IOException in respondToBrowser: "+ioex.getMessage());
+                        setConnectionClosedFlag(buf);
+                        sendResponseToCloudProxy(buf);
+                        frontEndChannel.shutdownOutput().shutdownOutput().close();
                     }
                 } else
                     logger.severe("Socket for token " + token + " was closed");
@@ -393,8 +445,10 @@ public class Cloud implements SslContextProvider {
 
     private int read(InputStream is, ByteBuffer buf) throws IOException {
         final int retVal = is.read(buf.array(), buf.position(),  buf.capacity()-buf.position());
-        buf.limit(buf.position()+retVal);
-        buf.position(buf.limit());
+        if(retVal != -1) {
+            buf.limit(buf.position() + retVal);
+            buf.position(buf.limit());
+        }
         return retVal;
     }
 
@@ -443,6 +497,61 @@ public class Cloud implements SslContextProvider {
                 reset();
             }
         });
+    }
+
+    void splitHttpMessages(final byte[] buf, final int bytesRead, final OutputStream os, int token, final AtomicReference<byte[]> remainsOfPreviousMessage) {
+        byte[] workBuf = remainsOfPreviousMessage.get() == null ? Arrays.copyOfRange(buf, 0, bytesRead) :
+                ArrayUtils.addAll(remainsOfPreviousMessage.get(), Arrays.copyOfRange(buf, 0, bytesRead));
+        int startIndex = 0;
+        final int workBufInitialLength = workBuf.length;
+
+        while (startIndex < workBuf.length) {
+            final HttpMessage msg = new HttpMessage(workBuf, workBuf.length);
+            if (!msg.headersBuilt) {
+                // Don't know what this message is, just send it
+                remainsOfPreviousMessage.set(null);
+                try {
+                    ByteBuffer nonHttp = getBuffer(token);
+                    nonHttp.put(workBuf, 0, workBuf.length);
+                    setDataLength(nonHttp, workBuf.length);
+                    os.write(nonHttp.array(), 0, workBuf.length+headerLength);
+                    os.flush();
+                    recycle(nonHttp);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                break;
+            }
+            String hdrs =  msg.getHeaders();
+            int headersLength = hdrs.length();
+            int messageLength = headersLength + msg.getContentLength();
+
+            if(startIndex+messageLength <= workBuf.length) {
+                List<String> js = new ArrayList<String>();
+                js.add("JSESSIONID=" + JSESSIONID);
+                msg.put("Cookie", js);
+
+                try {
+                    ByteBuffer output = getBuffer(token);
+                    String headers = msg.getHeaders();
+                    output.put(headers.getBytes(StandardCharsets.UTF_8));
+                    if (msg.getContentLength() > 0)
+                        output.put(msg.getMessageBody());
+                    int dataLength = output.position()-headerLength;
+                    setDataLength(output, dataLength);
+                    setBufferForSend(output);
+                    sendResponseToCloudProxy(output);
+                } catch (Exception ex) {
+                    System.out.println("ERROR: Exception in splitMessage when writing to stream: " + ex.getMessage());
+                }
+                startIndex += messageLength;
+                remainsOfPreviousMessage.set(null);
+            }
+            else {
+                remainsOfPreviousMessage.set(Arrays.copyOfRange(workBuf, startIndex, workBuf.length));
+                break;
+            }
+        }
     }
 
     void reset() {

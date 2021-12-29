@@ -411,8 +411,10 @@ public class CloudProxy implements SslContextProvider {
 
     private int read(InputStream is, ByteBuffer buf) throws IOException {
         final int retVal = is.read(buf.array(), buf.position(),  buf.capacity()-buf.position());
-        buf.limit(buf.position()+retVal);
-        buf.position(buf.limit());
+        if(retVal != -1) {
+            buf.limit(buf.position() + retVal);
+            buf.position(buf.limit());
+        }
         return retVal;
     }
 
