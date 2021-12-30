@@ -158,6 +158,7 @@ public class CloudProxy implements SslContextProvider {
      */
     private void restart() {
         try {
+            logger.info("Restarting CloudProxy");
             sendResponseToCloudExecutor.shutdownNow();
             startCloudInputProcessExecutor.shutdownNow();
             cloudConnectionCheckExecutor.shutdownNow();

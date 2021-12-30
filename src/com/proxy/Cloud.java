@@ -55,8 +55,6 @@ public class Cloud implements SslContextProvider {
         acceptConnectionsFromCloudProxy(cloudProxyFacingPort);
         acceptConnectionsFromBrowser(browserFacingPort); // Never returns
     }
-
-
     private void acceptConnectionsFromBrowser(final int browserFacingPort) {
         while (running) {
             try {
@@ -213,10 +211,10 @@ public class Cloud implements SslContextProvider {
                 // removeSocket(token);
                 sendResponseToCloudProxy(buf);
             } catch (IOException ignored) {
-                // setConnectionClosedFlag(buf);
                 removeSocket(token);
-                // sendResponseToCloudProxy(buf);
-                reset();
+//                setConnectionClosedFlag(buf);
+//                sendResponseToCloudProxy(buf);
+                //reset();
             } catch (Exception ex) {
                 showExceptionDetails(ex, "readFromBrowser");
                 reset();
@@ -242,9 +240,8 @@ public class Cloud implements SslContextProvider {
                 SocketChannel frontEndChannel = tokenSocketMap.get(token);  //Select the correct connection to respond to
                 if (getConnectionClosedFlag(buf) != 0) {
                     removeSocket(token);  // Usually already gone
-                } else if (frontEndChannel == null)
-                    throw new Exception("Couldn't find a socket for token " + token);
-                else if (frontEndChannel.isOpen()) {
+                }
+                else if (frontEndChannel != null && frontEndChannel.isOpen()) {
                     buf.position(headerLength);
                     buf.limit(headerLength + length);
                     int result;
@@ -254,13 +251,12 @@ public class Cloud implements SslContextProvider {
                         }
                         while (result != -1 && buf.position() < buf.limit());
                     } catch (IOException ioex) {
-                        logger.severe("IOException in respondToBrowser: " + ioex.getMessage());
+                        logger.warning("IOException in respondToBrowser: " + ioex.getMessage());
                         setConnectionClosedFlag(buf);
                         sendResponseToCloudProxy(buf);
                         frontEndChannel.shutdownOutput().shutdownOutput().close();
                     }
-                } else
-                    logger.severe("Socket for token " + token + " was closed");
+                }
             } catch (Exception ex) {
                 showExceptionDetails(ex, "respondToBrowser");
             }
@@ -552,6 +548,7 @@ public class Cloud implements SslContextProvider {
     }
 
     void reset() {
+        logger.info("Reset called");
         if (cloudProxy != null && cloudProxy.isBound()) {
             try {
                 cloudProxy.close();
