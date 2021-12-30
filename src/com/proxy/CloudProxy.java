@@ -1,5 +1,7 @@
 package com.proxy;
 
+import groovy.transform.NullCheck;
+
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.TrustManager;
@@ -86,7 +88,7 @@ public class CloudProxy implements SslContextProvider {
             }
 
         } catch (Exception e) {
-            showExceptionDetails(e, "createConnectionToCloud: Couldn't connect to cloud service");
+            logger.warning("Exception in createConnectionToCloud: "+e.getMessage()+": Couldn't connect to Cloud");
             if (this.cloudChannel != null) {
                 try {
                     this.cloudChannel.close();
@@ -132,8 +134,14 @@ public class CloudProxy implements SslContextProvider {
                         setBufferForSend(buf);
                         write(os, buf);  // This will be ignored by the Cloud, just throws an exception if the link is down
                     } else throw new Exception("Not connected");
-                } catch (Exception ex) {
-                    logger.log(Level.WARNING, "Problem with connection to Cloud: " + ex.getMessage());
+                }
+                catch(NullPointerException ignored)
+                {
+                    logger.warning("cloudChannel is null, Cloud connection is down");
+                    restart();
+                }
+                catch (Exception ex) {
+                    logger.severe("Exception in cloudConnectionCheck: " + ex.getMessage());
                     if (cloudChannel != null && !cloudChannel.isClosed()) {
                         try {
                             cloudChannel.close();
