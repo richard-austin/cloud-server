@@ -32,7 +32,7 @@ public class CloudHttpsProxy implements SslContextProvider {
     private static final Logger logger = Logger.getLogger("CloudProxy");
     private final ExecutorService threadPoolExecutor = Executors.newCachedThreadPool();
 
-    static String JSESSIONID = "";
+    static String NVRSESSIONID = "";
     static String baseUrl;
 
     String authenticate(SSLSocket socket) {
@@ -63,11 +63,11 @@ public class CloudHttpsProxy implements SslContextProvider {
             if (Objects.equals(location, "/")) {
                 List<String> setCookie = hdrs.getHeader("Set-Cookie");
                 for (String cookie : setCookie) {
-                    if (cookie.startsWith("JSESSIONID")) {
-                        JSESSIONID = cookie.substring(11, 43);
+                    if (cookie.startsWith("NVRSESSIONID")) {
+                        NVRSESSIONID = cookie.substring(11, 43);
                         break;
                     } else
-                        JSESSIONID = "";
+                        NVRSESSIONID = "";
                 }
             }
 
@@ -78,7 +78,7 @@ public class CloudHttpsProxy implements SslContextProvider {
             System.out.println("Exception in authenticate: " + ex.getMessage());
         }
 
-        return JSESSIONID;
+        return NVRSESSIONID;
     }
 
     /**
@@ -123,7 +123,7 @@ public class CloudHttpsProxy implements SslContextProvider {
             // client, disconnect, and continue waiting for connections.
             try {
                 server = createSSLSocket(host, remoteport);
-                if (Objects.equals(JSESSIONID, ""))
+                if (Objects.equals(NVRSESSIONID, ""))
                     authenticate(server);
             } catch (IOException e) {
                 PrintWriter out = new PrintWriter(streamToClient);
@@ -225,7 +225,7 @@ public class CloudHttpsProxy implements SslContextProvider {
 
             if(startIndex+messageLength <= workBuf.length) {
                 List<String> js = new ArrayList<String>();
-                js.add("JSESSIONID=" + JSESSIONID);
+                js.add("NVRSESSIONID=" + NVRSESSIONID);
                 msg.put("Cookie", js);
 
                 try {

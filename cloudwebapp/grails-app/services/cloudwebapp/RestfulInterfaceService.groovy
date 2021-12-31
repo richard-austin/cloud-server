@@ -29,7 +29,7 @@ import java.util.concurrent.Executors
 class RestfulInterfaceService {
     LogService logService
     boolean initialised = false
-    String JSESSIONID
+    String NVRSESSIONID
     String baseUrl
     private final int threadPoolSize = 20
 
@@ -116,7 +116,7 @@ class RestfulInterfaceService {
             for (String headername : headerNames)
                 conn.setRequestProperty(headername, req.getHeader(headername))
 
-            conn.setRequestProperty("Cookie", JSESSIONID)
+            conn.setRequestProperty("Cookie", NVRSESSIONID)
 
             conn.setConnectTimeout(RestfulProperties.REQUEST_TIMEOUT_SECS * 1000)
             conn.setReadTimeout(RestfulProperties.REQUEST_TIMEOUT_SECS * 1000)
@@ -224,7 +224,7 @@ class RestfulInterfaceService {
         if (result.responseCode == HttpURLConnection.HTTP_MOVED_TEMP ) {
             {
                 String tmp = conn.getHeaderField("Set-Cookie")
-                result.responseObject = JSESSIONID = tmp.substring(0, 43)
+                result.responseObject = NVRSESSIONID = tmp.substring(0, 43)
             }
         } else {
             is = conn.getErrorStream()
@@ -242,7 +242,7 @@ class RestfulInterfaceService {
             }
             result.responseObject = out.toString()
         }
-        return JSESSIONID
+        return NVRSESSIONID
     }
 
     /**
