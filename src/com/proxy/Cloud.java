@@ -153,7 +153,7 @@ public class Cloud {
                // setConnectionClosedFlag(buf);
                 removeSocket(token);
                // sendResponseToCloudProxy(buf);
-                reset();
+               // reset();
             } catch (Exception ex) {
                 showExceptionDetails(ex, "readFromBrowser");
                 reset();
