@@ -55,6 +55,7 @@ public class Cloud implements SslContextProvider {
         acceptConnectionsFromCloudProxy(cloudProxyFacingPort);
         acceptConnectionsFromBrowser(browserFacingPort); // Never returns
     }
+
     private void acceptConnectionsFromBrowser(final int browserFacingPort) {
         while (running) {
             try {
@@ -136,6 +137,7 @@ public class Cloud implements SslContextProvider {
                 OutputStream os = cloudProxy.getOutputStream();
                 do {
                     write(os, buf);
+                    os.flush();
                 }
                 while (buf.position() < buf.limit());
                 recycle(buf);
@@ -370,18 +372,15 @@ public class Cloud implements SslContextProvider {
         return length;
     }
 
-    static int nextToken = 0;
-    final Object getTokenLock = new Object();
+    int nextToken = 0;
 
     /**
      * getToken: Get a sequential integer as a token
      *
      * @return: The token as an integer
      */
-    private int getToken() {
-        synchronized (getTokenLock) {
-            return ++nextToken;
-        }
+    private synchronized int getToken() {
+        return ++nextToken;
     }
 
     private void setConnectionClosedFlag(ByteBuffer buf) {
@@ -452,6 +451,7 @@ public class Cloud implements SslContextProvider {
     }
 
     ByteBuffer remainsOfPreviousBuffer = null;
+
     void splitMessages(ByteBuffer buf) {
         try {
             buf.flip();
