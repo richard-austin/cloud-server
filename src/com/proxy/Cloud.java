@@ -39,7 +39,7 @@ public class Cloud implements SslContextProvider {
     final Map<Integer, SocketChannel> tokenSocketMap = new ConcurrentHashMap<>();
 
     private static final Logger logger = Logger.getLogger("CloudAsync");
-    public static final int BUFFER_SIZE = 16000;
+    public static final int BUFFER_SIZE = 500;
     private final int tokenLength = Integer.BYTES;
     private final int lengthLength = Integer.BYTES;
     private final int closedFlagLength = Byte.BYTES;
@@ -140,9 +140,7 @@ public class Cloud implements SslContextProvider {
                     os.flush();
                 }
                 while (buf.position() < buf.limit());
-                recycle(buf);
-
-            } catch (Exception ex) {
+             } catch (Exception ex) {
                 showExceptionDetails(ex, "startCloudProxyOutputProcess");
                 reset();
             }
@@ -200,11 +198,11 @@ public class Cloud implements SslContextProvider {
         return NVRSESSIONID;
     }
 
-    final private AtomicReference<ByteBuffer> lastBitOfPreviousBuffer = new AtomicReference<>(null);
 
+    final Map<Integer, ByteBuffer> lastBitOfPreviousBuffer = new ConcurrentHashMap<>();
     final void readFromBrowser(SocketChannel channel, final int token) {
         browserReadExecutor.submit(() -> {
-            int result;
+
             ByteBuffer buf = getBuffer();
             try {
                 while (channel.read(buf) != -1) {
@@ -469,6 +467,7 @@ public class Cloud implements SslContextProvider {
                 combinedBuf = ByteBuffer.allocate(buf.limit() + remainsOfPreviousBuffer.limit() - remainsOfPreviousBuffer.position());
                 combinedBuf.put(remainsOfPreviousBuffer);
                 combinedBuf.put(buf);
+                recycle(buf);
                 remainsOfPreviousBuffer = null;
             } else
                 combinedBuf = buf;
@@ -496,32 +495,32 @@ public class Cloud implements SslContextProvider {
                     }
                 }
             }
-            recycle(buf);
+            recycle(combinedBuf);
         } catch (Exception ex) {
             showExceptionDetails(ex, "splitMessages");
             reset();
         }
     }
 
-    void splitHttpMessages(final ByteBuffer buf, final OutputStream os, int token, final AtomicReference<ByteBuffer> remainsOfPreviousMessage) {
+    void splitHttpMessages(final ByteBuffer buf, final OutputStream os, int token, final Map<Integer, ByteBuffer> remainsOfPreviousMessage) {
         buf.flip();
         ByteBuffer combinedBuf;
 
-        if (remainsOfPreviousMessage.get() != null) {
+        if (remainsOfPreviousMessage.get(token) != null) {
             // Append the new buffer onto the previous ones remaining content
-            combinedBuf = ByteBuffer.allocate(buf.limit() + remainsOfPreviousMessage.get().limit() - remainsOfPreviousMessage.get().position());
-            combinedBuf.put(remainsOfPreviousMessage.get());
+            combinedBuf = ByteBuffer.allocate(buf.limit() + remainsOfPreviousMessage.get(token).limit() - remainsOfPreviousMessage.get(token).position());
+            combinedBuf.put(remainsOfPreviousMessage.get(token));
             combinedBuf.put(buf);
-            remainsOfPreviousBuffer = null;
+            combinedBuf.flip();
+            remainsOfPreviousMessage.remove(token);
         } else
             combinedBuf = buf;
-        int startIndex = 0;
 
-        while (startIndex < combinedBuf.limit()) {
+        while (combinedBuf.position() < combinedBuf.limit()) {
             final HttpMessage msg = new HttpMessage(combinedBuf.array(), combinedBuf.limit());
-            if (true || !msg.headersBuilt) {
+            if (!msg.headersBuilt) {
                 // Don't know what this message is, just send it
-                remainsOfPreviousMessage.set(null);
+                remainsOfPreviousMessage.remove(token);
                 try {
                     ByteBuffer nonHttp = ByteBuffer.allocate(combinedBuf.limit()+headerLength);
                     setToken(nonHttp, token);
@@ -539,29 +538,34 @@ public class Cloud implements SslContextProvider {
             String hdrs = msg.getHeaders();
             int headersLength = hdrs.length();
             int messageLength = headersLength + msg.getContentLength();
+            if (combinedBuf.position()+messageLength <= combinedBuf.limit()) {
+                combinedBuf.position(combinedBuf.position()+messageLength);
 
-            if (startIndex + messageLength <= buf.limit()) {
                 List<String> js = new ArrayList<String>();
                 js.add("NVRSESSIONID=" + NVRSESSIONID);
                 msg.put("Cookie", js);
 
                 try {
-                    ByteBuffer output = getBuffer(token);
                     String headers = msg.getHeaders();
+                    ByteBuffer output = ByteBuffer.allocate(headers.length()+ msg.getContentLength()+headerLength);
+                    setToken(output, token);
                     output.put(headers.getBytes(StandardCharsets.UTF_8));
                     if (msg.getContentLength() > 0)
                         output.put(msg.getMessageBody());
                     int dataLength = output.position() - headerLength;
+
                     setDataLength(output, dataLength);
                     setBufferForSend(output);
                     sendResponseToCloudProxy(output);
                 } catch (Exception ex) {
-                    System.out.println("ERROR: Exception in splitMessage when writing to stream: " + ex.getMessage());
+                    System.out.println("ERROR: Exception in splitHttpMessages when writing to stream: "+ ex.getClass().getName() + ex.getMessage());
                 }
-                startIndex += messageLength;
-                remainsOfPreviousMessage.set(null);
+                remainsOfPreviousMessage.remove(token);
             } else {
-                remainsOfPreviousMessage.set(buf);
+                ByteBuffer remainingData = ByteBuffer.allocate(combinedBuf.limit()-combinedBuf.position());
+                remainingData.put(combinedBuf);
+                remainingData.flip();
+                remainsOfPreviousMessage.put(token, remainingData);
                 break;
             }
         }
