@@ -1,7 +1,5 @@
 package com.proxy;
 
-import org.apache.commons.lang3.ArrayUtils;
-
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLSocket;
@@ -17,7 +15,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.zip.CRC32;
@@ -30,7 +27,6 @@ public class Cloud implements SslContextProvider {
     private boolean running = true;
     private final ExecutorService browserWriteExecutor = Executors.newSingleThreadExecutor();
     private final ExecutorService browserReadExecutor = Executors.newCachedThreadPool();
-    private final ExecutorService splitMessagesExecutor = Executors.newSingleThreadExecutor();
     private final ExecutorService sendToCloudProxyExecutor = Executors.newSingleThreadExecutor();
     private final ScheduledExecutorService startCloudProxyInputProcessExecutor = Executors.newSingleThreadScheduledExecutor();
     private final ExecutorService acceptConnectionsFromCloudProxyExecutor = Executors.newSingleThreadExecutor();
@@ -39,17 +35,17 @@ public class Cloud implements SslContextProvider {
     final Map<Integer, SocketChannel> tokenSocketMap = new ConcurrentHashMap<>();
 
     private static final Logger logger = Logger.getLogger("CloudAsync");
-    public static final int BUFFER_SIZE = 500;
+    public static final int BUFFER_SIZE = 300;
     private final int tokenLength = Integer.BYTES;
     private final int lengthLength = Integer.BYTES;
     private final int closedFlagLength = Byte.BYTES;
     private final int headerLength = tokenLength + lengthLength + closedFlagLength;
     private SSLSocket cloudProxy;
     private final int browserFacingPort = 8083, cloudProxyFacingPort = 8081;
-
     public static void main(String[] args) {
         new Cloud().start();
     }
+    private final boolean protocolAgnostic = false;
 
     private void start() {
         acceptConnectionsFromCloudProxy(cloudProxyFacingPort);
@@ -96,7 +92,8 @@ public class Cloud implements SslContextProvider {
                             this.cloudProxy = cloudProxy;
                             remainsOfPreviousBuffer = null;
                             clearSocketMap();
-                            authenticate(cloudProxy);
+                            if(!protocolAgnostic)
+                                authenticate(cloudProxy);
                             startCloudProxyInputProcess();
                         } catch (IOException ioex) {
                             logger.severe("IOException in acceptConnectionsFromCloudProxy: " + ioex.getClass().getName() + ": " + ioex.getMessage());
@@ -206,7 +203,7 @@ public class Cloud implements SslContextProvider {
             ByteBuffer buf = getBuffer();
             try {
                 while (channel.read(buf) != -1) {
-                    splitHttpMessages(buf, cloudProxy.getOutputStream(), token, lastBitOfPreviousBuffer);
+                    splitHttpMessages(buf, token, lastBitOfPreviousBuffer);
                     buf = getBuffer();
                 }
                 setToken(buf, token);
@@ -502,7 +499,7 @@ public class Cloud implements SslContextProvider {
         }
     }
 
-    void splitHttpMessages(final ByteBuffer buf, final OutputStream os, int token, final Map<Integer, ByteBuffer> remainsOfPreviousMessage) {
+    void splitHttpMessages(final ByteBuffer buf, int token, final Map<Integer, ByteBuffer> remainsOfPreviousMessage) {
         buf.flip();
         ByteBuffer combinedBuf;
 
@@ -511,14 +508,16 @@ public class Cloud implements SslContextProvider {
             combinedBuf = ByteBuffer.allocate(buf.limit() + remainsOfPreviousMessage.get(token).limit() - remainsOfPreviousMessage.get(token).position());
             combinedBuf.put(remainsOfPreviousMessage.get(token));
             combinedBuf.put(buf);
+
             combinedBuf.flip();
             remainsOfPreviousMessage.remove(token);
+            recycle(buf);
         } else
             combinedBuf = buf;
 
         while (combinedBuf.position() < combinedBuf.limit()) {
             final HttpMessage msg = new HttpMessage(combinedBuf.array(), combinedBuf.limit());
-            if (!msg.headersBuilt) {
+            if (protocolAgnostic || !msg.headersBuilt) {
                 // Don't know what this message is, just send it
                 remainsOfPreviousMessage.remove(token);
                 try {
