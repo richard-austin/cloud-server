@@ -28,14 +28,14 @@ public class Cloud implements SslContextProvider {
     private final ExecutorService browserWriteExecutor = Executors.newSingleThreadExecutor();
     private final ExecutorService browserReadExecutor = Executors.newCachedThreadPool();
     private final ExecutorService sendToCloudProxyExecutor = Executors.newSingleThreadExecutor();
-    private final ScheduledExecutorService startCloudProxyInputProcessExecutor = Executors.newSingleThreadScheduledExecutor();
+    private ScheduledExecutorService startCloudProxyInputProcessExecutor;
     private final ExecutorService acceptConnectionsFromCloudProxyExecutor = Executors.newSingleThreadExecutor();
     private String NVRSESSIONID = "";
 
     final Map<Integer, SocketChannel> tokenSocketMap = new ConcurrentHashMap<>();
 
     private static final Logger logger = Logger.getLogger("CloudAsync");
-    public static final int BUFFER_SIZE = 300;
+    public static final int BUFFER_SIZE = 1024;
     private final int tokenLength = Integer.BYTES;
     private final int lengthLength = Integer.BYTES;
     private final int closedFlagLength = Byte.BYTES;
@@ -86,12 +86,11 @@ public class Cloud implements SslContextProvider {
                         try {
                             // It will wait for a connection on the local port
                             SSLSocket cloudProxy = (SSLSocket) s.accept();
+                            reset();
                             cloudProxy.setSoTimeout(0);
                             cloudProxy.setSoLinger(true, 5);
 
                             this.cloudProxy = cloudProxy;
-                            remainsOfPreviousBuffer = null;
-                            clearSocketMap();
                             if(!protocolAgnostic)
                                 authenticate(cloudProxy);
                             startCloudProxyInputProcess();
@@ -187,36 +186,58 @@ public class Cloud implements SslContextProvider {
                 else
                     logger.warning("Authentication on NVR has failed");
             }
-            String response = new String(buf.array());
+            String response = new String(buf.array(), headerLength, buf.limit()-headerLength);
             System.out.print(response);
 
         } catch (Exception ex) {
-            System.out.println("Exception in authenticate: " + ex.getMessage());
+            System.out.println("Exception in authenticate: " + ex.getClass().getName() + ": " + ex.getMessage() + "\n\n");
+            ex.printStackTrace();
         }
 
         return NVRSESSIONID;
     }
 
+    private boolean logoff(SSLSocket socket)
+    {
+        boolean retVal = true;
+        try {
+            OutputStream os = socket.getOutputStream();
+            InputStream is = socket.getInputStream();
+            ByteBuffer buf = getBuffer(getToken());
+            String logoff = "GET /logoff HTTP/1.1\r\n" +
+                    "Host: host\r\n\r\n";
+            System.out.println(logoff);
+            buf.put(logoff.getBytes(StandardCharsets.UTF_8));
+            setDataLength(buf, logoff.length());
+            setBufferForSend(buf);
+            write(os, buf);   // Ensure we are logged off first
+            buf.clear();
+            int bytesRead = read(is, buf);
+            System.out.println(new String(buf.array(), headerLength, bytesRead-headerLength));
 
-    final Map<Integer, ByteBuffer> lastBitOfPreviousBuffer = new ConcurrentHashMap<>();
+        }
+        catch (IOException ioex)
+        {
+           retVal = false;
+        }
+        return retVal;
+    }
+
+    final Map<Integer, ByteBuffer> lastBitOfPreviousHttpMessage = new ConcurrentHashMap<>();
     final void readFromBrowser(SocketChannel channel, final int token) {
         browserReadExecutor.submit(() -> {
 
             ByteBuffer buf = getBuffer();
             try {
                 while (channel.read(buf) != -1) {
-                    splitHttpMessages(buf, token, lastBitOfPreviousBuffer);
+                    splitHttpMessages(buf, token, lastBitOfPreviousHttpMessage);
                     buf = getBuffer();
                 }
                 setToken(buf, token);
                 setConnectionClosedFlag(buf);
-                // removeSocket(token);
                 sendResponseToCloudProxy(buf);
             } catch (IOException ignored) {
                 removeSocket(token);
-//                setConnectionClosedFlag(buf);
-//                sendResponseToCloudProxy(buf);
-                //reset();
             } catch (Exception ex) {
                 showExceptionDetails(ex, "readFromBrowser");
                 reset();
@@ -454,32 +475,32 @@ public class Cloud implements SslContextProvider {
         return retVal;
     }
 
-    ByteBuffer remainsOfPreviousBuffer = null;
+    ByteBuffer lastBitOfPreviousMessage = null;
 
     void splitMessages(ByteBuffer buf) {
         try {
             buf.flip();
             ByteBuffer combinedBuf;
 
-            if (remainsOfPreviousBuffer != null) {
+            if (lastBitOfPreviousMessage != null) {
                 // Append the new buffer onto the previous ones remaining content
-                combinedBuf = ByteBuffer.allocate(buf.limit() + remainsOfPreviousBuffer.limit() - remainsOfPreviousBuffer.position());
-                combinedBuf.put(remainsOfPreviousBuffer);
+                combinedBuf = ByteBuffer.allocate(buf.limit() + lastBitOfPreviousMessage.limit() - lastBitOfPreviousMessage.position());
+                combinedBuf.put(lastBitOfPreviousMessage);
                 combinedBuf.put(buf);
                 recycle(buf);
-                remainsOfPreviousBuffer = null;
+                lastBitOfPreviousMessage = null;
             } else
                 combinedBuf = buf;
             combinedBuf.rewind();
 
             while (combinedBuf.position() < combinedBuf.limit()) {
                 if (combinedBuf.limit() - combinedBuf.position() < headerLength) {
-                    remainsOfPreviousBuffer = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.limit()));
+                    lastBitOfPreviousMessage = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.limit()));
                     combinedBuf.position(combinedBuf.limit());
                 } else {
                     int lengthThisMessage = getMessageLengthFromPosition(combinedBuf);
                     if (lengthThisMessage > combinedBuf.limit() - combinedBuf.position()) {
-                        remainsOfPreviousBuffer = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.limit()));
+                        lastBitOfPreviousMessage = ByteBuffer.wrap(Arrays.copyOfRange(combinedBuf.array(), combinedBuf.position(), combinedBuf.limit()));
                         combinedBuf.position(combinedBuf.limit());
                     } else {
                         try {
@@ -501,18 +522,18 @@ public class Cloud implements SslContextProvider {
         }
     }
 
-    void splitHttpMessages(final ByteBuffer buf, int token, final Map<Integer, ByteBuffer> remainsOfPreviousMessage) {
+    void splitHttpMessages(final ByteBuffer buf, int token, final Map<Integer, ByteBuffer> lastBitOfPreviousBuffer) {
         buf.flip();
         ByteBuffer combinedBuf;
 
-        if (remainsOfPreviousMessage.get(token) != null) {
+        if (lastBitOfPreviousBuffer.get(token) != null) {
             // Append the new buffer onto the previous ones remaining content
-            combinedBuf = ByteBuffer.allocate(buf.limit() + remainsOfPreviousMessage.get(token).limit() - remainsOfPreviousMessage.get(token).position());
-            combinedBuf.put(remainsOfPreviousMessage.get(token));
+            combinedBuf = ByteBuffer.allocate(buf.limit() + lastBitOfPreviousBuffer.get(token).limit() - lastBitOfPreviousBuffer.get(token).position());
+            combinedBuf.put(lastBitOfPreviousBuffer.get(token));
             combinedBuf.put(buf);
 
             combinedBuf.flip();
-            remainsOfPreviousMessage.remove(token);
+            lastBitOfPreviousBuffer.remove(token);
             recycle(buf);
         } else
             combinedBuf = buf;
@@ -521,7 +542,6 @@ public class Cloud implements SslContextProvider {
             final HttpMessage msg = new HttpMessage(combinedBuf);
             if (protocolAgnostic || !msg.headersBuilt) {
                 // Don't know what this message is, just send it
-                remainsOfPreviousMessage.remove(token);
                 try {
                     ByteBuffer nonHttp = ByteBuffer.allocate(combinedBuf.limit()+headerLength);
                     setToken(nonHttp, token);
@@ -561,12 +581,11 @@ public class Cloud implements SslContextProvider {
                 } catch (Exception ex) {
                     System.out.println("ERROR: Exception in splitHttpMessages when writing to stream: "+ ex.getClass().getName() + ex.getMessage());
                 }
-                remainsOfPreviousMessage.remove(token);
             } else {
                 ByteBuffer remainingData = ByteBuffer.allocate(combinedBuf.limit()-combinedBuf.position());
                 remainingData.put(combinedBuf);
                 remainingData.flip();
-                remainsOfPreviousMessage.put(token, remainingData);
+                lastBitOfPreviousBuffer.put(token, remainingData);
                 break;
             }
         }
@@ -574,13 +593,18 @@ public class Cloud implements SslContextProvider {
 
     void reset() {
         logger.info("Reset called");
+        if(startCloudProxyInputProcessExecutor != null)
+            startCloudProxyInputProcessExecutor.shutdown();
+
+        startCloudProxyInputProcessExecutor = Executors.newSingleThreadScheduledExecutor();
         if (cloudProxy != null && cloudProxy.isBound()) {
             try {
                 cloudProxy.close();
             } catch (IOException ignored) {
             }
         }
-        remainsOfPreviousBuffer = null;
+        lastBitOfPreviousMessage = null;
+        lastBitOfPreviousHttpMessage.clear();
         clearSocketMap();
     }
 
