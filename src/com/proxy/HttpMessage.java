@@ -1,22 +1,21 @@
 package com.proxy;
 
+import java.nio.ByteBuffer;
 import java.util.*;
 
 class HttpMessage extends HashMap<String, List<String>> {
-    final byte[] httpMessage;
+    final ByteBuffer httpMessage;
     final byte[] crlfcrlf = {'\r', '\n','\r', '\n'};
     final byte [] crlf = {'\r', '\n'};
     final byte[] colon = {':'};
-    final int totalBytes;
     final int headersLength;
     final boolean headersBuilt;
 
     String firstLine;
 
-    HttpMessage(byte[] httpMessage, int bytesRead)
+    HttpMessage(ByteBuffer httpMessage)
     {
         this.httpMessage = httpMessage;
-        totalBytes = bytesRead;
         headersLength = indexOf(crlfcrlf, 0)+crlfcrlf.length;
         if(!(headersBuilt=buildHeaders()))
             System.out.println("INFO: not an HTTP message");
@@ -28,13 +27,13 @@ class HttpMessage extends HashMap<String, List<String>> {
 
         int idxCrLf = indexOf(crlf, 0);
         if(idxCrLf != -1) {
-            firstLine = new String(Arrays.copyOfRange(httpMessage, 0, idxCrLf));
+            firstLine = new String(Arrays.copyOfRange(httpMessage.array(), 0, idxCrLf));
             int idxEndOfHeaders = indexOf(crlfcrlf, 0);
             if (idxEndOfHeaders != -1) {
                 for (int baseIdx = idxCrLf+crlf.length, i = indexOf(crlf, idxCrLf+crlf.length); i < idxEndOfHeaders+crlf.length; baseIdx = i+crlf.length, i = indexOf(crlf, i + crlf.length)) {
                     int idxOfColon = indexOf(colon, baseIdx);
-                    String headerName = new String(Arrays.copyOfRange(httpMessage, baseIdx, idxOfColon));
-                    String headerValue = new String(Arrays.copyOfRange(httpMessage, idxOfColon + 2, i));
+                    String headerName = new String(Arrays.copyOfRange(httpMessage.array(), baseIdx, idxOfColon));
+                    String headerValue = new String(Arrays.copyOfRange(httpMessage.array(), idxOfColon + 2, i));
                     if(this.get(headerName) == null)
                         put(headerName, new ArrayList<>());
                     get(headerName).add(headerValue);
@@ -84,22 +83,18 @@ class HttpMessage extends HashMap<String, List<String>> {
         return keySet();
     }
 
-    byte[] getMessageBody()
+    ByteBuffer getMessageBody()
     {
         int idxMsgBodyStart = indexOf(crlfcrlf, 0)+crlfcrlf.length;
-        return Arrays.copyOfRange(httpMessage, idxMsgBodyStart, idxMsgBodyStart+getContentLength());
+        httpMessage.position(idxMsgBodyStart);
+        return httpMessage;
     }
 
-//    int getHeadersLength()
-//    {
-//        return getHeaders().length();
-//    }
-
-    private int indexOf(byte[] smallerArray, int startIdx) {
-        for(int i = startIdx; i < httpMessage.length - smallerArray.length+1; ++i) {
+    private int indexOf(byte[] pattern, int startIdx) {
+        for(int i = startIdx; i < httpMessage.limit() - pattern.length+1; ++i) {
             boolean found = true;
-            for(int j = 0; j < smallerArray.length; ++j) {
-                if (httpMessage[i+j] != smallerArray[j]) {
+            for(int j = 0; j < pattern.length; ++j) {
+                if (httpMessage.get(i+j) != pattern[j]) {
                     found = false;
                     break;
                 }

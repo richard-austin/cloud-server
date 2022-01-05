@@ -169,7 +169,7 @@ public class Cloud implements SslContextProvider {
             System.out.print(output);
             buf.clear();
             if (read(is, buf) != -1) {
-                HttpMessage hdrs = new HttpMessage(buf.array(), headerLength);
+                HttpMessage hdrs = new HttpMessage(buf);
                 var l = hdrs.getHeader("Location");
                 String location = l.size() == 1 ? l.get(0) : null;
                 if (Objects.equals(location, "/")) {
@@ -184,6 +184,8 @@ public class Cloud implements SslContextProvider {
                             NVRSESSIONID = "";
                     }
                 }
+                else
+                    logger.warning("Authentication on NVR has failed");
             }
             String response = new String(buf.array());
             System.out.print(response);
@@ -516,7 +518,7 @@ public class Cloud implements SslContextProvider {
             combinedBuf = buf;
 
         while (combinedBuf.position() < combinedBuf.limit()) {
-            final HttpMessage msg = new HttpMessage(combinedBuf.array(), combinedBuf.limit());
+            final HttpMessage msg = new HttpMessage(combinedBuf);
             if (protocolAgnostic || !msg.headersBuilt) {
                 // Don't know what this message is, just send it
                 remainsOfPreviousMessage.remove(token);
