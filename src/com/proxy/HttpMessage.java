@@ -16,9 +16,12 @@ class HttpMessage extends HashMap<String, List<String>> {
     HttpMessage(ByteBuffer httpMessage)
     {
         this.httpMessage = httpMessage;
-        headersLength = indexOf(crlfcrlf, 0)+crlfcrlf.length;
-        if(!(headersBuilt=buildHeaders()))
-            System.out.println("INFO: not an HTTP message");
+        final int indexOfCrLf = indexOf(crlfcrlf, 0);
+        if(indexOfCrLf != -1)
+            headersLength = indexOfCrLf+crlfcrlf.length;
+        else
+            headersLength = 0;
+        headersBuilt=buildHeaders();
     }
 
     private boolean buildHeaders()
@@ -50,17 +53,20 @@ class HttpMessage extends HashMap<String, List<String>> {
     String getHeaders()
     {
         StringBuilder sb = new StringBuilder();
-        sb.append(firstLine);
-        sb.append(new String(crlf));
-        forEach((headerName, headervalues)-> {
-            headervalues.forEach((headerValue)-> {
-                sb.append(headerName);
-                sb.append(": ");
-                sb.append(headerValue);
-                sb.append(new String(crlf));
+        if(firstLine != null) {
+            sb.append(firstLine);
+            sb.append(new String(crlf));
+            forEach((headerName, headervalues) -> {
+                headervalues.forEach((headerValue) -> {
+                    sb.append(headerName);
+                    sb.append(": ");
+                    sb.append(headerValue);
+                    sb.append(new String(crlf));
+                });
             });
-        });
-        sb.append(new String(crlf));
+            sb.append(new String(crlf));
+
+        }
         return sb.toString();
     }
 
