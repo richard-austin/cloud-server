@@ -7,8 +7,8 @@ class LinkController {
     RestfulInterfaceService restfulInterfaceService
 
     def auth() {
-        String JSESSIONID = restfulInterfaceService.authenticate("https://192.168.0.29:443")
-        render JSESSIONID
+        String NVRSESSIONID = restfulInterfaceService.authenticate("https://192.168.0.29:443")
+        render NVRSESSIONID
     }
 
     def proxy() {
