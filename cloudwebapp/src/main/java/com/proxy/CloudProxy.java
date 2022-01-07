@@ -41,12 +41,13 @@ public class CloudProxy implements SslContextProvider {
     private final String cloudHost;
     private final int cloudPort;
 
-    private final ExecutorService splitMessagesExecutor = Executors.newSingleThreadExecutor();
-    private final ExecutorService webserverReadExecutor = Executors.newCachedThreadPool();
-    private ExecutorService webserverWriteExecutor = Executors.newSingleThreadExecutor();
-    private ExecutorService sendResponseToCloudExecutor = Executors.newSingleThreadExecutor();
-    private ScheduledExecutorService cloudConnectionCheckExecutor = Executors.newSingleThreadScheduledExecutor();
-    private ExecutorService startCloudInputProcessExecutor = Executors.newSingleThreadExecutor();
+    private ExecutorService cloudProxyExecutor;
+    private ExecutorService splitMessagesExecutor;
+    private ExecutorService webserverReadExecutor;
+    private ExecutorService webserverWriteExecutor;
+    private ExecutorService sendResponseToCloudExecutor;
+    private ScheduledExecutorService cloudConnectionCheckExecutor;
+    private ExecutorService startCloudInputProcessExecutor;
 
     CloudProxy(String webServerHost, int webServerPort, String cloudHost, int cloudPort) {
         this.webserverHost = webServerHost;
@@ -62,6 +63,15 @@ public class CloudProxy implements SslContextProvider {
     final Object LOCK = new Object();
 
     void start() {
+        cloudProxyExecutor = Executors.newSingleThreadExecutor();
+        splitMessagesExecutor = Executors.newSingleThreadExecutor();
+        webserverReadExecutor = Executors.newCachedThreadPool();
+        webserverWriteExecutor = Executors.newSingleThreadExecutor();
+        sendResponseToCloudExecutor = Executors.newSingleThreadExecutor();
+        cloudConnectionCheckExecutor = Executors.newSingleThreadScheduledExecutor();
+        startCloudInputProcessExecutor = Executors.newSingleThreadExecutor();
+
+        cloudProxyExecutor.execute(() -> {
         running = true;
         try {
             createConnectionToCloud();
@@ -76,6 +86,20 @@ public class CloudProxy implements SslContextProvider {
         } catch (Exception ex) {
             showExceptionDetails(ex, "start");
         }
+        });
+    }
+
+    void stop() {
+        splitMessagesExecutor.shutdownNow();
+        webserverReadExecutor.shutdownNow();
+        webserverWriteExecutor.shutdownNow();
+        sendResponseToCloudExecutor.shutdownNow();
+        cloudConnectionCheckExecutor.shutdownNow();
+        startCloudInputProcessExecutor.shutdownNow();
+        synchronized (LOCK) {
+            LOCK.notify();
+        }
+        cloudProxyExecutor.shutdownNow();
     }
 
     private void createConnectionToCloud() {
@@ -407,7 +431,7 @@ public class CloudProxy implements SslContextProvider {
         return crc32.getValue();
     }
 
-    void setBufferForSend(ByteBuffer buf) throws Exception {
+    void setBufferForSend(ByteBuffer buf) {
         buf.flip();
     }
 
