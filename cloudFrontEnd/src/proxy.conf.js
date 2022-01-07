@@ -12,6 +12,7 @@ const PROXY_CONFIG = [
       "/live",
       "/login"
     ],
+    ws: true,
     target: "http://localhost:8083",
     secure: false
   }
