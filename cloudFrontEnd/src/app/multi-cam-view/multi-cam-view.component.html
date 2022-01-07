@@ -1,0 +1,30 @@
+<div class="flex-container">
+  <div class="settings_item">
+    <mat-card class="camera-select mat-elevation-z8 hide-background">
+      <mat-card-title>
+        Select Cameras to View
+      </mat-card-title>
+      <mat-card-content>
+        <ng-container *ngFor="let cam of cameras | keyvalue">
+          <section class="section">
+          <span>
+            <mat-icon>arrow_right</mat-icon>
+            {{cam.value.name}}
+          </span>
+            <ul>
+              <li *ngFor="let strm of cam.value.streams | keyvalue">
+                <mat-checkbox [color]="'primary'" [checked]="strm.value.selected"
+                              (change)="updateCameras($event, cam.value,  strm.value)">
+                  {{strm.value.descr}}
+                </mat-checkbox>
+              </li>
+            </ul>
+          </section>
+        </ng-container>
+        <button mat-flat-button color="light" (click)="updateDisplay()" [disabled]="false">Update</button>
+      </mat-card-content>
+    </mat-card>
+  </div>
+  <app-reporting></app-reporting>
+  <app-live-container [multi]="true" class="multi-display-item"></app-live-container>
+</div>
