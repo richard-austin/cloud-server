@@ -561,11 +561,11 @@ public class Cloud implements SslContextProvider {
             int messageLength = headersLength + msg.getContentLength();
             if (combinedBuf.position()+messageLength <= combinedBuf.limit()) {
                 combinedBuf.position(combinedBuf.position()+messageLength);
-
+                msg.remove("cookie");
+                msg.remove("Cookie");
                 List<String> js = new ArrayList<String>();
                 js.add("NVRSESSIONID=" + NVRSESSIONID);
                 msg.put("Cookie", js);
-
                 try {
                     String headers = msg.getHeaders();
                     ByteBuffer output = ByteBuffer.allocate(headers.length()+ msg.getContentLength()+headerLength);

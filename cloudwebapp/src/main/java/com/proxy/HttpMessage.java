@@ -73,6 +73,9 @@ class HttpMessage extends HashMap<String, List<String>> {
     int getContentLength()
     {
         var cl =this.get("Content-Length");
+        if(cl == null)
+            cl = this.get("content-length");
+
         if(cl != null)
             return Integer.parseInt(cl.get(0));
         else
