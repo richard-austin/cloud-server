@@ -169,10 +169,10 @@ public class Cloud implements SslContextProvider {
             buf.clear();
             if (read(is, buf) != -1) {
                 HttpMessage hdrs = new HttpMessage(buf);
-                var l = hdrs.getHeader("Location");
+                var l = hdrs.getHeader("location");
                 String location = l.size() == 1 ? l.get(0) : null;
                 if (Objects.equals(location, "/")) {
-                    List<String> setCookie = hdrs.getHeader("Set-Cookie");
+                    List<String> setCookie = hdrs.getHeader("set-cookie");
                     for (String cookie : setCookie) {
                         if (cookie.startsWith("NVRSESSIONID")) {
                             final int startIdx = "NVRSESSIONID=".length();
@@ -562,8 +562,7 @@ public class Cloud implements SslContextProvider {
             if (combinedBuf.position()+messageLength <= combinedBuf.limit()) {
                 combinedBuf.position(combinedBuf.position()+messageLength);
                 msg.remove("cookie");
-                msg.remove("Cookie");
-                List<String> js = new ArrayList<String>();
+                List<String> js = new ArrayList<>();
                 js.add("NVRSESSIONID=" + NVRSESSIONID);
                 msg.put("Cookie", js);
                 try {

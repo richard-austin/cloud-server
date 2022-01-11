@@ -13,7 +13,7 @@ class HttpMessage extends HashMap<String, List<String>> {
 
     String firstLine;
 
-    HttpMessage(ByteBuffer httpMessage)
+    public HttpMessage(ByteBuffer httpMessage)
     {
         this.httpMessage = httpMessage;
         final int indexOfCrLf = indexOf(crlfcrlf, 0);
@@ -35,7 +35,7 @@ class HttpMessage extends HashMap<String, List<String>> {
             if (idxEndOfHeaders != -1) {
                 for (int baseIdx = idxCrLf+crlf.length, i = indexOf(crlf, idxCrLf+crlf.length); i < idxEndOfHeaders+crlf.length; baseIdx = i+crlf.length, i = indexOf(crlf, i + crlf.length)) {
                     int idxOfColon = indexOf(colon, baseIdx);
-                    String headerName = new String(Arrays.copyOfRange(httpMessage.array(), baseIdx, idxOfColon));
+                    String headerName = new String(Arrays.copyOfRange(httpMessage.array(), baseIdx, idxOfColon)).toLowerCase(Locale.ROOT);
                     String headerValue = new String(Arrays.copyOfRange(httpMessage.array(), idxOfColon + 2, i));
                     if(this.get(headerName) == null)
                         put(headerName, new ArrayList<>());
@@ -50,7 +50,31 @@ class HttpMessage extends HashMap<String, List<String>> {
         return retVal;
     }
 
-    String getHeaders()
+    @Override
+    public List<String> get(Object key)
+    {
+        return super.get(((String)key).toLowerCase(Locale.ROOT));
+    }
+
+    @Override
+    public List<String> put(String key, List<String> value)
+    {
+        return super.put(key.toLowerCase(Locale.ROOT), value);
+    }
+
+    @Override
+    public boolean containsKey(Object key)
+    {
+        return super.containsKey(((String)key).toLowerCase(Locale.ROOT));
+    }
+
+    @Override
+    public List<String> remove(Object key)
+    {
+        return super.remove(((String)key).toLowerCase(Locale.ROOT));
+    }
+
+    public String getHeaders()
     {
         StringBuilder sb = new StringBuilder();
         if(firstLine != null) {
@@ -70,11 +94,9 @@ class HttpMessage extends HashMap<String, List<String>> {
         return sb.toString();
     }
 
-    int getContentLength()
+    public int getContentLength()
     {
         var cl =this.get("Content-Length");
-        if(cl == null)
-            cl = this.get("content-length");
 
         if(cl != null)
             return Integer.parseInt(cl.get(0));
@@ -82,7 +104,7 @@ class HttpMessage extends HashMap<String, List<String>> {
             return 0;
     }
 
-    List<String> getHeader(String name)
+    public List<String> getHeader(String name)
     {
         return get(name);
     }
@@ -92,7 +114,7 @@ class HttpMessage extends HashMap<String, List<String>> {
         return keySet();
     }
 
-    ByteBuffer getMessageBody()
+    public ByteBuffer getMessageBody()
     {
         int idxMsgBodyStart = indexOf(crlfcrlf, 0)+crlfcrlf.length;
         httpMessage.position(idxMsgBodyStart);
