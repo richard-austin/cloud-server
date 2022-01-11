@@ -1,3 +1,6 @@
+/**
+ * Proxy: A proxy server, not used in cloud-server
+ */
 package com.proxy;
 
 import java.io.IOException;
@@ -17,9 +20,9 @@ public class Proxy {
     private final String webserverHost = "192.168.0.29";
     private final int webserverPort = 443;
 
-    public static void main(String[] args) {
-        new Proxy().start();
-    }
+//    public static void main(String[] args) {
+//        new Proxy().start();
+//    }
 
     private final Object LOCK = new Object();
 

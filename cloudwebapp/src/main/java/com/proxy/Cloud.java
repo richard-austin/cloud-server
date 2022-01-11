@@ -30,6 +30,8 @@ public class Cloud implements SslContextProvider {
     private final ExecutorService sendToCloudProxyExecutor = Executors.newSingleThreadExecutor();
     private ScheduledExecutorService startCloudProxyInputProcessExecutor;
     private final ExecutorService acceptConnectionsFromCloudProxyExecutor = Executors.newSingleThreadExecutor();
+    private final ExecutorService acceptConnectionsFromBrowserExecutor = Executors.newSingleThreadExecutor();
+
     private String NVRSESSIONID = "";
 
     final Map<Integer, SocketChannel> tokenSocketMap = new ConcurrentHashMap<>();
@@ -41,15 +43,16 @@ public class Cloud implements SslContextProvider {
     private final int closedFlagLength = Byte.BYTES;
     private final int headerLength = tokenLength + lengthLength + closedFlagLength;
     private SSLSocket cloudProxy;
+    private CloudProperties cloudProperties = CloudProperties.getInstance();
     private final int browserFacingPort = 8083, cloudProxyFacingPort = 8081;
-    public static void main(String[] args) {
-        new Cloud().start();
-    }
+//    public static void main(String[] args) {
+//        new Cloud().start();
+//    }
     private final boolean protocolAgnostic = false;
 
-    private void start() {
+    public void start() {
         acceptConnectionsFromCloudProxy(cloudProxyFacingPort);
-        acceptConnectionsFromBrowser(browserFacingPort); // Never returns
+        acceptConnectionsFromBrowserExecutor.execute(() -> acceptConnectionsFromBrowser(browserFacingPort));
     }
 
     private void acceptConnectionsFromBrowser(final int browserFacingPort) {
@@ -151,7 +154,7 @@ public class Cloud implements SslContextProvider {
             ByteBuffer buf = getBuffer(getToken());
             //socket.setReceiveBufferSize(buf.length);
 
-            String payload = "username=" + RestfulProperties.USERNAME + "&password=" + RestfulProperties.PASSWORD;
+            String payload = "username=" + cloudProperties.getUSERNAME() + "&password=" + cloudProperties.getPASSWORD();
 
             String output = "POST /login/authenticate HTTP/1.1\r\n" +
                     "Host: host\r\n" +
@@ -617,7 +620,7 @@ public class Cloud implements SslContextProvider {
 
     @Override
     public KeyManager[] getKeyManagers() throws GeneralSecurityException, IOException {
-        return createKeyManagers(RestfulProperties.CLOUD_KEYSTORE_PATH, RestfulProperties.CLOUD_KEYSTORE_PASSWORD.toCharArray());
+        return createKeyManagers(cloudProperties.getCLOUD_KEYSTORE_PATH(), cloudProperties.getCLOUD_KEYSTORE_PASSWORD().toCharArray());
     }
 
     @Override
@@ -627,7 +630,7 @@ public class Cloud implements SslContextProvider {
 
     @Override
     public TrustManager[] getTrustManagers() throws GeneralSecurityException, IOException {
-        return createTrustManagers(RestfulProperties.TRUSTSTORE_PATH, RestfulProperties.TRUSTSTORE_PASSWORD.toCharArray());
+        return createTrustManagers(cloudProperties.getTRUSTSTORE_PATH(), cloudProperties.getTRUSTSTORE_PASSWORD().toCharArray());
     }
 
     int c = 0;

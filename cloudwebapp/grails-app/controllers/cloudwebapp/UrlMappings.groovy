@@ -8,12 +8,6 @@ class UrlMappings {
                 // apply constraints here
             }
         }
-        "/link/proxy/*/?$id?"(controller: 'link', action: 'proxy')
-        "/link/proxy/*/*/?$id?"(controller: 'link', action: 'proxy')
-        "/link/proxy/*/*/*/?$id?"(controller: 'link', action: 'proxy')
-        "/link/proxy/*/*/*/*/?$id?"(controller: 'link', action: 'proxy')
-        "/link/proxy/*/*/*/*/*/?$id?"(controller: 'link', action: 'proxy')
-        "/link/proxy/*/*/*/*/*/*/?$id?"(controller: 'link', action: 'proxy')
 
         "/"(view:"/index")
         "500"(view:'/error')
