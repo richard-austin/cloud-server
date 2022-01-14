@@ -22,9 +22,13 @@ import java.util.zip.Checksum;
 
 import static com.proxy.SslUtil.*;
 
+interface AuthenticationHandler {
+    ByteBuffer getResponse();
+}
+
 public class Cloud implements SslContextProvider {
     final Queue<ByteBuffer> bufferQueue = new ConcurrentLinkedQueue<>();
-    private boolean running = true;
+    private boolean running = false;
     private final ExecutorService browserWriteExecutor = Executors.newSingleThreadExecutor();
     private final ExecutorService browserReadExecutor = Executors.newCachedThreadPool();
     private final ExecutorService sendToCloudProxyExecutor = Executors.newSingleThreadExecutor();
@@ -36,7 +40,7 @@ public class Cloud implements SslContextProvider {
 
     final Map<Integer, SocketChannel> tokenSocketMap = new ConcurrentHashMap<>();
 
-    private static final Logger logger = Logger.getLogger("CloudAsync");
+    private static final Logger logger = Logger.getLogger("CLOUD");
     public static final int BUFFER_SIZE = 1024;
     private final int tokenLength = Integer.BYTES;
     private final int lengthLength = Integer.BYTES;
@@ -45,14 +49,15 @@ public class Cloud implements SslContextProvider {
     private SSLSocket cloudProxy;
     private CloudProperties cloudProperties = CloudProperties.getInstance();
     private final int browserFacingPort = 8083, cloudProxyFacingPort = 8081;
-//    public static void main(String[] args) {
-//        new Cloud().start();
-//    }
-    private final boolean protocolAgnostic = false;
+    private final boolean protocolAgnostic = true;
+    private AuthenticationHandler authHandler = null;
 
     public void start() {
-        acceptConnectionsFromCloudProxy(cloudProxyFacingPort);
-        acceptConnectionsFromBrowserExecutor.execute(() -> acceptConnectionsFromBrowser(browserFacingPort));
+        if (!running) {
+            running = true;
+            acceptConnectionsFromCloudProxy(cloudProxyFacingPort);
+            acceptConnectionsFromBrowserExecutor.execute(() -> acceptConnectionsFromBrowser(browserFacingPort));
+        }
     }
 
     private void acceptConnectionsFromBrowser(final int browserFacingPort) {
@@ -94,8 +99,8 @@ public class Cloud implements SslContextProvider {
                             cloudProxy.setSoLinger(true, 5);
 
                             this.cloudProxy = cloudProxy;
-                            if(!protocolAgnostic)
-                                authenticate(cloudProxy);
+                            if (!protocolAgnostic)
+                                authenticate();
                             startCloudProxyInputProcess();
                         } catch (IOException ioex) {
                             logger.severe("IOException in acceptConnectionsFromCloudProxy: " + ioex.getClass().getName() + ": " + ioex.getMessage());
@@ -130,7 +135,7 @@ public class Cloud implements SslContextProvider {
         }, 0, 100, TimeUnit.MILLISECONDS);
     }
 
-    private void sendResponseToCloudProxy(ByteBuffer buf) {
+    private void sendRequestToCloudProxy(ByteBuffer buf) {
         sendToCloudProxyExecutor.submit(() -> {
             try {
                 OutputStream os = cloudProxy.getOutputStream();
@@ -139,38 +144,41 @@ public class Cloud implements SslContextProvider {
                     os.flush();
                 }
                 while (buf.position() < buf.limit());
-             } catch (Exception ex) {
+            } catch (Exception ex) {
                 showExceptionDetails(ex, "startCloudProxyOutputProcess");
                 reset();
             }
         });
     }
 
-    String authenticate(SSLSocket socket) {
-        try {
-            InputStream is = socket.getInputStream();
-            OutputStream os = socket.getOutputStream();
+    public String authenticate() {
+        boolean authOK = true;
+        SSLSocket socket = this.cloudProxy;
 
-            ByteBuffer buf = getBuffer(getToken());
-            //socket.setReceiveBufferSize(buf.length);
+        if (socket != null && !socket.isClosed()) {
+            try {
+                InputStream is = socket.getInputStream();
+                OutputStream os = socket.getOutputStream();
+                ByteBuffer buf = getBuffer(getToken());
 
-            String payload = "username=" + cloudProperties.getUSERNAME() + "&password=" + cloudProperties.getPASSWORD();
+                String payload = "username=" + cloudProperties.getUSERNAME() + "&password=" + cloudProperties.getPASSWORD();
 
-            String output = "POST /login/authenticate HTTP/1.1\r\n" +
-                    "Host: host\r\n" +
-                    "DNT: 1\r\n" +
-                    "Upgrade-Insecure-Requests: 1\r\n" +
-                    "Content-type: application/x-www-form-urlencoded\r\n" +
-                    "Content-Length: " + payload.length() + "\r\n\r\n" +
-                    payload + "\r\n";
+                String output = "POST /login/authenticate HTTP/1.1\r\n" +
+                        "Host: host\r\n" +
+                        "DNT: 1\r\n" +
+                        "Upgrade-Insecure-Requests: 1\r\n" +
+                        "Content-type: application/x-www-form-urlencoded\r\n" +
+                        "Content-Length: " + payload.length() + "\r\n\r\n" +
+                        payload + "\r\n";
 
-            setDataLength(buf, output.length());
-            buf.put(output.getBytes());
-            setBufferForSend(buf);
-            write(os, buf);
-            System.out.print(output);
-            buf.clear();
-            if (read(is, buf) != -1) {
+                setDataLength(buf, output.length());
+                buf.put(output.getBytes());
+                setBufferForSend(buf);
+                sendRequestToCloudProxy(buf);
+                System.out.print(output);
+                buf.clear();
+
+                buf = stealMessage();
                 HttpMessage hdrs = new HttpMessage(buf);
                 var l = hdrs.getHeader("location");
                 String location = l.size() == 1 ? l.get(0) : null;
@@ -180,53 +188,73 @@ public class Cloud implements SslContextProvider {
                         if (cookie.startsWith("NVRSESSIONID")) {
                             final int startIdx = "NVRSESSIONID=".length();
                             final int sessionIdLen = 32;
-                            NVRSESSIONID = cookie.substring(startIdx, startIdx+sessionIdLen);
+                            NVRSESSIONID = cookie.substring(startIdx, startIdx + sessionIdLen);
                             break;
                         } else
                             NVRSESSIONID = "";
                     }
-                }
-                else
+                } else {
+                    authOK = false;
                     logger.warning("Authentication on NVR has failed");
+                }
+                String response = new String(buf.array(), headerLength, buf.limit() - headerLength);
+                System.out.print(response);
+
+            } catch (Exception ex) {
+                authOK = false;
+                System.out.println("Exception in authenticate: " + ex.getClass().getName() + ": " + ex.getMessage() + "\n\n");
+                ex.printStackTrace();
             }
-            String response = new String(buf.array(), headerLength, buf.limit()-headerLength);
-            System.out.print(response);
-
-        } catch (Exception ex) {
-            System.out.println("Exception in authenticate: " + ex.getClass().getName() + ": " + ex.getMessage() + "\n\n");
-            ex.printStackTrace();
         }
-
+        if (!authOK)
+            NVRSESSIONID = "";
         return NVRSESSIONID;
     }
 
-    private boolean logoff(SSLSocket socket)
-    {
+    public boolean logoff() {
         boolean retVal = true;
-        try {
-            OutputStream os = socket.getOutputStream();
-            InputStream is = socket.getInputStream();
-            ByteBuffer buf = getBuffer(getToken());
-            String logoff = "GET /logoff HTTP/1.1\r\n" +
-                    "Host: host\r\n\r\n";
-            System.out.println(logoff);
-            buf.put(logoff.getBytes(StandardCharsets.UTF_8));
-            setDataLength(buf, logoff.length());
-            setBufferForSend(buf);
-            write(os, buf);   // Ensure we are logged off first
-            buf.clear();
-            int bytesRead = read(is, buf);
-            System.out.println(new String(buf.array(), headerLength, bytesRead-headerLength));
+        if (cloudProxy != null && !cloudProxy.isClosed()) {
+            try {
+                OutputStream os = cloudProxy.getOutputStream();
+                InputStream is = cloudProxy.getInputStream();
+                ByteBuffer buf = getBuffer(getToken());
+                String logoff = "GET /logoff HTTP/1.1\r\n" +
+                        "Host: host\r\n" +
+                        "Connection: keep-alive\r\n" +
+                        "sec-ch-ua: \" Not A;Brand\";v=\"99\", \"Chromium\";v=\"96\", \"Google Chrome\";v=\"96\"\r\n" +
+                        "sec-ch-ua-mobile: ?0\r\n" +
+                        "sec-ch-ua-platform: \"Linux\"\r\n" +
+                        "Upgrade-Insecure-Requests: 1\r\n" +
+                        "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36\r\n" +
+                        "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9\r\n" +
+                        "Sec-Fetch-Site: same-origin\r\n" +
+                        "Sec-Fetch-Mode: navigate\r\n" +
+                        "Sec-Fetch-User: ?1\r\n" +
+                        "Sec-Fetch-Dest: document\r\n" +
+                        "Referer: http://localhost:8083/\r\n" +
+                        "Accept-Encoding: gzip, deflate, br\r\n" +
+                        "Accept-Language: en-GB,en-US;q=0.9,en;q=0.8\r\n" +
+                        "Cookie: NVRSESSIONID=" + NVRSESSIONID + "\r\n\r\n";
 
+                System.out.println(logoff);
+                buf.put(logoff.getBytes(StandardCharsets.UTF_8));
+                setDataLength(buf, logoff.length());
+                setBufferForSend(buf);
+                sendRequestToCloudProxy(buf);   // Send logoff message
+                buf.clear();
+                buf = stealMessage();
+                System.out.println(new String(buf.array(), headerLength, buf.limit()-headerLength));
+
+            } catch (IOException ioex) {
+                retVal = false;
+            }
         }
-        catch (IOException ioex)
-        {
-           retVal = false;
-        }
+        //reset();
         return retVal;
     }
 
     final Map<Integer, ByteBuffer> lastBitOfPreviousHttpMessage = new ConcurrentHashMap<>();
+
     final void readFromBrowser(SocketChannel channel, final int token) {
         browserReadExecutor.submit(() -> {
 
@@ -238,7 +266,7 @@ public class Cloud implements SslContextProvider {
                 }
                 setToken(buf, token);
                 setConnectionClosedFlag(buf);
-                sendResponseToCloudProxy(buf);
+                sendRequestToCloudProxy(buf);
             } catch (IOException ignored) {
                 removeSocket(token);
             } catch (Exception ex) {
@@ -248,15 +276,19 @@ public class Cloud implements SslContextProvider {
         });
     }
 
-    private void respondToBrowser(ByteBuffer buf) {
+    private boolean isHeartbeat(ByteBuffer buf) {
         // Dump the connection test heartbeats
         final String ignored = "Ignore";
         if (getToken(buf) == -1 && getDataLength(buf) == ignored.length()) {
             String strVal = new String(Arrays.copyOfRange(buf.array(), headerLength, buf.limit()), StandardCharsets.UTF_8);
-            if (ignored.equals(strVal)) {
-                return;
-            }
+            return ignored.equals(strVal);
         }
+        return false;
+    }
+
+    private void respondToBrowser(ByteBuffer buf) {
+        if (isHeartbeat(buf))
+            return;
 
         browserWriteExecutor.submit(() -> {
             try {
@@ -266,8 +298,7 @@ public class Cloud implements SslContextProvider {
                 SocketChannel frontEndChannel = tokenSocketMap.get(token);  //Select the correct connection to respond to
                 if (getConnectionClosedFlag(buf) != 0) {
                     removeSocket(token);  // Usually already gone
-                }
-                else if (frontEndChannel != null && frontEndChannel.isOpen()) {
+                } else if (frontEndChannel != null && frontEndChannel.isOpen()) {
                     buf.position(headerLength);
                     buf.limit(headerLength + length);
                     int result;
@@ -279,7 +310,7 @@ public class Cloud implements SslContextProvider {
                     } catch (IOException ioex) {
                         logger.warning("IOException in respondToBrowser: " + ioex.getMessage());
                         setConnectionClosedFlag(buf);
-                        sendResponseToCloudProxy(buf);
+                        sendRequestToCloudProxy(buf);
                         frontEndChannel.shutdownOutput().shutdownOutput().close();
                     }
                 }
@@ -359,8 +390,7 @@ public class Cloud implements SslContextProvider {
         return buf;
     }
 
-    private void setToken(ByteBuffer buf, int token)
-    {
+    private void setToken(ByteBuffer buf, int token) {
         buf.position(0);
         buf.putInt(token);
         buf.putInt(0);  // Reserve space for the data length
@@ -511,7 +541,13 @@ public class Cloud implements SslContextProvider {
                             newBuf.rewind();
                             //     logger.log(Level.INFO, "Buffer size " + newBuf.limit() + " lengthThisMessage= " + lengthThisMessage);
                             combinedBuf.position(combinedBuf.position() + lengthThisMessage);
-                            respondToBrowser(newBuf);
+                            if (stealNextMessage)
+                                synchronized (stealBufferWaitLock) {
+                                    stolenBuffer = newBuf;
+                                    stealBufferWaitLock.notify();
+                                }
+                            else
+                                respondToBrowser(newBuf);
                         } catch (Exception ex) {
                             showExceptionDetails(ex, "splitMessages");
                         }
@@ -523,6 +559,31 @@ public class Cloud implements SslContextProvider {
             showExceptionDetails(ex, "splitMessages");
             reset();
         }
+    }
+
+    private boolean stealNextMessage = false;
+    private ByteBuffer stolenBuffer;
+    private final Object stealBufferWaitLock = new Object();
+
+    /**
+     * stealMessage: Returns the buffer of the next message in splitMessages and prevents it from being sent to the connected browser.
+     * This only applies to a single message, and the routing continues as normal thereafter.
+     *
+     * @return
+     */
+    private ByteBuffer stealMessage() {
+        synchronized (stealBufferWaitLock) {
+            try {
+                stealNextMessage = true;
+                stealBufferWaitLock.wait();
+            } catch (InterruptedException ex) {
+                logger.warning("Interrupted wait in stealMessage: " + ex.getMessage());
+            }
+            if (isHeartbeat(stolenBuffer))
+                stealMessage();
+            stealNextMessage = false;
+        }
+        return stolenBuffer;
     }
 
     void splitHttpMessages(final ByteBuffer buf, int token, final Map<Integer, ByteBuffer> lastBitOfPreviousBuffer) {
@@ -546,14 +607,14 @@ public class Cloud implements SslContextProvider {
             if (protocolAgnostic || !msg.headersBuilt) {
                 // Don't know what this message is, just send it
                 try {
-                    ByteBuffer nonHttp = ByteBuffer.allocate(combinedBuf.limit()+headerLength);
+                    ByteBuffer nonHttp = ByteBuffer.allocate(combinedBuf.limit() + headerLength);
                     setToken(nonHttp, token);
                     nonHttp.put(combinedBuf);
                     setDataLength(nonHttp, combinedBuf.limit());
                     nonHttp.flip();
-                    sendResponseToCloudProxy(nonHttp);
-                     //recycle(nonHttp);
-                   //  recycle(combinedBuf);
+                    sendRequestToCloudProxy(nonHttp);
+                    //recycle(nonHttp);
+                    //  recycle(combinedBuf);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -562,15 +623,15 @@ public class Cloud implements SslContextProvider {
             String hdrs = msg.getHeaders();
             int headersLength = hdrs.length();
             int messageLength = headersLength + msg.getContentLength();
-            if (combinedBuf.position()+messageLength <= combinedBuf.limit()) {
-                combinedBuf.position(combinedBuf.position()+messageLength);
+            if (combinedBuf.position() + messageLength <= combinedBuf.limit()) {
+                combinedBuf.position(combinedBuf.position() + messageLength);
                 msg.remove("cookie");
                 List<String> js = new ArrayList<>();
                 js.add("NVRSESSIONID=" + NVRSESSIONID);
                 msg.put("Cookie", js);
                 try {
                     String headers = msg.getHeaders();
-                    ByteBuffer output = ByteBuffer.allocate(headers.length()+ msg.getContentLength()+headerLength);
+                    ByteBuffer output = ByteBuffer.allocate(headers.length() + msg.getContentLength() + headerLength);
                     setToken(output, token);
                     output.put(headers.getBytes(StandardCharsets.UTF_8));
                     if (msg.getContentLength() > 0)
@@ -579,12 +640,12 @@ public class Cloud implements SslContextProvider {
 
                     setDataLength(output, dataLength);
                     setBufferForSend(output);
-                    sendResponseToCloudProxy(output);
+                    sendRequestToCloudProxy(output);
                 } catch (Exception ex) {
-                    System.out.println("ERROR: Exception in splitHttpMessages when writing to stream: "+ ex.getClass().getName() + ex.getMessage());
+                    System.out.println("ERROR: Exception in splitHttpMessages when writing to stream: " + ex.getClass().getName() + ex.getMessage());
                 }
             } else {
-                ByteBuffer remainingData = ByteBuffer.allocate(combinedBuf.limit()-combinedBuf.position());
+                ByteBuffer remainingData = ByteBuffer.allocate(combinedBuf.limit() - combinedBuf.position());
                 remainingData.put(combinedBuf);
                 remainingData.flip();
                 lastBitOfPreviousBuffer.put(token, remainingData);
@@ -593,9 +654,9 @@ public class Cloud implements SslContextProvider {
         }
     }
 
-    void reset() {
+    public void reset() {
         logger.info("Reset called");
-        if(startCloudProxyInputProcessExecutor != null)
+        if (startCloudProxyInputProcessExecutor != null)
             startCloudProxyInputProcessExecutor.shutdown();
 
         startCloudProxyInputProcessExecutor = Executors.newSingleThreadScheduledExecutor();

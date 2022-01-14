@@ -1,6 +1,5 @@
 const PROXY_CONFIG = [
-  {
-    context: [
+  {  context: [
       "/application",
       "/assets",
       "/cam",
@@ -10,10 +9,16 @@ const PROXY_CONFIG = [
       "/utils",
       "/recording",
       "/live",
-      "/login"
     ],
     ws: true,
-    target: "http://localhost:8083",
+    target: "http://localhost:8083/",
+    changeOrigin: true,
+    secure: false
+  },
+  {
+    context: ["/"],
+    changeOrigin: true,
+    target: "http://localhost:8086/",
     secure: false
   }
 ]
