@@ -14,9 +14,9 @@ mat-card.confirm-logout {
 }
 
 
-div.general {
-  margin-left: auto;
-}
+//div.general {
+//  margin-left: auto;
+//}
 
 .sec-cam-navbar {
   width: 100%;
@@ -55,10 +55,13 @@ div.general {
       display: inline;
       > div {
         display: inline;
-      }:nth-child(4)
+      }:nth-child(5)
       {
         float: right;
-      }
+      }:nth-child(4)
+       {
+         float: right;
+       }
     }
   }
 }

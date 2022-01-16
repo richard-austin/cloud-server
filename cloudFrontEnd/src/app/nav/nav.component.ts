@@ -10,6 +10,10 @@ import {IdleTimeoutModalComponent} from "../idle-timeout-modal/idle-timeout-moda
 import {MatDialogRef} from "@angular/material/dialog/dialog-ref";
 import {UserIdleConfig} from "../angular-user-idle/angular-user-idle.config";
 import {UserIdleService} from "../angular-user-idle/angular-user-idle.service";
+import {FormControl, FormGroup, Validators} from "@angular/forms";
+import {CameraAdminCredentials} from "../credentials-for-camera-access/credentials-for-camera-access.component";
+import {MatButton} from '@angular/material/button';
+import {Key} from "protractor";
 
 @Component({
   selector: 'app-nav',
@@ -19,7 +23,8 @@ import {UserIdleService} from "../angular-user-idle/angular-user-idle.service";
 export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
 
   @ViewChild(ReportingComponent) errorReporting!: ReportingComponent;
-  @ViewChild('navbarCollapse') navbarCollapse!:ElementRef<HTMLDivElement>;
+  @ViewChild('navbarCollapse') navbarCollapse!: ElementRef<HTMLDivElement>;
+  @ViewChild('loginButton') loginButton!: MatButton;
 
   cameraStreams: CameraStream[] = []; // All camera streams
   cameras: Camera[] = [];
@@ -47,8 +52,8 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   cameraControl(cam: Camera) {
-    let cs:CameraStream = new CameraStream();
-    cs.camera=cam;
+    let cs: CameraStream = new CameraStream();
+    cs.camera = cam;
     this.cameraSvc.setActiveLive([cs]);
     window.location.href = '#/cameraparams';
   }
@@ -131,18 +136,61 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   toggleMenu() {
-    let navbarCollapse:HTMLDivElement = this.navbarCollapse.nativeElement;
-    let style:string | null = navbarCollapse.getAttribute('style')
+    let navbarCollapse: HTMLDivElement = this.navbarCollapse.nativeElement;
+    let style: string | null = navbarCollapse.getAttribute('style')
 
-    if(style === null || style === 'max-height: 0')
+    if (style === null || style === 'max-height: 0')
       navbarCollapse.setAttribute('style', 'max-height: 200px');
     else
       navbarCollapse.setAttribute('style', 'max-height: 0');
   }
 
   menuClosed() {
-    let navbarCollapse:HTMLDivElement = this.navbarCollapse.nativeElement;
+    let navbarCollapse: HTMLDivElement = this.navbarCollapse.nativeElement;
     navbarCollapse.setAttribute('style', 'max-height: 0');
+  }
+
+  username: string = '';
+  password: string = '';
+  loginForm!: FormGroup;
+
+
+  hidePasswordDialogue() {
+    this.loginButton._getHostElement().click();
+  }
+
+  updateCredentials() {
+    this.username = this.getFormControl('camerasUsername').value;
+    this.password = this.getFormControl('camerasPassword').value;
+
+    // let creds: CameraAdminCredentials = new CameraAdminCredentials();
+    // creds.camerasAdminPassword = this.camerasPassword;
+    // creds.camerasAdminUserName = this.camerasUsername;
+    // this.camSvc.setCameraAdminCredentials(creds).subscribe(() =>{
+    //     this.hidePasswordDialogue();
+    //     this.reporting.successMessage="Camera Access Credentials Updated";
+    //   },
+    //   (reason) => {
+    //     this.reporting.errorMessage = reason;
+    //   })
+    this.username = this.password = "";
+    this.getFormControl('camerasUsername').setValue("");
+    this.getFormControl('camerasPassword').setValue("");
+
+    this.hidePasswordDialogue();
+  }
+
+  getFormControl(fcName: string): FormControl {
+    return this.loginForm.get(fcName) as FormControl;
+  }
+
+  anyInvalid(): boolean {
+    return this.loginForm.invalid;
+  }
+
+  keyDownHandler($event: KeyboardEvent) {
+    if ($event.key == "Tab")
+      $event.stopPropagation();  // Prevent the tab key from closing the menu (form)
   }
 
   ngOnInit(): void {
@@ -186,9 +234,17 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
       this.cameraStreams = this.cameraSvc.getCameraStreams();
       this.cameras = this.cameraSvc.getCameras()
     });
+
+    this.loginForm = new FormGroup({
+      username: new FormControl(this.username, [Validators.required, Validators.maxLength(20), Validators.pattern("^[a-zA-Z0-9](_(?!(\.|_))|\.(?!(_|\.))|[a-zA-Z0-9]){3,18}[a-zA-Z0-9]$")]),
+      password: new FormControl(this.password, [Validators.required, Validators.maxLength(25), Validators.pattern("^(?=.*[A-Za-z])(?=.*\\d)(?=.*[@$!%*#?&])[A-Za-z\\d@$!%*#?&]{8,}$")])
+    }, {updateOn: "change"});
+
+    // Ensure camera form controls highlight immediately if invalid
+    this.loginForm.markAllAsTouched();
   }
 
-   ngAfterViewInit(): void {
+  ngAfterViewInit(): void {
     // If the camera service got any errors while getting the camera setup, then we report it here.
     this.cameraSvc.errorEmitter.subscribe((error: HttpErrorResponse) => this.errorReporting.errorMessage = error);
   }
