@@ -8,17 +8,21 @@ const PROXY_CONFIG = [
       "/user",
       "/utils",
       "/recording",
-      "/live",
+      "/live"
     ],
     ws: true,
     target: "http://localhost:8083/",
-    changeOrigin: true,
+    changeOrigin: false,
     secure: false
   },
   {
-    context: ["/"],
-    changeOrigin: true,
-    target: "http://localhost:8086/",
+    context: [
+      "/login",
+      "/logoff/"
+    ],
+    ws: false,
+    target: "http://localhost:8086",
+    changeOrigin: false,
     secure: false
   }
 ]

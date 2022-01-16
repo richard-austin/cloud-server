@@ -22,10 +22,6 @@ import java.util.zip.Checksum;
 
 import static com.proxy.SslUtil.*;
 
-interface AuthenticationHandler {
-    ByteBuffer getResponse();
-}
-
 public class Cloud implements SslContextProvider {
     final Queue<ByteBuffer> bufferQueue = new ConcurrentLinkedQueue<>();
     private boolean running = false;
@@ -50,7 +46,6 @@ public class Cloud implements SslContextProvider {
     private CloudProperties cloudProperties = CloudProperties.getInstance();
     private final int browserFacingPort = 8083, cloudProxyFacingPort = 8081;
     private final boolean protocolAgnostic = true;
-    private AuthenticationHandler authHandler = null;
 
     public void start() {
         if (!running) {
@@ -99,9 +94,9 @@ public class Cloud implements SslContextProvider {
                             cloudProxy.setSoLinger(true, 5);
 
                             this.cloudProxy = cloudProxy;
+                            startCloudProxyInputProcess();
                             if (!protocolAgnostic)
                                 authenticate();
-                            startCloudProxyInputProcess();
                         } catch (IOException ioex) {
                             logger.severe("IOException in acceptConnectionsFromCloudProxy: " + ioex.getClass().getName() + ": " + ioex.getMessage());
                             reset();
@@ -546,8 +541,10 @@ public class Cloud implements SslContextProvider {
                                     stolenBuffer = newBuf;
                                     stealBufferWaitLock.notify();
                                 }
-                            else
+                            else {
                                 respondToBrowser(newBuf);
+                                logger.warning("Received "+newBuf.limit()+" bytes");
+                            }
                         } catch (Exception ex) {
                             showExceptionDetails(ex, "splitMessages");
                         }
@@ -575,7 +572,9 @@ public class Cloud implements SslContextProvider {
         synchronized (stealBufferWaitLock) {
             try {
                 stealNextMessage = true;
+                logger.warning("Waiting...");
                 stealBufferWaitLock.wait();
+                logger.warning("Waiting done");
             } catch (InterruptedException ex) {
                 logger.warning("Interrupted wait in stealMessage: " + ex.getMessage());
             }
