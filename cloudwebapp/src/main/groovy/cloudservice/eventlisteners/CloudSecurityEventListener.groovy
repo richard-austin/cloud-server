@@ -23,17 +23,10 @@ class CloudSecurityEventListener implements LogoutHandler, AuthenticationSuccess
 //    }
 //
     void logout(HttpServletRequest request, HttpServletResponse response, Authentication authentication) {
-        logoutAction(authentication?.principal?.username as String)
-    }
-
-//    def loginSuccess(String userName) {
-//        logAudit("USER-LOGIN_SUCCESS: ", "user='${userName}")
-
-//    }
-//
-    def logoutAction(String userName) {
+        String userName = authentication?.principal?.username
+        String cookie = request.getHeader("cookie")
         logAudit("USER-LOGOUT", "user='${userName}")
-        cloudService.cloud.logoff()
+        cloudService.cloud.logoff(cookie)
         cloudService.cloud.reset()
     }
 

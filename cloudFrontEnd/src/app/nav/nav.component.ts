@@ -11,9 +11,7 @@ import {MatDialogRef} from "@angular/material/dialog/dialog-ref";
 import {UserIdleConfig} from "../angular-user-idle/angular-user-idle.config";
 import {UserIdleService} from "../angular-user-idle/angular-user-idle.service";
 import {FormControl, FormGroup, Validators} from "@angular/forms";
-import {CameraAdminCredentials} from "../credentials-for-camera-access/credentials-for-camera-access.component";
 import {MatButton} from '@angular/material/button';
-import {Key} from "protractor";
 
 @Component({
   selector: 'app-nav',
@@ -38,8 +36,30 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
   private idleTimeoutActive: boolean = true;
   private messageSubscription!: Subscription;
 
-  constructor(private cameraSvc: CameraService, private utilsService: UtilsService, private userIdle: UserIdleService, private dialog: MatDialog) {
+  constructor(private cameraSvc: CameraService, public utilsService: UtilsService, private userIdle: UserIdleService, private dialog: MatDialog) {
   }
+
+  login()
+  {
+    this.username = this.getFormControl('username').value;
+    this.password = this.getFormControl('password').value;
+
+    this.utilsService.login(this.username, this.password).subscribe(() => {
+        this.getFormControl('username').setValue("");
+        this.getFormControl('password').setValue("");
+        this.username = this.password = "";
+        this.hidePasswordDialogue();
+        this.cameraSvc.initialiseCameras();
+        this.cameraStreams = this.cameraSvc.getCameraStreams();
+        this.cameras = this.cameraSvc.getCameras()
+
+        // Get the initial core temperature
+        this.getTemperature();
+        },
+      (reason)=> {
+        this.errorReporting.errorMessage = reason;
+      });
+   }
 
   setVideoStream(camStream: CameraStream): void {
     this.cameraSvc.setActiveLive([camStream]);
@@ -74,7 +94,7 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
     this.confirmLogout = false;
 
     if (logoff)
-      window.location.href = 'logoff';
+      this.utilsService.logoff();
   }
 
   about() {
@@ -159,27 +179,6 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
     this.loginButton._getHostElement().click();
   }
 
-  updateCredentials() {
-    this.username = this.getFormControl('camerasUsername').value;
-    this.password = this.getFormControl('camerasPassword').value;
-
-    // let creds: CameraAdminCredentials = new CameraAdminCredentials();
-    // creds.camerasAdminPassword = this.camerasPassword;
-    // creds.camerasAdminUserName = this.camerasUsername;
-    // this.camSvc.setCameraAdminCredentials(creds).subscribe(() =>{
-    //     this.hidePasswordDialogue();
-    //     this.reporting.successMessage="Camera Access Credentials Updated";
-    //   },
-    //   (reason) => {
-    //     this.reporting.errorMessage = reason;
-    //   })
-    this.username = this.password = "";
-    this.getFormControl('camerasUsername').setValue("");
-    this.getFormControl('camerasPassword').setValue("");
-
-    this.hidePasswordDialogue();
-  }
-
   getFormControl(fcName: string): FormControl {
     return this.loginForm.get(fcName) as FormControl;
   }
@@ -194,11 +193,12 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.cameraStreams = this.cameraSvc.getCameraStreams();
-    this.cameras = this.cameraSvc.getCameras()
-
-    // Get the initial core temperature
-    this.getTemperature();
+    this.utilsService.getTemperature().subscribe(() => {
+      // If getTemperature is successful, we are logged in to the NVR, so get camera info
+      this.cameraSvc.initialiseCameras();
+      this.cameraStreams = this.cameraSvc.getCameraStreams();
+      this.cameras = this.cameraSvc.getCameras();
+    });
 
     //Start watching for user inactivity.
     this.userIdle.startWatching();
@@ -224,7 +224,7 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
     // Log off when time is up.
     this.userIdle.onTimeout().subscribe(() => {
       this.idleTimeoutDialogRef.close();
-      window.location.href = 'logoff';
+      this.utilsService.logoff();
     });
 
     // Gets the core temperature every minute (Raspberry pi only), and keeps the session alive
@@ -237,7 +237,7 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
 
     this.loginForm = new FormGroup({
       username: new FormControl(this.username, [Validators.required, Validators.maxLength(20), Validators.pattern("^[a-zA-Z0-9](_(?!(\.|_))|\.(?!(_|\.))|[a-zA-Z0-9]){3,18}[a-zA-Z0-9]$")]),
-      password: new FormControl(this.password, [Validators.required, Validators.maxLength(25), Validators.pattern("^(?=.*[A-Za-z])(?=.*\\d)(?=.*[@$!%*#?&])[A-Za-z\\d@$!%*#?&]{8,}$")])
+      password: new FormControl(this.password, [Validators.required, Validators.maxLength(25), /*Validators.pattern("^(?=.*[A-Za-z])(?=.*\\d)(?=.*[@$!%*#?&])[A-Za-z\\d@$!%*#?&]{8,}$")*/])
     }, {updateOn: "change"});
 
     // Ensure camera form controls highlight immediately if invalid
