@@ -1,6 +1,7 @@
 import {Component, Inject, OnInit} from '@angular/core';
 import {MAT_DIALOG_DATA, MatDialogRef} from "@angular/material/dialog";
 import {UserIdleService} from "../angular-user-idle/angular-user-idle.service";
+import {UtilsService} from "../shared/utils.service";
 
 @Component({
   selector: 'app-idle-timeout-modal',
@@ -12,13 +13,13 @@ export class IdleTimeoutModalComponent implements OnInit {
   constructor(public dialogRef: MatDialogRef<IdleTimeoutModalComponent>, @Inject(MAT_DIALOG_DATA) public data: {
     idle: number;
     remainingSecs: number;
-  }, private userIdle:UserIdleService) {
+  }, private userIdle:UserIdleService, private utilsService: UtilsService) {
     dialogRef.disableClose = true;
   }
 
   onClose(): void {
     this.dialogRef.close();
-    window.location.href = 'logoff';
+    this.utilsService.logoff();
   }
 
   onContinue() {

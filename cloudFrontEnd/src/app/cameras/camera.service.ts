@@ -58,6 +58,9 @@ export class CameraService {
   errorEmitter: EventEmitter<HttpErrorResponse> = new EventEmitter<HttpErrorResponse>();
 
   constructor(private http: HttpClient, private _baseUrl: BaseUrl) {
+  }
+
+  initialiseCameras(): void{
     this.loadCameraStreams().subscribe(cameraStreams => {
         // Build up a cameraStreams array which excludes the addition guff which comes from
         // having the cameraStreams set up configured in application.yml

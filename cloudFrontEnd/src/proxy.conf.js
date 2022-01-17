@@ -8,7 +8,8 @@ const PROXY_CONFIG = [
       "/user",
       "/utils",
       "/recording",
-      "/live"
+      "/live",
+      "/dc"
     ],
     ws: true,
     target: "http://localhost:8083/",
@@ -18,7 +19,7 @@ const PROXY_CONFIG = [
   {
     context: [
       "/login",
-      "/logoff/"
+      "/logoff"
     ],
     ws: false,
     target: "http://localhost:8086",

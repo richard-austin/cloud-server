@@ -15,8 +15,9 @@ import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import ch.qos.logback.classic.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.zip.CRC32;
 import java.util.zip.Checksum;
 
@@ -36,7 +37,7 @@ public class Cloud implements SslContextProvider {
 
     final Map<Integer, SocketChannel> tokenSocketMap = new ConcurrentHashMap<>();
 
-    private static final Logger logger = Logger.getLogger("CLOUD");
+    private static final Logger logger = (Logger) LoggerFactory.getLogger("CLOUD");
     public static final int BUFFER_SIZE = 1024;
     private final int tokenLength = Integer.BYTES;
     private final int lengthLength = Integer.BYTES;
@@ -70,11 +71,11 @@ public class Cloud implements SslContextProvider {
                         updateSocketMap(browser, token);
                         readFromBrowser(browser, token);
                     } catch (Exception ex) {
-                        logger.log(Level.SEVERE, "Exception in acceptConnectionsFromBrowser: " + ex.getClass().getName() + ": " + ex.getMessage());
+                        logger.error("Exception in acceptConnectionsFromBrowser: " + ex.getClass().getName() + ": " + ex.getMessage());
                     }
                 }
             } catch (IOException ioex) {
-                logger.log(Level.SEVERE, "IOException in acceptConnectionsFromBrowser: " + ioex.getClass().getName() + ": " + ioex.getMessage());
+                logger.error("IOException in acceptConnectionsFromBrowser: " + ioex.getClass().getName() + ": " + ioex.getMessage());
             }
         }
     }
@@ -98,12 +99,12 @@ public class Cloud implements SslContextProvider {
                             if (!protocolAgnostic)
                                 authenticate();
                         } catch (IOException ioex) {
-                            logger.severe("IOException in acceptConnectionsFromCloudProxy: " + ioex.getClass().getName() + ": " + ioex.getMessage());
+                            logger.error("IOException in acceptConnectionsFromCloudProxy: " + ioex.getClass().getName() + ": " + ioex.getMessage());
                             reset();
                         }
                     }
                 } catch (Exception ioex) {
-                    logger.severe("Exception in acceptConnectionsFromCloudProxy: " + ioex.getClass().getName() + ": " + ioex.getMessage());
+                    logger.error("Exception in acceptConnectionsFromCloudProxy: " + ioex.getClass().getName() + ": " + ioex.getMessage());
                     reset();
                 }
             }
@@ -190,7 +191,7 @@ public class Cloud implements SslContextProvider {
                     }
                 } else {
                     authOK = false;
-                    logger.warning("Authentication on NVR has failed");
+                    logger.warn("Authentication on NVR has failed");
                 }
                 String response = new String(buf.array(), headerLength, buf.limit() - headerLength);
                 System.out.print(response);
@@ -206,12 +207,15 @@ public class Cloud implements SslContextProvider {
         return NVRSESSIONID;
     }
 
-    public boolean logoff() {
+    /**
+     * logoff: Finish the session on the NVR
+     * @param cookie: The NVR session cookie
+     * @return: true on success
+     */
+    public boolean logoff(String cookie) {
         boolean retVal = true;
         if (cloudProxy != null && !cloudProxy.isClosed()) {
             try {
-                OutputStream os = cloudProxy.getOutputStream();
-                InputStream is = cloudProxy.getInputStream();
                 ByteBuffer buf = getBuffer(getToken());
                 String logoff = "GET /logoff HTTP/1.1\r\n" +
                         "Host: host\r\n" +
@@ -229,22 +233,22 @@ public class Cloud implements SslContextProvider {
                         "Referer: http://localhost:8083/\r\n" +
                         "Accept-Encoding: gzip, deflate, br\r\n" +
                         "Accept-Language: en-GB,en-US;q=0.9,en;q=0.8\r\n" +
-                        "Cookie: NVRSESSIONID=" + NVRSESSIONID + "\r\n\r\n";
+                        "Cookie: "+cookie + "\r\n\r\n";
 
                 System.out.println(logoff);
                 buf.put(logoff.getBytes(StandardCharsets.UTF_8));
                 setDataLength(buf, logoff.length());
                 setBufferForSend(buf);
                 sendRequestToCloudProxy(buf);   // Send logoff message
-                buf.clear();
-                buf = stealMessage();
-                System.out.println(new String(buf.array(), headerLength, buf.limit()-headerLength));
+                recycle(buf);
+//                buf = stealMessage();
+//                logger.info(new String(buf.array(), headerLength, buf.limit()-headerLength));
 
-            } catch (IOException ioex) {
+            } catch (Exception ioex) {
+                logger.error("Exception in logoff: "+ioex.getMessage());
                 retVal = false;
             }
         }
-        //reset();
         return retVal;
     }
 
@@ -303,7 +307,7 @@ public class Cloud implements SslContextProvider {
                         }
                         while (result != -1 && buf.position() < buf.limit());
                     } catch (IOException ioex) {
-                        logger.warning("IOException in respondToBrowser: " + ioex.getMessage());
+                        logger.warn("IOException in respondToBrowser: " + ioex.getMessage());
                         setConnectionClosedFlag(buf);
                         sendRequestToCloudProxy(buf);
                         frontEndChannel.shutdownOutput().shutdownOutput().close();
@@ -330,7 +334,7 @@ public class Cloud implements SslContextProvider {
     }
 
     private void removeSocket(int token) {
-        logger.log(Level.INFO, "Removing socket for token " + token);
+        logger.info("Removing socket for token " + token);
         tokenSocketMap.remove(token);
     }
 
@@ -356,7 +360,7 @@ public class Cloud implements SslContextProvider {
     }
 
     void showExceptionDetails(Throwable t, String functionName) {
-        logger.log(Level.SEVERE, t.getClass().getName() + " exception in " + functionName + ": " + t.getMessage() + "\n" + t.fillInStackTrace());
+        logger.error(t.getClass().getName() + " exception in " + functionName + ": " + t.getMessage() + "\n" + t.fillInStackTrace());
         for (StackTraceElement stackTraceElement : t.getStackTrace()) {
             System.err.println(stackTraceElement.toString());
         }
@@ -539,11 +543,11 @@ public class Cloud implements SslContextProvider {
                             if (stealNextMessage)
                                 synchronized (stealBufferWaitLock) {
                                     stolenBuffer = newBuf;
-                                    stealBufferWaitLock.notify();
+                                    stealBufferWaitLock.notifyAll();
                                 }
                             else {
                                 respondToBrowser(newBuf);
-                                logger.warning("Received "+newBuf.limit()+" bytes");
+                                logger.trace("Received "+newBuf.limit()+" bytes");
                             }
                         } catch (Exception ex) {
                             showExceptionDetails(ex, "splitMessages");
@@ -572,11 +576,11 @@ public class Cloud implements SslContextProvider {
         synchronized (stealBufferWaitLock) {
             try {
                 stealNextMessage = true;
-                logger.warning("Waiting...");
-                stealBufferWaitLock.wait();
-                logger.warning("Waiting done");
+                logger.warn("Waiting...");
+                stealBufferWaitLock.wait(1000);
+                logger.warn("Waiting done");
             } catch (InterruptedException ex) {
-                logger.warning("Interrupted wait in stealMessage: " + ex.getMessage());
+                logger.warn("Interrupted wait in stealMessage: " + ex.getMessage());
             }
             if (isHeartbeat(stolenBuffer))
                 stealMessage();

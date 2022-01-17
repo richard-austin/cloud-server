@@ -13,7 +13,7 @@
   </button>
 
   <div #navbarCollapse class="collapse" id="navbarSupportedContent">
-    <div>
+    <div [style]="'display:'+ (utilsService.loggedIn ? 'inline' : 'none')">
       <button mat-button [matMenuTriggerFor]="menuSelectCamera" id="cameraDropdown">
         Select Camera
       </button>
@@ -27,7 +27,7 @@
       </mat-menu>
     </div>
 
-    <div>
+    <div [style]="'display:'+ (utilsService.loggedIn ? 'inline' : 'none')">
       <button mat-button [matMenuTriggerFor]="menuSelectRecording">Select Recording</button>
       <mat-menu #menuSelectRecording="matMenu">
         <ng-container *ngFor="let cs of cameraStreams">
@@ -38,7 +38,7 @@
       </mat-menu>
     </div>
 
-    <div>
+    <div [style]="'display:'+ (utilsService.loggedIn ? 'inline' : 'none')">
       <button mat-button [matMenuTriggerFor]="menuCameraSettings">Camera Settings</button>
       <mat-menu #menuCameraSettings="matMenu">
         <ng-container *ngFor="let cam of cameras">
@@ -51,7 +51,7 @@
     </div>
 
   <!--    <div *ngIf="!noTemperature" [ngClass]="tempAlertClass" class="mx-auto temp">Core Temp: {{temperature}} °C</div>-->
-    <div>
+    <div [style]="'display:'+ (utilsService.loggedIn ? 'none' : 'inline')">
       <button mat-button #loginButton [matMenuTriggerFor]="menuLogin">Log in</button>
       <mat-menu #menuLogin="matMenu">
         <mat-card>
@@ -91,8 +91,8 @@
               <span>&nbsp;&nbsp;</span>
       <button color="warning" mat-flat-button
               [disabled]="anyInvalid()"
-              (click)="updateCredentials()"
-              matTooltip="Save the new user name and password"
+              (click)="login()"
+              matTooltip="Login into the CCTV Cloud Service with the given username and password"
               matTooltipClass="tooltip">
         Confirm
       </button>
@@ -102,7 +102,7 @@
 
       </mat-menu>
     </div>
-    <div>
+    <div [style]="'display:'+ (utilsService.loggedIn ? 'inline' : 'none')">
       <button mat-button [matMenuTriggerFor]="menuGeneral">General</button>
       <mat-menu #menuGeneral="matMenu">
         <button mat-menu-item (click)="configSetup();menuClosed()">Configure Camera Setup</button>
