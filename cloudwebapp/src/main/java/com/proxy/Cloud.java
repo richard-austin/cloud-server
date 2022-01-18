@@ -153,10 +153,6 @@ public class Cloud implements SslContextProvider {
 
         if (socket != null && !socket.isClosed()) {
             try {
-                InputStream is = socket.getInputStream();
-                OutputStream os = socket.getOutputStream();
-                ByteBuffer buf = getBuffer(getToken());
-
                 String payload = "username=" + cloudProperties.getUSERNAME() + "&password=" + cloudProperties.getPASSWORD();
 
                 String output = "POST /login/authenticate HTTP/1.1\r\n" +
@@ -167,13 +163,9 @@ public class Cloud implements SslContextProvider {
                         "Content-Length: " + payload.length() + "\r\n\r\n" +
                         payload + "\r\n";
 
-                setDataLength(buf, output.length());
-                buf.put(output.getBytes());
-                setBufferForSend(buf);
-                sendRequestToCloudProxy(buf);
                 System.out.print(output);
+                ByteBuffer buf = doRequestResponse(output);
 
-                buf = stealMessage();
                 HttpMessage hdrs = new HttpMessage(buf);
                 var l = hdrs.getHeader("location");
                 String location = l.size() == 1 ? l.get(0) : null;
@@ -207,6 +199,25 @@ public class Cloud implements SslContextProvider {
     }
 
     /**
+     * doRequestResponse: Send a request to the webserver, and grab the response before it's sent to the web browser.
+     *                    Return the response in its ByteBuffer.
+     * @param request: The request as a string
+     * @return: The response in a ByteBuffer
+     */
+    private ByteBuffer doRequestResponse(String request)
+    {
+        final int token = getToken();
+        ByteBuffer buf = getBuffer(token);
+        setDataLength(buf, request.length());
+        buf.put(request.getBytes());
+        setBufferForSend(buf);
+        sendRequestToCloudProxy(buf);
+        ByteBuffer retVal = stealMessage(token);
+        recycle(buf);
+        return retVal;
+    }
+
+    /**
      * logoff: Finish the session on the NVR
      * @param cookie: The NVR session cookie
      * @return: true on success
@@ -215,7 +226,6 @@ public class Cloud implements SslContextProvider {
         boolean retVal = true;
         if (cloudProxy != null && !cloudProxy.isClosed()) {
             try {
-                ByteBuffer buf = getBuffer(getToken());
                 String logoff = "GET /logoff HTTP/1.1\r\n" +
                         "Host: host\r\n" +
                         "Connection: keep-alive\r\n" +
@@ -235,13 +245,7 @@ public class Cloud implements SslContextProvider {
                         "Cookie: "+cookie + "\r\n\r\n";
 
                 System.out.println(logoff);
-                buf.put(logoff.getBytes(StandardCharsets.UTF_8));
-                setDataLength(buf, logoff.length());
-                setBufferForSend(buf);
-                sendRequestToCloudProxy(buf);   // Send logoff message
-
-                buf = stealMessage();
-                recycle(buf);
+                ByteBuffer buf = doRequestResponse(logoff);
                 logger.info(new String(buf.array(), headerLength, buf.limit()-headerLength));
 
             } catch (Exception ioex) {
@@ -572,7 +576,7 @@ public class Cloud implements SslContextProvider {
      *
      * @return
      */
-    private ByteBuffer stealMessage() {
+    private ByteBuffer stealMessage(int token) {
         synchronized (stealBufferWaitLock) {
             try {
                 stealNextMessage = true;
@@ -582,9 +586,14 @@ public class Cloud implements SslContextProvider {
             } catch (InterruptedException ex) {
                 logger.warn("Interrupted wait in stealMessage: " + ex.getMessage());
             }
-            if (isHeartbeat(stolenBuffer))
-                stealMessage();
-            stealNextMessage = false;
+            if(getToken(stolenBuffer) == token)
+                stealNextMessage = false;
+            else  // Not the same token as the request so send it on to the web browser and try the next one
+            {
+                respondToBrowser(stolenBuffer);
+                stealMessage(token);
+            }
+
         }
         return stolenBuffer;
     }
