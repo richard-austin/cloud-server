@@ -27,7 +27,6 @@ class CloudSecurityEventListener implements LogoutHandler, AuthenticationSuccess
         String cookie = request.getHeader("cookie")
         logAudit("USER-LOGOUT", "user='${userName}")
         cloudService.cloud.logoff(cookie)
-        cloudService.cloud.reset()
     }
 
     private void logAudit(String auditType, def message) {
@@ -36,7 +35,6 @@ class CloudSecurityEventListener implements LogoutHandler, AuthenticationSuccess
 
     @Override
     void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
-        def x = response
         String cookie = cloudService.cloud.authenticate()
         if(cookie != "") {
             response.setHeader("Set-Cookie", "NVRSESSIONID="+cookie+"; Path=/; HttpOnly")

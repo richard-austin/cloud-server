@@ -172,7 +172,6 @@ public class Cloud implements SslContextProvider {
                 setBufferForSend(buf);
                 sendRequestToCloudProxy(buf);
                 System.out.print(output);
-                buf.clear();
 
                 buf = stealMessage();
                 HttpMessage hdrs = new HttpMessage(buf);
@@ -240,9 +239,10 @@ public class Cloud implements SslContextProvider {
                 setDataLength(buf, logoff.length());
                 setBufferForSend(buf);
                 sendRequestToCloudProxy(buf);   // Send logoff message
+
+                buf = stealMessage();
                 recycle(buf);
-//                buf = stealMessage();
-//                logger.info(new String(buf.array(), headerLength, buf.limit()-headerLength));
+                logger.info(new String(buf.array(), headerLength, buf.limit()-headerLength));
 
             } catch (Exception ioex) {
                 logger.error("Exception in logoff: "+ioex.getMessage());
@@ -340,7 +340,7 @@ public class Cloud implements SslContextProvider {
 
     private synchronized void updateSocketMap(SocketChannel browser, int token) {
         tokenSocketMap.put(token, browser);
-        List<Integer> tokens = new ArrayList<Integer>();
+        List<Integer> tokens = new ArrayList<>();
         tokenSocketMap.forEach((tok, socket) -> {
             if (socket != null && !(socket.isOpen() || socket.isConnected()))
                 tokens.add(tok);
