@@ -1,0 +1,130 @@
+<div class="sec-cam-navbar">
+  <a mat-icon-button href="#">
+    <mat-icon>videocam</mat-icon>
+  </a>
+
+  <div>
+    <div *ngIf="!noTemperature" [ngClass]="tempAlertClass">Core Temp: {{temperature}} °C</div>
+  </div>
+
+  <button mat-button class="navbar-toggler" type="button" (click)="toggleMenu()"
+          aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+    <mat-icon>menu</mat-icon>
+  </button>
+
+  <div #navbarCollapse class="collapse" id="navbarSupportedContent">
+    <div [style]="'display:'+ (utilsService.loggedIn ? 'inline' : 'none')">
+      <button mat-button [matMenuTriggerFor]="menuSelectCamera" id="cameraDropdown">
+        Select Camera
+      </button>
+      <mat-menu #menuSelectCamera="matMenu">
+        <ng-container *ngFor="let cs of cameraStreams">
+          <button  mat-menu-item (click)="setVideoStream(cs);menuClosed()">
+            {{cs.camera.name + " (" + cs.stream.descr + ")"}}
+          </button>
+        </ng-container>
+        <button mat-menu-item (click)="multiCamView();menuClosed()">Multi Camera View</button>
+      </mat-menu>
+    </div>
+
+    <div [style]="'display:'+ (utilsService.loggedIn ? 'inline' : 'none')">
+      <button mat-button [matMenuTriggerFor]="menuSelectRecording">Select Recording</button>
+      <mat-menu #menuSelectRecording="matMenu">
+        <ng-container *ngFor="let cs of cameraStreams">
+          <button mat-menu-item (click)="showRecording(cs);menuClosed()" *ngIf="cs.stream.recording.enabled">
+            {{cs.camera.name + " (" + cs.stream.descr + ")"}}
+          </button>
+        </ng-container>
+      </mat-menu>
+    </div>
+
+    <div [style]="'display:'+ (utilsService.loggedIn ? 'inline' : 'none')">
+      <button mat-button [matMenuTriggerFor]="menuCameraSettings">Camera Settings</button>
+      <mat-menu #menuCameraSettings="matMenu">
+        <ng-container *ngFor="let cam of cameras">
+          <button *ngIf="cam.address!=''&&cam.controlUri!=''" mat-menu-item
+                  (click)="cameraControl(cam);menuClosed()">
+            {{cam.name}}
+          </button>
+        </ng-container>
+      </mat-menu>
+    </div>
+
+  <!--    <div *ngIf="!noTemperature" [ngClass]="tempAlertClass" class="mx-auto temp">Core Temp: {{temperature}} °C</div>-->
+    <div [style]="'display:'+ (utilsService.loggedIn ? 'none' : 'inline')">
+      <button mat-button #loginButton [matMenuTriggerFor]="menuLogin">Log in</button>
+      <mat-menu #menuLogin="matMenu">
+        <mat-card>
+          <mat-card-subtitle>Log in to Cloud Service</mat-card-subtitle>
+          <mat-card-content (click)="$event.stopPropagation()" (keydown)="keyDownHandler($event)">
+            <div>
+              <mat-form-field appearance="legacy" [style.width.px]="225">
+                <input matInput type="text" autocomplete="off" maxlength="20"
+                       [formControl]="getFormControl('username')"
+                       matTooltip="Enter your Cloud Service user name."
+                       matTooltipClass="tooltip"
+                       placeholder="User name">
+                <mat-hint>Admin user name for the cameras</mat-hint>
+                <mat-error *ngIf="loginForm.controls['username'].hasError('pattern')">5 or more characters and numbers</mat-error>
+                <mat-error *ngIf="loginForm.controls['username'].hasError('required')">User name is required</mat-error>
+              </mat-form-field>
+            </div>
+            <div>
+              <mat-form-field appearance="legacy" [style.width.px]="225">
+                <input matInput type="password" autocomplete="off" maxlength="25"
+                       [formControl]="getFormControl('password')"
+                       matTooltip="Enter your Cloud Service password"
+                       matTooltipClass="tooltip"
+                       placeholder="Password">
+                <mat-hint>Admin password for the cameras</mat-hint>
+                <mat-error *ngIf="loginForm.controls['password'].hasError('pattern')">Upper, lower case, numbers and special chars</mat-error>
+                <mat-error *ngIf="loginForm.controls['password'].hasError('required')">Password is required</mat-error>
+              </mat-form-field>
+            </div>
+            <br>
+            <span class="cam-creds-confirm-group">
+      <button color="default" mat-flat-button (click)="hidePasswordDialogue()"
+              matTooltip="Close this dialogue and leave the existing user name and password in place"
+              matTooltipClass="tooltip">
+        Cancel
+      </button>
+              <span>&nbsp;&nbsp;</span>
+      <button color="warning" mat-flat-button
+              [disabled]="anyInvalid()"
+              (click)="login()"
+              matTooltip="Login into the CCTV Cloud Service with the given username and password"
+              matTooltipClass="tooltip">
+        Confirm
+      </button>
+    </span>
+          </mat-card-content>
+        </mat-card>
+
+      </mat-menu>
+    </div>
+    <div [style]="'display:'+ (utilsService.loggedIn ? 'inline' : 'none')">
+      <button mat-button [matMenuTriggerFor]="menuGeneral">General</button>
+      <mat-menu #menuGeneral="matMenu">
+        <button mat-menu-item (click)="configSetup();menuClosed()">Configure Camera Setup</button>
+        <button mat-menu-item (click)="confirmLogoff();menuClosed()">Log Off</button>
+        <button mat-menu-item (click)="changePassword();menuClosed()">Change Password</button>
+        <div class="dropdown-divider"></div>
+        <button mat-menu-item (click)="setIp();menuClosed()">Save Current Public IP</button>
+        <button mat-menu-item (click)="drawdownCalc();menuClosed()">Pension Drawdown Calculator</button>
+        <div class="dropdown-divider"></div>
+        <button mat-menu-item (click)="about();menuClosed()">About Security Cam</button>
+      </mat-menu>
+    </div>
+  </div>
+</div>
+<mat-card class="mat-elevation-z8 confirm-logout alert-warning" *ngIf="confirmLogout">
+  <mat-card-subtitle style="color: inherit">
+    Logout from Security Cam, Are you sure?
+  </mat-card-subtitle>
+  <mat-card-content>
+    <button mat-flat-button color="warning" (click)="logOff(true)">Confirm</button>
+    <button mat-flat-button color="default" (click)="logOff(false)">Cancel</button>
+  </mat-card-content>
+</mat-card>
+<router-outlet></router-outlet>
+<app-reporting></app-reporting>
