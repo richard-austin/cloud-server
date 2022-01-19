@@ -29,4 +29,9 @@ class CloudService {
         }
         return response
     }
+
+    def stop() {
+        if(cloud)
+            cloud.stop()
+    }
 }

@@ -23,5 +23,6 @@ class BootStrap {
         }
     }
     def destroy = {
+        cloudService.stop()
     }
 }

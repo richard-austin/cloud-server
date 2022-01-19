@@ -57,11 +57,44 @@ public class Cloud implements SslContextProvider {
         }
     }
 
+    public void stop() {
+        try {
+            running = false;
+            if (cloudProxy != null)
+                cloudProxy.close();
+
+            // Close the two listening sockets
+            if(_s != null)
+                _s.close();
+            if(_sc != null)
+                _sc.close();
+
+            browserWriteExecutor.shutdownNow();
+            browserReadExecutor.shutdownNow();
+            sendToCloudProxyExecutor.shutdownNow();
+            if (startCloudProxyInputProcessExecutor != null)
+                startCloudProxyInputProcessExecutor.shutdownNow();
+
+            acceptConnectionsFromCloudProxyExecutor.shutdownNow();
+            acceptConnectionsFromBrowserExecutor.shutdownNow();
+            lastBitOfPreviousMessage = null;
+            lastBitOfPreviousHttpMessage.clear();
+            clearSocketMap();
+        } catch (Exception ex) {
+            logger.error("Exception in stop: " + ex.getMessage());
+        }
+    }
+
+    private ServerSocketChannel _sc = null;
+    /**
+     * acceptConnectionsFromBrowser: Wait for connections from browser and read requests
+     * @param browserFacingPort: The port the browser connects to
+     */
     private void acceptConnectionsFromBrowser(final int browserFacingPort) {
         while (running) {
             try {
                 // Creating a ServerSocket to listen for connections with
-                ServerSocketChannel s = ServerSocketChannel.open();
+                ServerSocketChannel s = _sc = ServerSocketChannel.open();
                 s.bind(new InetSocketAddress(browserFacingPort));
                 while (running) {
                     try {
@@ -81,12 +114,13 @@ public class Cloud implements SslContextProvider {
         }
     }
 
+    private SSLServerSocket _s = null;
     private void acceptConnectionsFromCloudProxy(final int cloudProxyFacingPort) {
         acceptConnectionsFromCloudProxyExecutor.execute(() -> {
             while (running) {
                 try {
                     // Creating a ServerSocket to listen for connections with
-                    SSLServerSocket s = createSSLServerSocket(cloudProxyFacingPort, this);
+                    SSLServerSocket s = _s = createSSLServerSocket(cloudProxyFacingPort, this);
                     while (running) {
                         try {
                             // It will wait for a connection on the local port
