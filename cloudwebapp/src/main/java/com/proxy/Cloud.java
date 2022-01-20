@@ -47,7 +47,7 @@ public class Cloud implements SslContextProvider {
     private SSLSocket cloudProxy;
     private CloudProperties cloudProperties = CloudProperties.getInstance();
     private final int browserFacingPort = 8083, cloudProxyFacingPort = 8081;
-    private final boolean protocolAgnostic = true;
+    private final boolean protocolAgnostic = true;  // ProtocolAgnostic means that login to NVR won't be done automatically by the Cloud
 
     public void start() {
         if (!running) {
@@ -64,9 +64,9 @@ public class Cloud implements SslContextProvider {
                 cloudProxy.close();
 
             // Close the two listening sockets
-            if(_s != null)
+            if (_s != null)
                 _s.close();
-            if(_sc != null)
+            if (_sc != null)
                 _sc.close();
 
             browserWriteExecutor.shutdownNow();
@@ -86,8 +86,10 @@ public class Cloud implements SslContextProvider {
     }
 
     private ServerSocketChannel _sc = null;
+
     /**
      * acceptConnectionsFromBrowser: Wait for connections from browser and read requests
+     *
      * @param browserFacingPort: The port the browser connects to
      */
     private void acceptConnectionsFromBrowser(final int browserFacingPort) {
@@ -115,6 +117,7 @@ public class Cloud implements SslContextProvider {
     }
 
     private SSLServerSocket _s = null;
+
     private void acceptConnectionsFromCloudProxy(final int cloudProxyFacingPort) {
         acceptConnectionsFromCloudProxyExecutor.execute(() -> {
             while (running) {
@@ -183,9 +186,8 @@ public class Cloud implements SslContextProvider {
     }
 
     public String authenticate() {
-        boolean authOK = true;
         SSLSocket socket = this.cloudProxy;
-
+        NVRSESSIONID = "";
         if (socket != null && !socket.isClosed()) {
             try {
                 String payload = "username=" + cloudProperties.getUSERNAME() + "&password=" + cloudProperties.getPASSWORD();
@@ -213,11 +215,9 @@ public class Cloud implements SslContextProvider {
                                 final int sessionIdLen = 32;
                                 NVRSESSIONID = cookie.substring(startIdx, startIdx + sessionIdLen);
                                 break;
-                            } else
-                                NVRSESSIONID = "";
+                            }
                         }
                     } else {
-                        authOK = false;
                         logger.warn("Authentication on NVR has failed");
                     }
                     String response = new String(buf.array(), headerLength, buf.limit() - headerLength);
@@ -226,13 +226,12 @@ public class Cloud implements SslContextProvider {
                     logger.error("Couldn't log onto NVR, no message returned for logon request");
 
             } catch (Exception ex) {
-                authOK = false;
+
                 System.out.println("Exception in authenticate: " + ex.getClass().getName() + ": " + ex.getMessage() + "\n\n");
                 ex.printStackTrace();
             }
-        }
-        if (!authOK)
-            NVRSESSIONID = "";
+        } else
+            NVRSESSIONID = "NO_CONN";
         return NVRSESSIONID;
     }
 

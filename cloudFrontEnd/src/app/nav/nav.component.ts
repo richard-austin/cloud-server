@@ -41,6 +41,7 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
 
   login()
   {
+    this.errorReporting.dismiss();
     this.username = this.getFormControl('username').value;
     this.password = this.getFormControl('password').value;
 

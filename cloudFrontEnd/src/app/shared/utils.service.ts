@@ -91,7 +91,7 @@ export class UtilsService {
           this._loggedIn = true;
         },
         (reason) => {
-          this._loggedIn = reason.status != 0;
+          this._loggedIn = false;
         }),
       catchError((err: HttpErrorResponse) => throwError(err))
     );

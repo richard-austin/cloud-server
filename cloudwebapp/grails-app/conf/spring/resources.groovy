@@ -19,7 +19,8 @@ beans = {
     }
 
     // This bean audits failed user logins
-    cloudAuthFailEventListener(CloudAuthFailEventListener) {
+    authenticationFailureHandler(CloudAuthFailEventListener) {
         logService = ref("logService")
+        cloudService = ref("cloudService")
     }
 }
