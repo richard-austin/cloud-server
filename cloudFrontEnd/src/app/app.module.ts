@@ -41,6 +41,7 @@ import { ExcludeOwnStreamPipe } from './config-setup/exclude-own-stream.pipe';
 import { DisableControlDirective } from './config-setup/disable-control.directive';
 import { MapToKeyValuePipe } from './config-setup/map-to-key-value.pipe';
 import { CredentialsForCameraAccessComponent } from './credentials-for-camera-access/credentials-for-camera-access.component';
+import { LoginComponent } from './login/login.component';
 
 @NgModule({
   declarations: [
@@ -62,7 +63,8 @@ import { CredentialsForCameraAccessComponent } from './credentials-for-camera-ac
     ExcludeOwnStreamPipe,
     DisableControlDirective,
     MapToKeyValuePipe,
-    CredentialsForCameraAccessComponent
+    CredentialsForCameraAccessComponent,
+    LoginComponent
   ],
     imports: [
         BrowserModule,

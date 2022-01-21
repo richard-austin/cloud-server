@@ -43,7 +43,6 @@ class CloudSecurityEventListener implements LogoutHandler, AuthenticationSuccess
 
     private void loginSuccess(String userName) {
         logAudit("USER-LOGIN_SUCCESS: ", "user='${userName}'")
-        cloudService.start()
     }
 
     private void logAudit(String auditType, def message) {

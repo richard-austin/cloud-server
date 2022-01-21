@@ -10,8 +10,6 @@ import {IdleTimeoutModalComponent} from "../idle-timeout-modal/idle-timeout-moda
 import {MatDialogRef} from "@angular/material/dialog/dialog-ref";
 import {UserIdleConfig} from "../angular-user-idle/angular-user-idle.config";
 import {UserIdleService} from "../angular-user-idle/angular-user-idle.service";
-import {FormControl, FormGroup, Validators} from "@angular/forms";
-import {MatButton} from '@angular/material/button';
 
 @Component({
   selector: 'app-nav',
@@ -22,7 +20,6 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
 
   @ViewChild(ReportingComponent) errorReporting!: ReportingComponent;
   @ViewChild('navbarCollapse') navbarCollapse!: ElementRef<HTMLDivElement>;
-  @ViewChild('loginButton') loginButton!: MatButton;
 
   cameraStreams: CameraStream[] = []; // All camera streams
   cameras: Camera[] = [];
@@ -39,28 +36,9 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
   constructor(private cameraSvc: CameraService, public utilsService: UtilsService, private userIdle: UserIdleService, private dialog: MatDialog) {
   }
 
-  login()
-  {
-    this.errorReporting.dismiss();
-    this.username = this.getFormControl('username').value;
-    this.password = this.getFormControl('password').value;
-
-    this.utilsService.login(this.username, this.password).subscribe(() => {
-        this.getFormControl('username').setValue("");
-        this.getFormControl('password').setValue("");
-        this.username = this.password = "";
-        this.hidePasswordDialogue();
-        this.cameraSvc.initialiseCameras();
-        this.cameraStreams = this.cameraSvc.getCameraStreams();
-        this.cameras = this.cameraSvc.getCameras()
-
-        // Get the initial core temperature
-        this.getTemperature();
-        },
-      (reason)=> {
-        this.errorReporting.errorMessage = reason;
-      });
-   }
+  login() {
+    window.location.href = '#/login'
+  }
 
   setVideoStream(camStream: CameraStream): void {
     this.cameraSvc.setActiveLive([camStream]);
@@ -171,28 +149,6 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
     navbarCollapse.setAttribute('style', 'max-height: 0');
   }
 
-  username: string = '';
-  password: string = '';
-  loginForm!: FormGroup;
-
-
-  hidePasswordDialogue() {
-    this.loginButton._getHostElement().click();
-  }
-
-  getFormControl(fcName: string): FormControl {
-    return this.loginForm.get(fcName) as FormControl;
-  }
-
-  anyInvalid(): boolean {
-    return this.loginForm.invalid;
-  }
-
-  keyDownHandler($event: KeyboardEvent) {
-    if ($event.key == "Tab")
-      $event.stopPropagation();  // Prevent the tab key from closing the menu (form)
-  }
-
   ngOnInit(): void {
     this.utilsService.getTemperature().subscribe(() => {
       // If getTemperature is successful, we are logged in to the NVR, so get camera info
@@ -211,7 +167,16 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
         this.idleTimeoutActive = itos.active;
         //    console.log("idle active = "+this.idleTimeoutActive)
       }
-    })
+      else if (message.messageType === messageType.loggedIn) {
+        window.location.href = "#/"
+        this.cameraStreams = this.cameraSvc.getCameraStreams();
+        this.cameras = this.cameraSvc.getCameras()
+
+        // Get the initial core temperature
+        this.getTemperature();
+      }
+    });
+
     // Start watching when user idle is starting.
     this.timerHandle = this.userIdle.onTimerStart().subscribe((count: number) => {
       if (this.idleTimeoutActive) {
@@ -235,14 +200,6 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
       this.cameraStreams = this.cameraSvc.getCameraStreams();
       this.cameras = this.cameraSvc.getCameras()
     });
-
-    this.loginForm = new FormGroup({
-      username: new FormControl(this.username, [Validators.required, Validators.maxLength(20), Validators.pattern("^[a-zA-Z0-9](_(?!(\.|_))|\.(?!(_|\.))|[a-zA-Z0-9]){3,18}[a-zA-Z0-9]$")]),
-      password: new FormControl(this.password, [Validators.required, Validators.maxLength(25), /*Validators.pattern("^(?=.*[A-Za-z])(?=.*\\d)(?=.*[@$!%*#?&])[A-Za-z\\d@$!%*#?&]{8,}$")*/])
-    }, {updateOn: "change"});
-
-    // Ensure camera form controls highlight immediately if invalid
-    this.loginForm.markAllAsTouched();
   }
 
   ngAfterViewInit(): void {
