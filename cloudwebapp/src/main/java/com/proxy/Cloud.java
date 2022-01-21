@@ -15,6 +15,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.util.*;
 import java.util.concurrent.*;
+
 import ch.qos.logback.classic.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,7 +47,7 @@ public class Cloud implements SslContextProvider {
     private SSLSocket cloudProxy;
     private CloudProperties cloudProperties = CloudProperties.getInstance();
     private final int browserFacingPort = 8083, cloudProxyFacingPort = 8081;
-    private final boolean protocolAgnostic = true;
+    private final boolean protocolAgnostic = true;  // ProtocolAgnostic means that login to NVR won't be done automatically by the Cloud
 
     public void start() {
         if (!running) {
@@ -56,11 +57,46 @@ public class Cloud implements SslContextProvider {
         }
     }
 
+    public void stop() {
+        try {
+            running = false;
+            if (cloudProxy != null)
+                cloudProxy.close();
+
+            // Close the two listening sockets
+            if (_s != null)
+                _s.close();
+            if (_sc != null)
+                _sc.close();
+
+            browserWriteExecutor.shutdownNow();
+            browserReadExecutor.shutdownNow();
+            sendToCloudProxyExecutor.shutdownNow();
+            if (startCloudProxyInputProcessExecutor != null)
+                startCloudProxyInputProcessExecutor.shutdownNow();
+
+            acceptConnectionsFromCloudProxyExecutor.shutdownNow();
+            acceptConnectionsFromBrowserExecutor.shutdownNow();
+            lastBitOfPreviousMessage = null;
+            lastBitOfPreviousHttpMessage.clear();
+            clearSocketMap();
+        } catch (Exception ex) {
+            logger.error("Exception in stop: " + ex.getMessage());
+        }
+    }
+
+    private ServerSocketChannel _sc = null;
+
+    /**
+     * acceptConnectionsFromBrowser: Wait for connections from browser and read requests
+     *
+     * @param browserFacingPort: The port the browser connects to
+     */
     private void acceptConnectionsFromBrowser(final int browserFacingPort) {
         while (running) {
             try {
                 // Creating a ServerSocket to listen for connections with
-                ServerSocketChannel s = ServerSocketChannel.open();
+                ServerSocketChannel s = _sc = ServerSocketChannel.open();
                 s.bind(new InetSocketAddress(browserFacingPort));
                 while (running) {
                     try {
@@ -80,12 +116,14 @@ public class Cloud implements SslContextProvider {
         }
     }
 
+    private SSLServerSocket _s = null;
+
     private void acceptConnectionsFromCloudProxy(final int cloudProxyFacingPort) {
         acceptConnectionsFromCloudProxyExecutor.execute(() -> {
             while (running) {
                 try {
                     // Creating a ServerSocket to listen for connections with
-                    SSLServerSocket s = createSSLServerSocket(cloudProxyFacingPort, this);
+                    SSLServerSocket s = _s = createSSLServerSocket(cloudProxyFacingPort, this);
                     while (running) {
                         try {
                             // It will wait for a connection on the local port
@@ -148,9 +186,8 @@ public class Cloud implements SslContextProvider {
     }
 
     public String authenticate() {
-        boolean authOK = true;
         SSLSocket socket = this.cloudProxy;
-
+        NVRSESSIONID = "";
         if (socket != null && !socket.isClosed()) {
             try {
                 String payload = "username=" + cloudProperties.getUSERNAME() + "&password=" + cloudProperties.getPASSWORD();
@@ -166,59 +203,41 @@ public class Cloud implements SslContextProvider {
                 System.out.print(output);
                 ByteBuffer buf = doRequestResponse(output);
 
-                HttpMessage hdrs = new HttpMessage(buf);
-                var l = hdrs.getHeader("location");
-                String location = l.size() == 1 ? l.get(0) : null;
-                if (Objects.equals(location, "/")) {
-                    List<String> setCookie = hdrs.getHeader("set-cookie");
-                    for (String cookie : setCookie) {
-                        if (cookie.startsWith("NVRSESSIONID")) {
-                            final int startIdx = "NVRSESSIONID=".length();
-                            final int sessionIdLen = 32;
-                            NVRSESSIONID = cookie.substring(startIdx, startIdx + sessionIdLen);
-                            break;
-                        } else
-                            NVRSESSIONID = "";
+                if (buf != null) {
+                    HttpMessage hdrs = new HttpMessage(buf);
+                    var l = hdrs.getHeader("location");
+                    String location = l.size() == 1 ? l.get(0) : null;
+                    if (Objects.equals(location, "/")) {
+                        List<String> setCookie = hdrs.getHeader("set-cookie");
+                        for (String cookie : setCookie) {
+                            if (cookie.startsWith("NVRSESSIONID")) {
+                                final int startIdx = "NVRSESSIONID=".length();
+                                final int sessionIdLen = 32;
+                                NVRSESSIONID = cookie.substring(startIdx, startIdx + sessionIdLen);
+                                break;
+                            }
+                        }
+                    } else {
+                        logger.warn("Authentication on NVR has failed");
                     }
-                } else {
-                    authOK = false;
-                    logger.warn("Authentication on NVR has failed");
-                }
-                String response = new String(buf.array(), headerLength, buf.limit() - headerLength);
-                System.out.print(response);
+                    String response = new String(buf.array(), headerLength, buf.limit() - headerLength);
+                    System.out.print(response);
+                } else
+                    logger.error("Couldn't log onto NVR, no message returned for logon request");
 
             } catch (Exception ex) {
-                authOK = false;
+
                 System.out.println("Exception in authenticate: " + ex.getClass().getName() + ": " + ex.getMessage() + "\n\n");
                 ex.printStackTrace();
             }
-        }
-        if (!authOK)
-            NVRSESSIONID = "";
+        } else
+            NVRSESSIONID = "NO_CONN";
         return NVRSESSIONID;
     }
 
     /**
-     * doRequestResponse: Send a request to the webserver, and grab the response before it's sent to the web browser.
-     *                    Return the response in its ByteBuffer.
-     * @param request: The request as a string
-     * @return: The response in a ByteBuffer
-     */
-    private ByteBuffer doRequestResponse(String request)
-    {
-        final int token = getToken();
-        ByteBuffer buf = getBuffer(token);
-        setDataLength(buf, request.length());
-        buf.put(request.getBytes());
-        setBufferForSend(buf);
-        sendRequestToCloudProxy(buf);
-        ByteBuffer retVal = stealMessage(token);
-        recycle(buf);
-        return retVal;
-    }
-
-    /**
      * logoff: Finish the session on the NVR
+     *
      * @param cookie: The NVR session cookie
      * @return: true on success
      */
@@ -242,14 +261,15 @@ public class Cloud implements SslContextProvider {
                         "Referer: http://localhost:8083/\r\n" +
                         "Accept-Encoding: gzip, deflate, br\r\n" +
                         "Accept-Language: en-GB,en-US;q=0.9,en;q=0.8\r\n" +
-                        "Cookie: "+cookie + "\r\n\r\n";
+                        "Cookie: " + cookie + "\r\n\r\n";
 
                 System.out.println(logoff);
                 ByteBuffer buf = doRequestResponse(logoff);
-                logger.info(new String(buf.array(), headerLength, buf.limit()-headerLength));
+                if (buf != null)
+                    logger.info(new String(buf.array(), headerLength, buf.limit() - headerLength));
 
             } catch (Exception ioex) {
-                logger.error("Exception in logoff: "+ioex.getMessage());
+                logger.error("Exception in logoff: " + ioex.getMessage());
                 retVal = false;
             }
         }
@@ -544,14 +564,9 @@ public class Cloud implements SslContextProvider {
                             newBuf.rewind();
                             //     logger.log(Level.INFO, "Buffer size " + newBuf.limit() + " lengthThisMessage= " + lengthThisMessage);
                             combinedBuf.position(combinedBuf.position() + lengthThisMessage);
-                            if (stealNextMessage)
-                                synchronized (stealBufferWaitLock) {
-                                    stolenBuffer = newBuf;
-                                    stealBufferWaitLock.notifyAll();
-                                }
-                            else {
+                            if (!stealMessage(newBuf)) {
                                 respondToBrowser(newBuf);
-                                logger.trace("Received "+newBuf.limit()+" bytes");
+                                logger.trace("Received " + newBuf.limit() + " bytes");
                             }
                         } catch (Exception ex) {
                             showExceptionDetails(ex, "splitMessages");
@@ -566,36 +581,74 @@ public class Cloud implements SslContextProvider {
         }
     }
 
-    private boolean stealNextMessage = false;
-    private ByteBuffer stolenBuffer;
-    private final Object stealBufferWaitLock = new Object();
+    /**
+     * doRequestResponse: Send a request to the webserver, and grab the response before it's sent to the web browser.
+     * Return the response in its ByteBuffer.
+     *
+     * @param request: The request as a string
+     * @return: The response in a ByteBuffer
+     */
+    private ByteBuffer doRequestResponse(String request) {
+        final int token = getToken();
+        ByteBuffer buf = getBuffer(token);
+        setDataLength(buf, request.length());
+        buf.put(request.getBytes());
+        setBufferForSend(buf);
+        sendRequestToCloudProxy(buf);
+        ByteBuffer retVal = stealMessage(token);
+        recycle(buf);
+        return retVal;
+    }
 
     /**
-     * stealMessage: Returns the buffer of the next message in splitMessages and prevents it from being sent to the connected browser.
-     * This only applies to a single message, and the routing continues as normal thereafter.
+     * stealMessage: Check if the token of the message is in the stolenBuffers map. If so put the buffer in the map
+     * against its token and return true, else return false.
      *
-     * @return
+     * @param buf: The buffer with the message and token.
+     * @return: true if message is redirected else false.
+     */
+    private boolean stealMessage(ByteBuffer buf) {
+        boolean retVal = false;
+        Integer token = getToken(buf);
+        if (stolenBuffers.containsKey(token)) {
+            BufferLockobject blo = stolenBuffers.get(token);
+            synchronized (blo.lockObject) {
+                blo.setBuffer(buf);
+                blo.lockObject.notify();
+                retVal = true;
+            }
+        }
+        return retVal;
+    }
+
+    final private Map<Integer, BufferLockobject> stolenBuffers = new ConcurrentHashMap<>();
+
+    /**
+     * stealMessage: returns the message whose token matches the given token.
+     *
+     * @param token: The token of the message to be "stolen"
+     * @return, Message with matching token
      */
     private ByteBuffer stealMessage(int token) {
-        synchronized (stealBufferWaitLock) {
+        BufferLockobject blo = new BufferLockobject();
+        stolenBuffers.put(token, blo);
+        ByteBuffer retVal = null;
+        synchronized (blo.lockObject) {
             try {
-                stealNextMessage = true;
                 logger.warn("Waiting...");
-                stealBufferWaitLock.wait(1000);
+                blo.lockObject.wait(2000);
                 logger.warn("Waiting done");
+                retVal = blo.getBuffer();
+                if (retVal == null)
+                    throw new Exception("Wait fo response timed out, no message returned.");
             } catch (InterruptedException ex) {
                 logger.warn("Interrupted wait in stealMessage: " + ex.getMessage());
+            } catch (Exception ex) {
+                logger.trace("Exception in stealMessage: " + ex.getMessage());
             }
-            if(getToken(stolenBuffer) == token)
-                stealNextMessage = false;
-            else  // Not the same token as the request so send it on to the web browser and try the next one
-            {
-                respondToBrowser(stolenBuffer);
-                stealMessage(token);
-            }
-
         }
-        return stolenBuffer;
+        stolenBuffers.remove(token);
+        return retVal;
     }
 
     void splitHttpMessages(final ByteBuffer buf, int token, final Map<Integer, ByteBuffer> lastBitOfPreviousBuffer) {

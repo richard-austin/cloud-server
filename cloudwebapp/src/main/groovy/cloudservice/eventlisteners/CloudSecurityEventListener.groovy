@@ -2,9 +2,9 @@ package cloudservice.eventlisteners
 
 import cloudwebapp.CloudService
 import cloudwebapp.LogService
-import org.springframework.context.ApplicationListener
-import org.springframework.security.authentication.event.AuthenticationFailureBadCredentialsEvent
 import org.springframework.security.core.Authentication
+import org.springframework.security.core.AuthenticationException
+import org.springframework.security.web.authentication.AuthenticationFailureHandler
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler
 import org.springframework.security.web.authentication.logout.LogoutHandler
 
@@ -18,40 +18,45 @@ import javax.servlet.http.HttpServletResponse
 class CloudSecurityEventListener implements LogoutHandler, AuthenticationSuccessHandler{
     LogService logService
     CloudService cloudService
-//    void onApplicationEvent(AuthenticationSuccessEvent event) {
-//        loginSuccess(event?.authentication?.principal?.username as String)
-//    }
-//
-    void logout(HttpServletRequest request, HttpServletResponse response, Authentication authentication) {
-        String userName = authentication?.principal?.username
-        String cookie = request.getHeader("cookie")
-        logAudit("USER-LOGOUT", "user='${userName}")
-        cloudService.cloud.logoff(cookie)
-    }
 
-    private void logAudit(String auditType, def message) {
-        logService.cloud.info "Audit:${auditType}- ${message.toString()}"
+    @Override
+    void logout(HttpServletRequest request, HttpServletResponse response, Authentication authentication) {
+        // Not used, but CloudSecurityEventListener will throw exceptions on logout unless it implements LogoutHandler
     }
 
     @Override
     void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
         String cookie = cloudService.cloud.authenticate()
-        if(cookie != "") {
+        if(cookie != "" && cookie != "NO_CONN") {
             response.setHeader("Set-Cookie", "NVRSESSIONID="+cookie+"; Path=/; HttpOnly")
+            loginSuccess(request.getParameter("username"))
         }
+        else
+        {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED)
+            if(cookie == "")
+                response.getWriter().write("Failed to login to NVR")
+            else
+                response.getWriter().write("Not connected to NVR")
+        }
+    }
+
+    private void loginSuccess(String userName) {
+        logAudit("USER-LOGIN_SUCCESS: ", "user='${userName}'")
+    }
+
+    private void logAudit(String auditType, def message) {
+        logService.cloud.info "Audit:${auditType}- ${message.toString()}"
     }
 }
 
 /**
  * CloudAuthFailEventListener: Bean to log unsuccessful log in events
  */
-class CloudAuthFailEventListener implements ApplicationListener<AuthenticationFailureBadCredentialsEvent>,  LogoutHandler
+class CloudAuthFailEventListener implements AuthenticationFailureHandler,  LogoutHandler
 {
-    def logService
-    void onApplicationEvent(AuthenticationFailureBadCredentialsEvent event) {
-
-        loginFailure(event?.authentication?.principal as String)
-    }
+    LogService logService
+    CloudService cloudService
 
     def loginFailure(String userName) {
         logAudit("USER-LOGIN-FAILURE", "user='${userName}")
@@ -63,6 +68,19 @@ class CloudAuthFailEventListener implements ApplicationListener<AuthenticationFa
 
     @Override
     void logout(HttpServletRequest request, HttpServletResponse response, Authentication authentication) {
-        // Do nothing, it's just included as it's expected to be here and an exception occurs without it.
+ //       response.setStatus(HttpServletResponse.SC_OK)
+        String userName = authentication?.principal?.username
+        String cookie = request.getHeader("cookie")
+        logAudit("USER-LOGOUT", "user='${userName}")
+        cloudService.cloud.logoff(cookie)
+    }
+
+    @Override
+    void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception) throws IOException, ServletException {
+        def username = request.getParameter("username")
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED)
+        response.getWriter().write(exception.getMessage())
+
+        loginFailure(username)
     }
 }

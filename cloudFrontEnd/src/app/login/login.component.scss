@@ -1,0 +1,25 @@
+.login-container
+{
+  margin-top: 1rem;
+  font-size: 2rem;
+  display: inline-flex;
+  width: 100%;
+  >mat-card
+  {
+    width: fit-content;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+.alert-danger
+{
+  -webkit-box-shadow: 5px 5px 15px 5px #303030;
+  box-shadow: 5px 5px 15px 5px #303030;  margin: 0 0 1rem;
+  width: 73%;
+  display: inline-block;
+  background-color: #f8b9ad;
+  color: darkred;
+  padding: 2rem;
+  text-align: center;
+}

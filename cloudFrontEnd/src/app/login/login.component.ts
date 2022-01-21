@@ -1,0 +1,64 @@
+import {Component, EventEmitter, OnInit, Output, ViewChild} from '@angular/core';
+import {FormControl, FormGroup, Validators} from "@angular/forms";
+import {ReportingComponent} from "../reporting/reporting.component";
+import {CameraService} from "../cameras/camera.service";
+import {LoggedinMessage, Message, messageType, UtilsService} from "../shared/utils.service";
+
+@Component({
+  selector: 'app-login',
+  templateUrl: './login.component.html',
+  styleUrls: ['./login.component.scss']
+})
+export class LoginComponent implements OnInit {
+
+  username: string = '';
+  password: string = '';
+  loginForm!: FormGroup;
+  errorMessage: string = '';
+
+  constructor(private cameraSvc: CameraService, public utilsService: UtilsService) { }
+  login()
+  {
+    this.errorMessage = '';
+    this.username = this.getFormControl('username').value;
+    this.password = this.getFormControl('password').value;
+
+    this.utilsService.login(this.username, this.password).subscribe(() => {
+        this.getFormControl('username').setValue("");
+        this.getFormControl('password').setValue("");
+        this.username = this.password = "";
+        this.cameraSvc.initialiseCameras();
+        this.utilsService.sendMessage(new LoggedinMessage());  // Tell nav component we are logged in
+      },
+      (reason)=> {
+      this.errorMessage = reason.error;
+      });
+  }
+
+  getFormControl(fcName: string): FormControl {
+    return this.loginForm.get(fcName) as FormControl;
+  }
+
+  anyInvalid(): boolean {
+    return this.loginForm.invalid;
+  }
+
+  keyDownHandler($event: KeyboardEvent) {
+    if ($event.key == "Tab")
+      $event.stopPropagation();  // Prevent the tab key from closing the menu (form)
+  }
+
+  hideLoginForm() {
+      window.location.href = "#/";
+  }
+
+  ngOnInit(): void {
+    this.loginForm = new FormGroup({
+      username: new FormControl(this.username, [Validators.required, Validators.maxLength(20), Validators.pattern("^[a-zA-Z0-9](_(?!(\.|_))|\.(?!(_|\.))|[a-zA-Z0-9]){3,18}[a-zA-Z0-9]$")]),
+      password: new FormControl(this.password, [Validators.required, Validators.maxLength(25), /*Validators.pattern("^(?=.*[A-Za-z])(?=.*\\d)(?=.*[@$!%*#?&])[A-Za-z\\d@$!%*#?&]{8,}$")*/])
+    }, {updateOn: "change"});
+
+    // Ensure camera form controls highlight immediately if invalid
+    this.loginForm.markAllAsTouched();
+  }
+}
