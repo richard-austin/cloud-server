@@ -28,7 +28,7 @@ class CloudSecurityEventListener implements LogoutHandler, AuthenticationSuccess
     void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
         String cookie = cloudService.cloud.authenticate()
         if(cookie != "" && cookie != "NO_CONN") {
-            response.setHeader("Set-Cookie", "NVRSESSIONID="+cookie+"; Path=/; HttpOnly")
+            response.addHeader("Set-Cookie", "NVRSESSIONID="+cookie+"; Path=/; HttpOnly")
             loginSuccess(request.getParameter("username"))
         }
         else

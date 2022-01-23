@@ -134,8 +134,8 @@ public class Cloud implements SslContextProvider {
 
                             this.cloudProxy = cloudProxy;
                             startCloudProxyInputProcess();
-                            if (!protocolAgnostic)
-                                authenticate();
+//                            if (!protocolAgnostic)
+//                                authenticate();
                         } catch (IOException ioex) {
                             logger.error("IOException in acceptConnectionsFromCloudProxy: " + ioex.getClass().getName() + ": " + ioex.getMessage());
                             reset();
