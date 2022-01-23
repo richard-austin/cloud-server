@@ -129,10 +129,22 @@ environments:
             dbCreate: update
             url: jdbc:h2:mem:testDb;LOCK_TIMEOUT=10000;DB_CLOSE_ON_EXIT=FALSE
     production:
+        cloud:
+            username: admin
+            password: P0larC@mper
+            trustStorePath: /etc/cloud/cacert.jks
+            keyStorePath: /etc/cloud/cloud.jks
+            keyStorePassword: B0331e
+            trustStorePassword: B0331e
+            cloudHost: localhost
+            cloudPort: 8081
+            webServerHost: localhost
+            webServerPort: 8088
+
         dataSource:
             dbCreate: none
-            url: jdbc:h2:./prodDb;LOCK_TIMEOUT=10000;DB_CLOSE_ON_EXIT=FALSE
-            properties:
+            url: jdbc:h2:/home/cloud/db/prodDb;LOCK_TIMEOUT=10000;DB_CLOSE_ON_EXIT=FALSE
+        properties:
                 jmxEnabled: true
                 initialSize: 5
                 maxActive: 50
