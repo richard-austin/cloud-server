@@ -92,7 +92,7 @@ export class UtilsService {
   }
 
   getTemperature(): Observable<Temperature> {
-    return this.http.post<Temperature>(this._baseUrl.getLink("utils", "getTemperature"), '', this.httpJSONOptions).pipe(
+    return this.http.post<Temperature>(this._baseUrl.getLink("cloud", "getTemperature"), '', this.httpJSONOptions).pipe(
       tap(() => {
           this._loggedIn = true;
         },

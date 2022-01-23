@@ -19,7 +19,8 @@ const PROXY_CONFIG = [
   {
     context: [
       "/login",
-      "/logoff"
+      "/logoff",
+      "/cloud"
     ],
     ws: false,
     target: "http://localhost:8086",
