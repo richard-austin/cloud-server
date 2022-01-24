@@ -10,11 +10,6 @@ grails.plugin.springsecurity.logout.handlerNames = [
 grails.plugin.springsecurity.useSecurityEventListener          = true
 
 // Added by the Spring Security Core plugin:
-grails.plugin.springsecurity.userLookup.userDomainClassName = 'cloudwebapp.Person'
-grails.plugin.springsecurity.userLookup.authorityJoinClassName = 'cloudwebapp.PersonAuthority'
-grails.plugin.springsecurity.authority.className = 'cloudwebapp.Authority'
-
-// Added by the Spring Security Core plugin:
 grails.plugin.springsecurity.userLookup.userDomainClassName = 'cloudservice.User'
 grails.plugin.springsecurity.userLookup.authorityJoinClassName = 'cloudservice.UserRole'
 grails.plugin.springsecurity.authority.className = 'cloudservice.Role'
@@ -30,7 +25,11 @@ grails.plugin.springsecurity.controllerAnnotations.staticRules = [
 	[pattern: '/**/images/**',   access: ['permitAll']],
 	[pattern: '/**/favicon.ico', access: ['permitAll']],
 	[pattern: '/**/index.html',  access: ['permitAll']],
-	[pattern: '/#/**',           access: ['permitAll']]
+	[pattern: '/#/**',           access: ['permitAll']],
+	[pattern: '/**/*.js',        access: ['permitAll']],
+	[pattern: '/**/*.css',       access: ['permitAll']],
+	[pattern: '/**/*.ttf',       access: ['permitAll']],
+	[pattern: '/**/*.woff2',     access: ['permitAll']]
 ]
 
 grails.plugin.springsecurity.filterChain.chainMap = [

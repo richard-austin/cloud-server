@@ -80,6 +80,9 @@ dependencies {
     testRuntimeOnly "org.seleniumhq.selenium:selenium-firefox-driver:3.141.59"
 }
 
+task prepareKotlinBuildScriptModel {
+}
+
 bootRun {
     ignoreExitValue true
     jvmArgs(
@@ -90,6 +93,31 @@ bootRun {
     sourceResources sourceSets.main
     String springProfilesActive = 'spring.profiles.active'
     systemProperty springProfilesActive, System.getProperty(springProfilesActive)
+}
+
+assetCompile.dependsOn(':cloudwebapp:setVersion')
+bootWar.dependsOn(':cloudFrontEnd:buildClient')
+
+bootWar {
+    webInf {
+        from('../cloudFrontEnd/dist/client')
+        include '**/*'
+        into('classes/public')
+    }
+}
+
+task setVersion(type: Exec) {
+    group = 'build'
+    description = 'Sets the version.txt file with the current version from git describe'
+    workingDir "$projectDir"
+    executable "sh"
+    args = ['-c', 'mkdir -p grails-app/assets/version && git describe --tags --dirty | tr -d \'\\n\' > grails-app/assets/version/version.txt']
+}
+
+task buildDebFile(type: Exec, dependsOn: [':cloudwebapp:assemble']) {
+    group = 'build'
+    workingDir "$projectDir/../xtrn-files-and-config/deb-file-creation"
+    commandLine './create-deb.sh'
 }
 
 tasks.withType(GroovyCompile) {
