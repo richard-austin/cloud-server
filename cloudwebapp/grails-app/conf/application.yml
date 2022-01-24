@@ -36,6 +36,10 @@ management:
 
 ---
 grails:
+    resources:
+        pattern: /**   # Needed to make static resources (Angular) accessible from public directory
+        #  Without this, static resources are available at <baseurl>/static/**
+
     mime:
         disable:
             accept:
@@ -142,7 +146,7 @@ environments:
             webServerPort: 8088
 
         dataSource:
-            dbCreate: none
+            dbCreate: update
             url: jdbc:h2:/home/cloud/db/prodDb;LOCK_TIMEOUT=10000;DB_CLOSE_ON_EXIT=FALSE
         properties:
                 jmxEnabled: true
