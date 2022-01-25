@@ -61,6 +61,8 @@ export class CameraService {
   }
 
   initialiseCameras(): void{
+    this.cameraStreams = [];
+    this.cameras = [];
     this.loadCameraStreams().subscribe(cameraStreams => {
         // Build up a cameraStreams array which excludes the addition guff which comes from
         // having the cameraStreams set up configured in application.yml
