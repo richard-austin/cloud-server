@@ -13,7 +13,7 @@
   </button>
 
   <div #navbarCollapse class="collapse" id="navbarSupportedContent">
-    <div [style]="'display:'+ (utilsService.loggedIn ? 'inline' : 'none')">
+    <div [style]="'display:'+ (utilsService.loggedIn ? 'inherit' : 'none')">
       <button mat-button [matMenuTriggerFor]="menuSelectCamera" id="cameraDropdown">
         Select Camera
       </button>
@@ -27,7 +27,7 @@
       </mat-menu>
     </div>
 
-    <div [style]="'display:'+ (utilsService.loggedIn ? 'inline' : 'none')">
+    <div [style]="'display:'+ (utilsService.loggedIn ? 'inherit' : 'none')">
       <button mat-button [matMenuTriggerFor]="menuSelectRecording">Select Recording</button>
       <mat-menu #menuSelectRecording="matMenu">
         <ng-container *ngFor="let cs of cameraStreams">
@@ -38,7 +38,7 @@
       </mat-menu>
     </div>
 
-    <div [style]="'display:'+ (utilsService.loggedIn ? 'inline' : 'none')">
+    <div [style]="'display:'+ (utilsService.loggedIn ? 'inherit' : 'none')">
       <button mat-button [matMenuTriggerFor]="menuCameraSettings">Camera Settings</button>
       <mat-menu #menuCameraSettings="matMenu">
         <ng-container *ngFor="let cam of cameras">
@@ -51,13 +51,13 @@
     </div>
 
   <!--    <div *ngIf="!noTemperature" [ngClass]="tempAlertClass" class="mx-auto temp">Core Temp: {{temperature}} °C</div>-->
-    <div [style]="'display:'+ (utilsService.loggedIn ? 'none' : 'inline')">
+    <div [style]="'display:'+ (utilsService.loggedIn ? 'none' : 'inherit')">
       <button mat-button #loginButton [matMenuTriggerFor]="menuLogin">Log in</button>
       <mat-menu #menuLogin="matMenu">
         <button mat-menu-item (click)="login();menuClosed()">Login</button>
       </mat-menu>
     </div>
-    <div [style]="'display:'+ (utilsService.loggedIn ? 'inline' : 'none')">
+    <div [style]="'display:'+ (utilsService.loggedIn ? 'inherit' : 'none')">
       <button mat-button [matMenuTriggerFor]="menuGeneral">General</button>
       <mat-menu #menuGeneral="matMenu">
         <button mat-menu-item (click)="configSetup();menuClosed()">Configure Camera Setup</button>
