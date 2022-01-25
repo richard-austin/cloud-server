@@ -1,20 +1,20 @@
-import {Component, EventEmitter, OnInit, Output, ViewChild} from '@angular/core';
+import {AfterViewInit, Component, ElementRef, OnInit, ViewChild} from '@angular/core';
 import {FormControl, FormGroup, Validators} from "@angular/forms";
-import {ReportingComponent} from "../reporting/reporting.component";
 import {CameraService} from "../cameras/camera.service";
-import {LoggedinMessage, Message, messageType, UtilsService} from "../shared/utils.service";
+import {LoggedinMessage, UtilsService} from "../shared/utils.service";
 
 @Component({
   selector: 'app-login',
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.scss']
 })
-export class LoginComponent implements OnInit {
+export class LoginComponent implements OnInit, AfterViewInit {
 
   username: string = '';
   password: string = '';
   loginForm!: FormGroup;
   errorMessage: string = '';
+  @ViewChild('username') usernameInput!: ElementRef<HTMLInputElement>
 
   constructor(private cameraSvc: CameraService, public utilsService: UtilsService) { }
   login()
@@ -43,13 +43,13 @@ export class LoginComponent implements OnInit {
     return this.loginForm.invalid;
   }
 
-  keyDownHandler($event: KeyboardEvent) {
-    if ($event.key == "Tab")
-      $event.stopPropagation();  // Prevent the tab key from closing the menu (form)
-  }
-
   hideLoginForm() {
       window.location.href = "#/";
+  }
+
+  confirmOnReturn($event: KeyboardEvent) {
+      if($event.key == 'Enter')
+        this.login();
   }
 
   ngOnInit(): void {
@@ -60,5 +60,10 @@ export class LoginComponent implements OnInit {
 
     // Ensure camera form controls highlight immediately if invalid
     this.loginForm.markAllAsTouched();
+  }
+
+  ngAfterViewInit(): void {
+    // Set the focus to the username input
+    this.usernameInput.nativeElement.focus();
   }
 }
