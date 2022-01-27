@@ -29,7 +29,7 @@ Package: cloud
 Version: $VERSION
 Architecture: arm64
 Maintainer: Richard Austin <richard.david.austin@gmail.com>
-Description: A security camera system accessed through a secure web based interface.
+Description: Cloud server to provide access to NVRs running the CloudProxy.
 Depends: openjdk-11-jre-headless (>=11.0.11), openjdk-11-jre-headless (<< 12.0.0),
  nginx (>=1.18.0), nginx(<=1.20.9),
  tomcat9 (>=9.0.43-1), tomcat9 (<= 10.0.0),
