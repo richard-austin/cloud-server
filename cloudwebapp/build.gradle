@@ -62,6 +62,7 @@ dependencies {
     implementation "org.hibernate:hibernate-core:5.5.7.Final"
     implementation "org.grails.plugins:events"
     implementation "org.grails.plugins:gsp"
+    implementation 'commons-codec:commons-codec:1.15'
     profile "org.grails.profiles:web"
     runtimeOnly "org.glassfish.web:el-impl:2.2.1-b05"
     runtimeOnly "com.h2database:h2"

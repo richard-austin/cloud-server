@@ -1,7 +1,9 @@
 package cloudservice.eventlisteners
 
+import cloudservice.User
 import cloudwebapp.CloudService
 import cloudwebapp.LogService
+import grails.gorm.transactions.Transactional
 import org.springframework.security.core.Authentication
 import org.springframework.security.core.AuthenticationException
 import org.springframework.security.web.authentication.AuthenticationFailureHandler
@@ -26,7 +28,9 @@ class CloudSecurityEventListener implements LogoutHandler, AuthenticationSuccess
 
     @Override
     void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
-        String cookie = cloudService.cloud.authenticate()
+        String productId = getProductId(request.getParameter("username"))
+
+        String cookie = cloudService.cloudListener.authenticate(productId)
         if(cookie != "" && cookie != "NO_CONN") {
             response.addHeader("Set-Cookie", "NVRSESSIONID="+cookie+"; Path=/; HttpOnly")
             loginSuccess(request.getParameter("username"))
@@ -41,11 +45,25 @@ class CloudSecurityEventListener implements LogoutHandler, AuthenticationSuccess
         }
     }
 
+    @Transactional
+    private String getProductId(String userName)
+    {
+        try {
+            User user = User.findByUsername(userName)
+
+            return user.productid
+        }
+        catch(Exception ex)
+        {
+            System.out.println(ex.getMessage())
+        }
+    }
+
     private void loginSuccess(String userName) {
         logAudit("USER-LOGIN_SUCCESS: ", "user='${userName}'")
     }
 
-    private void logAudit(String auditType, def message) {
+    private void logAudit(String auditType, GString message) {
         logService.cloud.info "Audit:${auditType}- ${message.toString()}"
     }
 }
@@ -72,7 +90,7 @@ class CloudAuthFailEventListener implements AuthenticationFailureHandler,  Logou
         String userName = authentication?.principal?.username
         String cookie = request.getHeader("cookie")
         logAudit("USER-LOGOUT", "user='${userName}")
-        cloudService.cloud.logoff(cookie)
+        cloudService.cloudListener.logoff(cookie)
     }
 
     @Override

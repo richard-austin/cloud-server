@@ -118,10 +118,11 @@ environments:
 
         cloud:
             username: admin
-            password: P0larC@mper
+            password: elementary
             trustStorePath: ../xtrn-files-and-config/cacert.jks
             keyStorePath: ../xtrn-files-and-config/cloud.jks
             keyStorePassword: B0331e
+            privateKeyPath: /etc/cloud/privateKey
             trustStorePassword: B0331e
             cloudHost: localhost
             cloudPort: 8081

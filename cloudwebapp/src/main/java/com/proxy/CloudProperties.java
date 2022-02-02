@@ -31,6 +31,7 @@ public final class CloudProperties {
         CLOUD_KEYSTORE_PATH = config.getProperty("cloud.keyStorePath");
         TRUSTSTORE_PASSWORD = config.getProperty("cloud.trustStorePassword");
         CLOUD_KEYSTORE_PASSWORD = config.getProperty("cloud.keyStorePassword");
+        PRIVATE_KEY_PATH = config.getProperty("cloud.privateKeyPath");
     }
 
     static final int REQUEST_TIMEOUT_SECS = 300;
@@ -40,6 +41,7 @@ public final class CloudProperties {
     private String CLOUD_KEYSTORE_PATH;
     private String CLOUD_KEYSTORE_PASSWORD;
     private String TRUSTSTORE_PASSWORD;
+    private String PRIVATE_KEY_PATH;
 
     public String getTRUSTSTORE_PATH() {
         return TRUSTSTORE_PATH;
@@ -55,5 +57,6 @@ public final class CloudProperties {
     }
     public String getUSERNAME() { return USERNAME;}
     public String getPASSWORD() {return PASSWORD;}
+    public String getPRIVATE_KEY_PATH() { return PRIVATE_KEY_PATH; }  // Private key to decrypt the product ID
 }
 

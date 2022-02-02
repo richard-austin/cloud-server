@@ -1,9 +1,6 @@
 package com.proxy;
 
-import javax.net.ssl.KeyManager;
-import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLSocket;
-import javax.net.ssl.TrustManager;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -12,7 +9,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
-import java.security.GeneralSecurityException;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -22,16 +18,14 @@ import org.slf4j.LoggerFactory;
 import java.util.zip.CRC32;
 import java.util.zip.Checksum;
 
-import static com.proxy.SslUtil.*;
-
-public class Cloud implements SslContextProvider {
+public class Cloud {
     final Queue<ByteBuffer> bufferQueue = new ConcurrentLinkedQueue<>();
     private boolean running = false;
+    private static boolean allRunning = false;
     private final ExecutorService browserWriteExecutor = Executors.newSingleThreadExecutor();
     private final ExecutorService browserReadExecutor = Executors.newCachedThreadPool();
     private final ExecutorService sendToCloudProxyExecutor = Executors.newSingleThreadExecutor();
-    private ScheduledExecutorService startCloudProxyInputProcessExecutor;
-    private final ExecutorService acceptConnectionsFromCloudProxyExecutor = Executors.newSingleThreadExecutor();
+    private ScheduledExecutorService startCloudProxyInputProcessExecutor = Executors.newSingleThreadScheduledExecutor();
     private final ExecutorService acceptConnectionsFromBrowserExecutor = Executors.newSingleThreadExecutor();
 
     private String NVRSESSIONID = "";
@@ -45,16 +39,21 @@ public class Cloud implements SslContextProvider {
     private final int closedFlagLength = Byte.BYTES;
     private final int headerLength = tokenLength + lengthLength + closedFlagLength;
     private SSLSocket cloudProxy;
+    final private String productId;
     private CloudProperties cloudProperties = CloudProperties.getInstance();
-    private final int browserFacingPort = 8083, cloudProxyFacingPort = 8081;
+    private static final int browserFacingPort = 8083;
     private final boolean protocolAgnostic = true;  // ProtocolAgnostic means that login to NVR won't be done automatically by the Cloud
 
-    public void start() {
-        if (!running) {
-            running = true;
-            acceptConnectionsFromCloudProxy(cloudProxyFacingPort);
-            acceptConnectionsFromBrowserExecutor.execute(() -> acceptConnectionsFromBrowser(browserFacingPort));
-        }
+    Cloud(SSLSocket cloudProxy, String productId)
+    {
+        this.cloudProxy = cloudProxy;
+        this.productId = productId;
+        running = true;
+        startCloudProxyInputProcess();
+        acceptConnectionsFromBrowserExecutor.execute(() -> acceptConnectionsFromBrowser(browserFacingPort));
+    }
+
+    public static void start() {
     }
 
     public void stop() {
@@ -63,9 +62,7 @@ public class Cloud implements SslContextProvider {
             if (cloudProxy != null)
                 cloudProxy.close();
 
-            // Close the two listening sockets
-            if (_s != null)
-                _s.close();
+            // Close the browser listening socket
             if (_sc != null)
                 _sc.close();
 
@@ -75,7 +72,6 @@ public class Cloud implements SslContextProvider {
             if (startCloudProxyInputProcessExecutor != null)
                 startCloudProxyInputProcessExecutor.shutdownNow();
 
-            acceptConnectionsFromCloudProxyExecutor.shutdownNow();
             acceptConnectionsFromBrowserExecutor.shutdownNow();
             lastBitOfPreviousMessage = null;
             lastBitOfPreviousHttpMessage.clear();
@@ -114,39 +110,6 @@ public class Cloud implements SslContextProvider {
                 logger.error("IOException in acceptConnectionsFromBrowser: " + ioex.getClass().getName() + ": " + ioex.getMessage());
             }
         }
-    }
-
-    private SSLServerSocket _s = null;
-
-    private void acceptConnectionsFromCloudProxy(final int cloudProxyFacingPort) {
-        acceptConnectionsFromCloudProxyExecutor.execute(() -> {
-            while (running) {
-                try {
-                    // Creating a ServerSocket to listen for connections with
-                    SSLServerSocket s = _s = createSSLServerSocket(cloudProxyFacingPort, this);
-                    while (running) {
-                        try {
-                            // It will wait for a connection on the local port
-                            SSLSocket cloudProxy = (SSLSocket) s.accept();
-                            reset();
-                            cloudProxy.setSoTimeout(0);
-                            cloudProxy.setSoLinger(true, 5);
-
-                            this.cloudProxy = cloudProxy;
-                            startCloudProxyInputProcess();
-//                            if (!protocolAgnostic)
-//                                authenticate();
-                        } catch (IOException ioex) {
-                            logger.error("IOException in acceptConnectionsFromCloudProxy: " + ioex.getClass().getName() + ": " + ioex.getMessage());
-                            reset();
-                        }
-                    }
-                } catch (Exception ioex) {
-                    logger.error("Exception in acceptConnectionsFromCloudProxy: " + ioex.getClass().getName() + ": " + ioex.getMessage());
-                    reset();
-                }
-            }
-        });
     }
 
     private void startCloudProxyInputProcess() {
@@ -193,7 +156,7 @@ public class Cloud implements SslContextProvider {
                 String payload = "username=" + cloudProperties.getUSERNAME() + "&password=" + cloudProperties.getPASSWORD();
 
                 String output = "POST /login/authenticate HTTP/1.1\r\n" +
-                        "Host: host\r\n" +
+                        "Host: "+socket.getInetAddress().getHostAddress()+"\r\n" +
                         "DNT: 1\r\n" +
                         "Upgrade-Insecure-Requests: 1\r\n" +
                         "Content-type: application/x-www-form-urlencoded\r\n" +
@@ -207,7 +170,7 @@ public class Cloud implements SslContextProvider {
                     HttpMessage hdrs = new HttpMessage(buf);
                     var l = hdrs.getHeader("location");
                     String location = l.size() == 1 ? l.get(0) : null;
-                    if (Objects.equals(location, "/")) {
+                    if (location != null && !location.contains("authfail")) {
                         List<String> setCookie = hdrs.getHeader("set-cookie");
                         for (String cookie : setCookie) {
                             if (cookie.startsWith("NVRSESSIONID")) {
@@ -719,6 +682,11 @@ public class Cloud implements SslContextProvider {
         }
     }
 
+    public void setCloudProxyConnection(SSLSocket cloudProxy) {
+        reset();
+        this.cloudProxy = cloudProxy;
+     }
+
     public void reset() {
         logger.info("Reset called");
         if (startCloudProxyInputProcessExecutor != null)
@@ -740,25 +708,6 @@ public class Cloud implements SslContextProvider {
         return buf.getInt(buf.position() + tokenLength) + headerLength;
     }
 
-    private SSLSocket createSSLSocket(String host, int port) throws Exception {
-        return SslUtil.createSSLSocket(host, port, this);
-    }
-
-    @Override
-    public KeyManager[] getKeyManagers() throws GeneralSecurityException, IOException {
-        return createKeyManagers(cloudProperties.getCLOUD_KEYSTORE_PATH(), cloudProperties.getCLOUD_KEYSTORE_PASSWORD().toCharArray());
-    }
-
-    @Override
-    public String getProtocol() {
-        return "TLSv1.2";
-    }
-
-    @Override
-    public TrustManager[] getTrustManagers() throws GeneralSecurityException, IOException {
-        return createTrustManagers(cloudProperties.getTRUSTSTORE_PATH(), cloudProperties.getTRUSTSTORE_PASSWORD().toCharArray());
-    }
-
     int c = 0;
 
     void throwEx() throws Exception {
@@ -767,5 +716,6 @@ public class Cloud implements SslContextProvider {
             throw new Exception("Contrived exception");
         }
     }
+
 }
 

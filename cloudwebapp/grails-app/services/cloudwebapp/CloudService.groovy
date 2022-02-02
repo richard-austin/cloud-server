@@ -3,7 +3,7 @@ package cloudwebapp
 import cloudservice.enums.PassFail
 import cloudservice.interfaceobjects.ObjectCommandResponse
 import cloudservice.interfaceobjects.RestfulResponse
-import com.proxy.Cloud
+import com.proxy.CloudListener
 import grails.core.GrailsApplication
 import grails.gorm.transactions.Transactional
 
@@ -20,29 +20,29 @@ class Temperature {
 class CloudService {
     LogService logService
     GrailsApplication grailsApplication
-    Cloud cloud = null
+    CloudListener cloudListener = null
 
     def start() {
-        if(cloud == null)
-            cloud = new Cloud()
+        if(cloudListener == null)
+            cloudListener = new CloudListener()
 
         ObjectCommandResponse response = new ObjectCommandResponse()
         try
         {
-            cloud.start()
+            cloudListener.start()
         }
         catch(Exception ex)
         {
             response.status= PassFail.FAIL
-            response.error = "Exception in CloudProxy.start: "+ex.getClass().getName()+": "+ex.getMessage()
+            response.error = "Exception in CloudListener.start: "+ex.getClass().getName()+": "+ex.getMessage()
             logService.cloud.error(response.error)
         }
         return response
     }
 
     def stop() {
-        if(cloud)
-            cloud.stop()
+        if(cloudListener)
+            cloudListener.stop()
     }
 
     def getTemperature(HttpServletRequest request) {
