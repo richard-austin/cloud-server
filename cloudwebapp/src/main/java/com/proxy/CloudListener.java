@@ -13,9 +13,7 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.PrivateKey;
-import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -25,7 +23,7 @@ public class CloudListener implements SslContextProvider {
     private final CloudProperties cloudProperties = CloudProperties.getInstance();
     private boolean allRunning = false;
     final private int cloudProxyFacingPort = 8081;
-    private final ExecutorService acceptConnectionsFromCloudProxyExecutor = Executors.newSingleThreadExecutor();
+    private ExecutorService acceptConnectionsFromCloudProxyExecutor = null;
     private final Logger logger = (Logger) LoggerFactory.getLogger("CLOUD");
     final private CloudInstanceMap instances = new CloudInstanceMap();
 
@@ -34,6 +32,7 @@ public class CloudListener implements SslContextProvider {
     public void start()
     {
         if(!allRunning) {
+            acceptConnectionsFromCloudProxyExecutor= Executors.newSingleThreadExecutor();
             allRunning = true;
             acceptConnectionsFromCloudProxy(cloudProxyFacingPort);
         }
@@ -42,16 +41,24 @@ public class CloudListener implements SslContextProvider {
     public void stop()
     {
         try {
-            // Close the Cloud|Proxy listening socket
+            // Stop the CloudProxy listener threads
+            allRunning = false;
+            acceptConnectionsFromCloudProxyExecutor.shutdownNow();
+
+            // Close the CloudProxy listening socket
             if (_s != null)
                 _s.close();
-        }
-        catch(IOException ex)
-        {
-            logger.error("Exception when closing CloudProxy listening socket: "+ex.getMessage());
-        }
 
-        acceptConnectionsFromCloudProxyExecutor.shutdownNow();
+            //  Close all the Cloud instances
+            instances.forEach((prodId ,cloud) -> {
+                cloud.stop();
+            });
+
+        }
+        catch(Exception ex)
+        {
+            logger.error(ex.getClass().getName()+" when closing CloudProxy listening socket: "+ex.getMessage());
+        }
     }
 
     private void acceptConnectionsFromCloudProxy(final int cloudProxyFacingPort) {
@@ -76,9 +83,13 @@ public class CloudListener implements SslContextProvider {
                         } catch (IOException ioex) {
                             logger.error("IOException in acceptConnectionsFromCloudProxy: " + ioex.getClass().getName() + ": " + ioex.getMessage());
                         }
+                        synchronized (acceptConnectionsFromCloudProxyExecutor) {
+                            // Wait 10 milliseconds to prevent 100% CPU in case of repeat exceptions
+                            acceptConnectionsFromCloudProxyExecutor.wait(10);
+                        }
                     }
                 } catch (Exception ioex) {
-                    logger.error("Exception in acceptConnectionsFromCloudProxy: " + ioex.getClass().getName() + ": " + ioex.getMessage());
+                    logger.error(ioex.getClass().getName()+" in acceptConnectionsFromCloudProxy: " + ioex.getClass().getName() + ": " + ioex.getMessage());
                 }
             }
         });
@@ -87,6 +98,7 @@ public class CloudListener implements SslContextProvider {
     private void startNewInstance(SSLSocket cloudProxy, String prodId) {
         if(!instances.containsProductKey(prodId)) {
             Cloud newInstance = new Cloud(cloudProxy, prodId);
+            newInstance.start();
             instances.putByProductId(prodId, newInstance);
         }
         else
@@ -118,7 +130,7 @@ public class CloudListener implements SslContextProvider {
         }
         catch(Exception ex)
         {
-            logger.error("Exception in getProductId: "+ex.getMessage());
+            logger.error(ex.getClass().getName()+" in getProductId: "+ex.getMessage());
         }
         if(retVal.equals("")) {
             try {
@@ -129,7 +141,7 @@ public class CloudListener implements SslContextProvider {
             }
             catch(IOException ex)
             {
-                logger.error("Exception in getProductId when sending error response: "+ex.getMessage());
+                logger.error(ex.getClass().getName()+" in getProductId when sending error response: "+ex.getMessage());
             }
         }
 
@@ -139,13 +151,13 @@ public class CloudListener implements SslContextProvider {
     /**
      * authenticate: Authenticate via the appropriate Cloud instance
      * @param productId: The users product id
-     * @return
+     * @return: The NVRSESSIONID
      */
     public String authenticate(String productId) {
         if(instances.containsProductKey(productId)) {
             Cloud inst = instances.getByProductId(productId);
             String nvrSessionId = inst.authenticate();
-            if(nvrSessionId != "")
+            if(nvrSessionId != "" && instances.getBySessionId(nvrSessionId) == null)
                 instances.putBySessionId(nvrSessionId, inst);
 
             return nvrSessionId;
@@ -156,15 +168,21 @@ public class CloudListener implements SslContextProvider {
 
     public void logoff(String cookie)
     {
-        final int startIndex = cookie.indexOf("NVRSESSIONID");
-        int endIndex = cookie.indexOf(";", startIndex);
-        endIndex = endIndex == -1 ? cookie.length() : endIndex;
-        final String nvrSessionId = cookie.substring(startIndex+"NVRSESSIONID=".length(), endIndex);
-        final String cookieDef = cookie.substring(startIndex, endIndex);
-        final Cloud inst = instances.getBySessionId(nvrSessionId);
-        inst.logoff(cookieDef);
-        inst.stop();
-        instances.removeBySessionIdId(nvrSessionId);
+        try {
+            final int startIndex = cookie.indexOf("NVRSESSIONID");
+            int endIndex = cookie.indexOf(";", startIndex);
+            endIndex = endIndex == -1 ? cookie.length() : endIndex;
+            final String nvrSessionId = cookie.substring(startIndex + "NVRSESSIONID=".length(), endIndex);
+            final String cookieDef = cookie.substring(startIndex, endIndex);
+            final Cloud inst = instances.getBySessionId(nvrSessionId);
+            inst.logoff(cookieDef);
+            inst.stop();
+            instances.removeBySessionId(nvrSessionId);
+        }
+        catch(Exception ex)
+        {
+            logger.error(ex.getClass().getName()+" in logoff: "+ex.getMessage());
+        }
     }
 
     @Override

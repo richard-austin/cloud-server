@@ -1,9 +1,7 @@
 package com.proxy;
 
 import com.google.common.collect.HashBiMap;
-
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
 
 public class CloudInstanceMap {
     HashBiMap<String, Cloud> _mapByProdId;
@@ -15,6 +13,12 @@ public class CloudInstanceMap {
         _mapBySessionId = HashBiMap.create();
     }
 
+    /**
+     * putByProductId: Put a Cloud instance into the product key map
+     * @param key
+     * @param cloud
+     * @return: The Cloud instance
+     */
     Cloud putByProductId(String key, Cloud cloud)
     {
         return _mapByProdId.put(key, cloud);
@@ -46,18 +50,22 @@ public class CloudInstanceMap {
         return inst;
     }
 
-    Cloud removeBySessionIdId(String productId)
+    Cloud removeBySessionId(String productId)
     {
         Cloud inst = _mapBySessionId.get(productId);
         if(inst != null) {
             _mapBySessionId.remove(productId);
             _mapByProdId.inverse().remove(inst);
         }
-
         return inst;
     }
 
     public boolean containsProductKey(String prodId) {
         return _mapByProdId.containsKey(prodId);
+    }
+
+    public void forEach(BiConsumer<? super String, ? super Cloud> action)
+    {
+        _mapByProdId.forEach(action);
     }
 }

@@ -34,7 +34,7 @@ class CloudService {
         catch(Exception ex)
         {
             response.status= PassFail.FAIL
-            response.error = "Exception in CloudListener.start: "+ex.getClass().getName()+": "+ex.getMessage()
+            response.error = ex.getClass().getName()+" in CloudListener.start: "+ex.getClass().getName()+": "+ex.getMessage()
             logService.cloud.error(response.error)
         }
         return response
@@ -88,7 +88,7 @@ class CloudService {
             result.responseObject = temp
         }
         catch (Exception ex) {
-            logService.cloud.error("Exception in getTemperature: " + ex.getCause() + ' ' + ex.getMessage())
+            logService.cloud.error(ex.getClass().getName()+" in getTemperature: " + ex.getCause() + ' ' + ex.getMessage())
             result.status = PassFail.FAIL
             result.error = ex.getMessage()
         }

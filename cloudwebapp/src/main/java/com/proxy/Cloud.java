@@ -21,12 +21,11 @@ import java.util.zip.Checksum;
 public class Cloud {
     final Queue<ByteBuffer> bufferQueue = new ConcurrentLinkedQueue<>();
     private boolean running = false;
-    private static boolean allRunning = false;
-    private final ExecutorService browserWriteExecutor = Executors.newSingleThreadExecutor();
-    private final ExecutorService browserReadExecutor = Executors.newCachedThreadPool();
-    private final ExecutorService sendToCloudProxyExecutor = Executors.newSingleThreadExecutor();
-    private ScheduledExecutorService startCloudProxyInputProcessExecutor = Executors.newSingleThreadScheduledExecutor();
-    private final ExecutorService acceptConnectionsFromBrowserExecutor = Executors.newSingleThreadExecutor();
+    private ExecutorService browserWriteExecutor = null;
+    private ExecutorService browserReadExecutor = null;
+    private ExecutorService sendToCloudProxyExecutor = null;
+    private ScheduledExecutorService startCloudProxyInputProcessExecutor = null;
+    private ExecutorService acceptConnectionsFromBrowserExecutor = null;
 
     private String NVRSESSIONID = "";
 
@@ -48,12 +47,23 @@ public class Cloud {
     {
         this.cloudProxy = cloudProxy;
         this.productId = productId;
-        running = true;
-        startCloudProxyInputProcess();
-        acceptConnectionsFromBrowserExecutor.execute(() -> acceptConnectionsFromBrowser(browserFacingPort));
     }
 
-    public static void start() {
+    /**
+     * start: Start the threads in the Cloud instance
+     */
+    public void start() {
+        if(!running) {
+            running = true;
+            browserWriteExecutor = Executors.newSingleThreadExecutor();
+            browserReadExecutor = Executors.newCachedThreadPool();
+            sendToCloudProxyExecutor = Executors.newSingleThreadExecutor();
+            startCloudProxyInputProcessExecutor = Executors.newSingleThreadScheduledExecutor();
+            acceptConnectionsFromBrowserExecutor = Executors.newSingleThreadExecutor();
+            running = true;
+            startCloudProxyInputProcess();
+            acceptConnectionsFromBrowserExecutor.execute(() -> acceptConnectionsFromBrowser(browserFacingPort));
+        }
     }
 
     public void stop() {
@@ -77,7 +87,7 @@ public class Cloud {
             lastBitOfPreviousHttpMessage.clear();
             clearSocketMap();
         } catch (Exception ex) {
-            logger.error("Exception in stop: " + ex.getMessage());
+            logger.error(ex.getClass().getName()+" in stop: " + ex.getMessage());
         }
     }
 
@@ -103,11 +113,11 @@ public class Cloud {
                         updateSocketMap(browser, token);
                         readFromBrowser(browser, token);
                     } catch (Exception ex) {
-                        logger.error("Exception in acceptConnectionsFromBrowser: " + ex.getClass().getName() + ": " + ex.getMessage());
+                        logger.error(ex.getClass().getName()+" in acceptConnectionsFromBrowser:  " + ex.getMessage());
                     }
                 }
             } catch (IOException ioex) {
-                logger.error("IOException in acceptConnectionsFromBrowser: " + ioex.getClass().getName() + ": " + ioex.getMessage());
+                logger.error(ioex.getClass().getName()+" in acceptConnectionsFromBrowser: " + ioex.getMessage());
             }
         }
     }
@@ -190,7 +200,7 @@ public class Cloud {
 
             } catch (Exception ex) {
 
-                System.out.println("Exception in authenticate: " + ex.getClass().getName() + ": " + ex.getMessage() + "\n\n");
+                System.out.println(ex.getClass().getName()+" in authenticate: " + ex.getClass().getName() + ": " + ex.getMessage() + "\n\n");
                 ex.printStackTrace();
             }
         } else
@@ -232,7 +242,7 @@ public class Cloud {
                     logger.info(new String(buf.array(), headerLength, buf.limit() - headerLength));
 
             } catch (Exception ioex) {
-                logger.error("Exception in logoff: " + ioex.getMessage());
+                logger.error(ioex.getClass().getName()+" in logoff: " + ioex.getMessage());
                 retVal = false;
             }
         }
@@ -607,7 +617,7 @@ public class Cloud {
             } catch (InterruptedException ex) {
                 logger.warn("Interrupted wait in stealMessage: " + ex.getMessage());
             } catch (Exception ex) {
-                logger.trace("Exception in stealMessage: " + ex.getMessage());
+                logger.trace(ex.getClass().getName()+" in stealMessage: " + ex.getMessage());
             }
         }
         stolenBuffers.remove(token);
