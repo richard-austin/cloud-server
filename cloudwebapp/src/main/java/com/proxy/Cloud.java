@@ -41,7 +41,7 @@ public class Cloud {
     private SSLSocket cloudProxy;
     final private String productId;
     private CloudProperties cloudProperties = CloudProperties.getInstance();
-    private static final int browserFacingPort = 8083;
+    private final int browserFacingPort = 8083;
     private final boolean protocolAgnostic = true;  // ProtocolAgnostic means that login to NVR won't be done automatically by the Cloud
 
     Cloud(SSLSocket cloudProxy, String productId)

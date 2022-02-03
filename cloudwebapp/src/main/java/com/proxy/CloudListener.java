@@ -27,7 +27,7 @@ public class CloudListener implements SslContextProvider {
     final private int cloudProxyFacingPort = 8081;
     private final ExecutorService acceptConnectionsFromCloudProxyExecutor = Executors.newSingleThreadExecutor();
     private final Logger logger = (Logger) LoggerFactory.getLogger("CLOUD");
-    final private Map<String, Cloud> instances = new ConcurrentHashMap<>();
+    final private CloudInstanceMap instances = new CloudInstanceMap();
 
     private SSLServerSocket _s = null;
 
@@ -85,12 +85,12 @@ public class CloudListener implements SslContextProvider {
     }
 
     private void startNewInstance(SSLSocket cloudProxy, String prodId) {
-        if(!instances.containsKey(prodId)) {
+        if(!instances.containsProductKey(prodId)) {
             Cloud newInstance = new Cloud(cloudProxy, prodId);
-            instances.put(prodId, newInstance);
+            instances.putByProductId(prodId, newInstance);
         }
         else
-            instances.get(prodId).setCloudProxyConnection(cloudProxy);
+            instances.getByProductId(prodId).setCloudProxyConnection(cloudProxy);
     }
 
     private String getProductId(SSLSocket cloudProxy) {
@@ -120,7 +120,7 @@ public class CloudListener implements SslContextProvider {
         {
             logger.error("Exception in getProductId: "+ex.getMessage());
         }
-        if(retVal == "") {
+        if(retVal.equals("")) {
             try {
                 // Send error response to CloudProxy
                 OutputStream os = cloudProxy.getOutputStream();
@@ -142,10 +142,29 @@ public class CloudListener implements SslContextProvider {
      * @return
      */
     public String authenticate(String productId) {
-        if(instances.containsKey(productId))
-            return instances.get(productId).authenticate();
+        if(instances.containsProductKey(productId)) {
+            Cloud inst = instances.getByProductId(productId);
+            String nvrSessionId = inst.authenticate();
+            if(nvrSessionId != "")
+                instances.putBySessionId(nvrSessionId, inst);
+
+            return nvrSessionId;
+        }
 
         return "";
+    }
+
+    public void logoff(String cookie)
+    {
+        final int startIndex = cookie.indexOf("NVRSESSIONID");
+        int endIndex = cookie.indexOf(";", startIndex);
+        endIndex = endIndex == -1 ? cookie.length() : endIndex;
+        final String nvrSessionId = cookie.substring(startIndex+"NVRSESSIONID=".length(), endIndex);
+        final String cookieDef = cookie.substring(startIndex, endIndex);
+        final Cloud inst = instances.getBySessionId(nvrSessionId);
+        inst.logoff(cookieDef);
+        inst.stop();
+        instances.removeBySessionIdId(nvrSessionId);
     }
 
     @Override

@@ -63,6 +63,7 @@ dependencies {
     implementation "org.grails.plugins:events"
     implementation "org.grails.plugins:gsp"
     implementation 'commons-codec:commons-codec:1.15'
+    implementation 'com.google.guava:guava:31.0.1-jre'
     profile "org.grails.profiles:web"
     runtimeOnly "org.glassfish.web:el-impl:2.2.1-b05"
     runtimeOnly "com.h2database:h2"
