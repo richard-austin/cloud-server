@@ -25,7 +25,7 @@ public class Cloud {
     private ExecutorService browserReadExecutor = null;
     private ExecutorService sendToCloudProxyExecutor = null;
     private ScheduledExecutorService startCloudProxyInputProcessExecutor = null;
-    private ExecutorService acceptConnectionsFromBrowserExecutor = null;
+//    private ExecutorService acceptConnectionsFromBrowserExecutor = null;
 
     private String NVRSESSIONID = "";
 
@@ -39,8 +39,7 @@ public class Cloud {
     private final int headerLength = tokenLength + lengthLength + closedFlagLength;
     private SSLSocket cloudProxy;
     final private String productId;
-    private CloudProperties cloudProperties = CloudProperties.getInstance();
-    private final int browserFacingPort = 8083;
+    private final CloudProperties cloudProperties = CloudProperties.getInstance();
     private final boolean protocolAgnostic = true;  // ProtocolAgnostic means that login to NVR won't be done automatically by the Cloud
 
     Cloud(SSLSocket cloudProxy, String productId)
@@ -59,10 +58,10 @@ public class Cloud {
             browserReadExecutor = Executors.newCachedThreadPool();
             sendToCloudProxyExecutor = Executors.newSingleThreadExecutor();
             startCloudProxyInputProcessExecutor = Executors.newSingleThreadScheduledExecutor();
-            acceptConnectionsFromBrowserExecutor = Executors.newSingleThreadExecutor();
+ //           acceptConnectionsFromBrowserExecutor = Executors.newSingleThreadExecutor();
             running = true;
             startCloudProxyInputProcess();
-            acceptConnectionsFromBrowserExecutor.execute(() -> acceptConnectionsFromBrowser(browserFacingPort));
+ //           acceptConnectionsFromBrowserExecutor.execute(() -> acceptConnectionsFromBrowser(browserFacingPort));
         }
     }
 
@@ -82,7 +81,7 @@ public class Cloud {
             if (startCloudProxyInputProcessExecutor != null)
                 startCloudProxyInputProcessExecutor.shutdownNow();
 
-            acceptConnectionsFromBrowserExecutor.shutdownNow();
+//            acceptConnectionsFromBrowserExecutor.shutdownNow();
             lastBitOfPreviousMessage = null;
             lastBitOfPreviousHttpMessage.clear();
             clearSocketMap();
@@ -91,36 +90,7 @@ public class Cloud {
         }
     }
 
-    private ServerSocketChannel _sc = null;
-
-    /**
-     * acceptConnectionsFromBrowser: Wait for connections from browser and read requests
-     *
-     * @param browserFacingPort: The port the browser connects to
-     */
-    private void acceptConnectionsFromBrowser(final int browserFacingPort) {
-        while (running) {
-            try {
-                // Creating a ServerSocket to listen for connections with
-                ServerSocketChannel s = _sc = ServerSocketChannel.open();
-                s.bind(new InetSocketAddress(browserFacingPort));
-                while (running) {
-                    try {
-                        // It will wait for a connection on the local port
-                        SocketChannel browser = s.accept();
-                        browser.configureBlocking(true);
-                        final int token = getToken();
-                        updateSocketMap(browser, token);
-                        readFromBrowser(browser, token);
-                    } catch (Exception ex) {
-                        logger.error(ex.getClass().getName()+" in acceptConnectionsFromBrowser:  " + ex.getMessage());
-                    }
-                }
-            } catch (IOException ioex) {
-                logger.error(ioex.getClass().getName()+" in acceptConnectionsFromBrowser: " + ioex.getMessage());
-            }
-        }
-    }
+    private final ServerSocketChannel _sc = null;
 
     private void startCloudProxyInputProcess() {
         startCloudProxyInputProcessExecutor.scheduleAtFixedRate(() -> {
@@ -147,12 +117,13 @@ public class Cloud {
             try {
                 OutputStream os = cloudProxy.getOutputStream();
                 do {
+                 //   System.out.println(new String(buf.array(), headerLength, buf.limit()));
                     write(os, buf);
                     os.flush();
                 }
                 while (buf.position() < buf.limit());
             } catch (Exception ex) {
-                showExceptionDetails(ex, "startCloudProxyOutputProcess");
+                showExceptionDetails(ex, "sendRequestToCloudProxy");
                 reset();
             }
         });
@@ -249,14 +220,19 @@ public class Cloud {
         return retVal;
     }
 
-    final Map<Integer, ByteBuffer> lastBitOfPreviousHttpMessage = new ConcurrentHashMap<>();
+    private final Map<Integer, ByteBuffer> lastBitOfPreviousHttpMessage = new ConcurrentHashMap<>();
 
-    final void readFromBrowser(SocketChannel channel, final int token) {
+    public final void readFromBrowser(SocketChannel channel, ByteBuffer initialBuf, final int token, boolean finished) {
         browserReadExecutor.submit(() -> {
-
-            ByteBuffer buf = getBuffer();
             try {
-                while (channel.read(buf) != -1) {
+                updateSocketMap(channel, token);
+                ByteBuffer buf = initialBuf;
+                // Send the initial message delivered from the CloudListener
+                splitHttpMessages(buf, token, lastBitOfPreviousHttpMessage);
+
+                // Now read any more that may still come through
+                buf = getBuffer();
+                while (!finished && channel.read(buf) != -1) {
                     splitHttpMessages(buf, token, lastBitOfPreviousHttpMessage);
                     buf = getBuffer();
                 }
@@ -369,9 +345,7 @@ public class Cloud {
      * @return: The buffer
      */
     private ByteBuffer getBuffer() {
-        ByteBuffer buf = Objects.requireNonNullElseGet(bufferQueue.poll(), () -> ByteBuffer.allocate(BUFFER_SIZE));
-        buf.clear();
-        return buf;
+        return CloudListener.getBuffer();
     }
 
     /**
@@ -387,15 +361,11 @@ public class Cloud {
     }
 
     private void setToken(ByteBuffer buf, int token) {
-        buf.position(0);
-        buf.putInt(token);
-        buf.putInt(0);  // Reserve space for the data length
-        buf.put((byte) 0); // Reserve space for the closed connection flag
+        CloudListener.setToken(buf, token);
     }
 
     private void recycle(ByteBuffer buf) {
-        buf.clear();
-        bufferQueue.add(buf);
+        CloudListener.recycle(buf);
     }
 
     /**
@@ -406,10 +376,7 @@ public class Cloud {
      * @param length: The length to set.
      */
     private void setDataLength(ByteBuffer buf, int length) {
-        int position = buf.position();
-        buf.position(tokenLength);
-        buf.putInt(length);
-        buf.position(position);
+        CloudListener.setDataLength(buf, length);
     }
 
     /**
@@ -426,15 +393,13 @@ public class Cloud {
         return length;
     }
 
-    int nextToken = 0;
-
     /**
      * getToken: Get a sequential integer as a token
      *
      * @return: The token as an integer
      */
     private synchronized int getToken() {
-        return ++nextToken;
+        return CloudListener.get_nextToken();
     }
 
     private void setConnectionClosedFlag(ByteBuffer buf) {
@@ -643,7 +608,7 @@ public class Cloud {
         while (combinedBuf.position() < combinedBuf.limit()) {
             final HttpMessage msg = new HttpMessage(combinedBuf);
             if (protocolAgnostic || !msg.headersBuilt) {
-                // Don't know what this message is, just send it
+                // Ignore HTTP protocol
                 try {
                     ByteBuffer nonHttp = ByteBuffer.allocate(combinedBuf.limit() + headerLength);
                     setToken(nonHttp, token);
@@ -651,9 +616,7 @@ public class Cloud {
                     setDataLength(nonHttp, combinedBuf.limit());
                     nonHttp.flip();
                     sendRequestToCloudProxy(nonHttp);
-                    //recycle(nonHttp);
-                    //  recycle(combinedBuf);
-                } catch (Exception e) {
+                 } catch (Exception e) {
                     e.printStackTrace();
                 }
                 break;

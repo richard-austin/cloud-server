@@ -10,10 +10,17 @@ import javax.net.ssl.TrustManager;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.PrivateKey;
+import java.util.List;
 import java.util.Objects;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -22,35 +29,52 @@ import static com.proxy.SslUtil.*;
 public class CloudListener implements SslContextProvider {
     private final CloudProperties cloudProperties = CloudProperties.getInstance();
     private boolean allRunning = false;
+    final private static Queue<ByteBuffer> bufferQueue = new ConcurrentLinkedQueue<>();
+    private static final int BUFFER_SIZE = 1024;
+    private final static int tokenLength = Integer.BYTES;
+
     final private int cloudProxyFacingPort = 8081;
+    private final int browserFacingPort = 8083;
     private ExecutorService acceptConnectionsFromCloudProxyExecutor = null;
+    private ExecutorService browserReadExecutor = null;
+    private ExecutorService acceptConnectionsFromBrowserExecutor = null;
+
     private final Logger logger = (Logger) LoggerFactory.getLogger("CLOUD");
     final private CloudInstanceMap instances = new CloudInstanceMap();
-
+    private static int _nextToken = 0;
     private SSLServerSocket _s = null;
+    private ServerSocketChannel _sc = null;
 
     public void start()
     {
         if(!allRunning) {
             acceptConnectionsFromCloudProxyExecutor= Executors.newSingleThreadExecutor();
+            acceptConnectionsFromBrowserExecutor = Executors.newSingleThreadExecutor();
+            browserReadExecutor = Executors.newCachedThreadPool();
             allRunning = true;
             acceptConnectionsFromCloudProxy(cloudProxyFacingPort);
+            acceptConnectionsFromBrowser(browserFacingPort);
         }
     }
 
     public void stop()
     {
         try {
-            // Stop the CloudProxy listener threads
+            // Stop the CloudProxy and browser listener threads
             allRunning = false;
             acceptConnectionsFromCloudProxyExecutor.shutdownNow();
+            acceptConnectionsFromBrowserExecutor.shutdownNow();
+            browserReadExecutor.shutdownNow();
 
             // Close the CloudProxy listening socket
             if (_s != null)
                 _s.close();
 
+            if(_sc != null)
+                _sc.close();
+
             //  Close all the Cloud instances
-            instances.forEach((prodId ,cloud) -> {
+            instances.forEach((cloud ,ignoreList) -> {
                 cloud.stop();
             });
 
@@ -95,14 +119,84 @@ public class CloudListener implements SslContextProvider {
         });
     }
 
+    public static synchronized int get_nextToken() {
+        return ++_nextToken;
+    }
+
     private void startNewInstance(SSLSocket cloudProxy, String prodId) {
-        if(!instances.containsProductKey(prodId)) {
+        if(!instances.containsKey(prodId)) {
             Cloud newInstance = new Cloud(cloudProxy, prodId);
             newInstance.start();
-            instances.putByProductId(prodId, newInstance);
+            instances.put(prodId, newInstance);
         }
-        else
-            instances.getByProductId(prodId).setCloudProxyConnection(cloudProxy);
+        else {
+            Cloud cloud = instances.get(prodId);
+            instances.removeByValue(cloud);
+            cloud.setCloudProxyConnection(cloudProxy);
+            instances.put(prodId, cloud);
+        }
+    }
+
+    /**
+     * acceptConnectionsFromBrowser: Wait for connections from browser and read requests
+     *
+     * @param browserFacingPort: The port the browser connects to
+     */
+    private void acceptConnectionsFromBrowser(final int browserFacingPort) {
+        acceptConnectionsFromBrowserExecutor.execute(() -> {
+            while (allRunning) {
+                try {
+                    // Creating a ServerSocket to listen for connections with
+                    ServerSocketChannel s = _sc = ServerSocketChannel.open();
+                    s.bind(new InetSocketAddress(browserFacingPort));
+                    while (allRunning) {
+                        try {
+                            // It will wait for a connection on the local port
+                            SocketChannel browser = s.accept();
+                            browser.configureBlocking(true);
+                            final int token = get_nextToken();
+                            readFromBrowser(browser, token);
+                        } catch (Exception ex) {
+                            logger.error(ex.getClass().getName()+" in acceptConnectionsFromBrowser:  " + ex.getMessage());
+                        }
+                    }
+                } catch (IOException ioex) {
+                    logger.error(ioex.getClass().getName()+" in acceptConnectionsFromBrowser: " + ioex.getMessage());
+                }
+            }
+        });
+    }
+
+    final void readFromBrowser(SocketChannel channel, final int token) {
+        browserReadExecutor.submit(() -> {
+
+            ByteBuffer buf = getBuffer();
+
+            try {
+                final int bytesRead = channel.read(buf);
+                HttpMessage msg = new HttpMessage(buf);
+                List<String> cookies = msg.get("cookie");
+                String NVRSESSIONID="";
+                final String key = "NVRSESSIONID";
+                for(String cookie: cookies)
+                    if(cookie.contains(key)) {
+                        final int idx = cookie.indexOf(key)+(key+"=").length();
+                        NVRSESSIONID = cookie.substring(idx, idx+32);
+                        break;
+                    }
+                if(NVRSESSIONID.equals(""))
+                    recycle(buf);  // No session ID, just ignore this message
+                else
+                {
+                    Cloud inst = instances.get(NVRSESSIONID);
+                    inst.readFromBrowser(channel, buf, token, bytesRead == -1);
+                }
+            } catch (IOException ignored) {
+                //removeSocket(token);
+            } catch (Exception ex) {
+                logger.error(ex.getClass().getName()+" in readFromBrowser: " + ex.getMessage());
+            }
+        });
     }
 
     private String getProductId(SSLSocket cloudProxy) {
@@ -154,11 +248,11 @@ public class CloudListener implements SslContextProvider {
      * @return: The NVRSESSIONID
      */
     public String authenticate(String productId) {
-        if(instances.containsProductKey(productId)) {
-            Cloud inst = instances.getByProductId(productId);
+        if(instances.containsKey(productId)) {
+            Cloud inst = instances.get(productId);
             String nvrSessionId = inst.authenticate();
-            if(nvrSessionId != "" && instances.getBySessionId(nvrSessionId) == null)
-                instances.putBySessionId(nvrSessionId, inst);
+            if(!Objects.equals(nvrSessionId, "") && instances.get(nvrSessionId) == null)
+                instances.put(nvrSessionId, inst);
 
             return nvrSessionId;
         }
@@ -174,16 +268,53 @@ public class CloudListener implements SslContextProvider {
             endIndex = endIndex == -1 ? cookie.length() : endIndex;
             final String nvrSessionId = cookie.substring(startIndex + "NVRSESSIONID=".length(), endIndex);
             final String cookieDef = cookie.substring(startIndex, endIndex);
-            final Cloud inst = instances.getBySessionId(nvrSessionId);
+            final Cloud inst = instances.get(nvrSessionId);
             inst.logoff(cookieDef);
-            inst.stop();
-            instances.removeBySessionId(nvrSessionId);
+            instances.remove(nvrSessionId);
         }
         catch(Exception ex)
         {
             logger.error(ex.getClass().getName()+" in logoff: "+ex.getMessage());
         }
     }
+
+    /**
+     * getBuffer: Get a new ByteBuffer of BUFFER_SIZE bytes length.
+     *
+     * @return: The buffer
+     */
+    public static ByteBuffer getBuffer() {
+        ByteBuffer buf = Objects.requireNonNullElseGet(bufferQueue.poll(), () -> ByteBuffer.allocate(BUFFER_SIZE));
+        buf.clear();
+        return buf;
+    }
+
+    public static synchronized void recycle(ByteBuffer buf) {
+        buf.clear();
+        bufferQueue.add(buf);
+    }
+
+    public static void setToken(ByteBuffer buf, int token) {
+        buf.position(0);
+        buf.putInt(token);
+        buf.putInt(0);  // Reserve space for the data length
+        buf.put((byte) 0); // Reserve space for the closed connection flag
+    }
+
+    /**
+     * setDataLength: Set the lengthLength bytes following the token to the length of the data in the buffer
+     * (minus token and length bytes).
+     *
+     * @param buf:    The buffer to set the length in.
+     * @param length: The length to set.
+     */
+    public static void setDataLength(ByteBuffer buf, int length) {
+        int position = buf.position();
+        buf.position(tokenLength);
+        buf.putInt(length);
+        buf.position(position);
+    }
+
 
     @Override
     public KeyManager[] getKeyManagers() throws GeneralSecurityException, IOException {

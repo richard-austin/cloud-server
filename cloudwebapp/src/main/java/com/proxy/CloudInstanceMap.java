@@ -1,71 +1,106 @@
 package com.proxy;
 
-import com.google.common.collect.HashBiMap;
+import ch.qos.logback.classic.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 
 public class CloudInstanceMap {
-    HashBiMap<String, Cloud> _mapByProdId;
-    HashBiMap<String, Cloud> _mapBySessionId;
+    private final Logger logger = (Logger) LoggerFactory.getLogger("CLOUD");
+
+    Map<String, Cloud> map;
+    // List of keys by Cloud instance value, used for remove by value
+    Map<Cloud, List<String>> keyList;
 
     CloudInstanceMap()
     {
-        _mapByProdId = HashBiMap.create();
-        _mapBySessionId = HashBiMap.create();
+        map = new ConcurrentHashMap<>();
+        keyList = new ConcurrentHashMap<>();
     }
 
     /**
-     * putByProductId: Put a Cloud instance into the product key map
-     * @param key
-     * @param cloud
+     * put: Put a Cloud instance into the product key map
+     * @param key: The key (Session is or product key)
+     * @param cloud: The Cloud instance
      * @return: The Cloud instance
      */
-    Cloud putByProductId(String key, Cloud cloud)
+    Cloud put(String key, Cloud cloud)
     {
-        return _mapByProdId.put(key, cloud);
-    }
-
-    Cloud putBySessionId(String key, Cloud cloud)
-    {
-        return _mapBySessionId.put(key, cloud);
-    }
-
-    Cloud getByProductId(String key)
-    {
-        return _mapByProdId.get(key);
-    }
-
-    Cloud getBySessionId(String key)
-    {
-        return _mapBySessionId.get(key);
-    }
-
-    Cloud removeByProductId(String productId)
-    {
-        Cloud inst = _mapByProdId.get(productId);
-        if(inst != null) {
-            _mapByProdId.remove(productId);
-            _mapBySessionId.inverse().remove(inst);
+        if(!keyList.containsKey(cloud)) {
+            List<String> list = new ArrayList<>();
+            list.add(key);
+            keyList.put(cloud, list);
         }
+        else
+            keyList.get(cloud).add(key);
 
+        return map.put(key, cloud);
+    }
+
+    /**
+     * get: Get Cloud instance by key (Session id or product id)
+     * @param key: The key
+     * @return: The Cloud instance
+     */
+    Cloud get(String key)
+    {
+        return map.get(key);
+    }
+
+    /**
+     * remove: Remove the cloud instance for this key
+     * @param key: The key
+     * @return: The Cloud instance
+     */
+    Cloud remove(String key)
+    {
+        Cloud inst = null;
+        try {
+            inst = map.get(key);
+            map.remove(key);
+            keyList.get(inst).remove(key);
+            return inst;
+        }
+        catch(Exception ex)
+        {
+            logger.error(ex.getClass().getName()+" exception in CloudInstanceMap.remove: "+ex.getMessage());
+        }
         return inst;
     }
 
-    Cloud removeBySessionId(String productId)
+    /**
+     * removeByValue: Remove by Cloud instance value (for all keys)
+     * @param cloud: The Cloud instance to remove from the map
+     * @return: The Cloud instance
+     */
+    Cloud removeByValue(Cloud cloud)
     {
-        Cloud inst = _mapBySessionId.get(productId);
-        if(inst != null) {
-            _mapBySessionId.remove(productId);
-            _mapByProdId.inverse().remove(inst);
-        }
-        return inst;
+        List<String> kl = this.keyList.get(cloud);
+        kl.forEach(key -> map.remove(key));
+
+        keyList.remove(cloud);
+        return cloud;
     }
 
-    public boolean containsProductKey(String prodId) {
-        return _mapByProdId.containsKey(prodId);
+    /**
+     * containsKey: Returns true if the key is present in the map (product id or session id)
+     * @param key: The key
+     * @return: true if the key is present, else false
+     */
+    public boolean containsKey(String key) {
+        return map.containsKey(key);
     }
 
-    public void forEach(BiConsumer<? super String, ? super Cloud> action)
+    /**
+     * forEach: Iterate over Cloud instances and their key lists
+     * @param action: Object to hols a key/value pair
+     */
+    public void forEach(BiConsumer<? super Cloud, ? super List<String>> action)
     {
-        _mapByProdId.forEach(action);
+        keyList.forEach(action);
     }
 }
