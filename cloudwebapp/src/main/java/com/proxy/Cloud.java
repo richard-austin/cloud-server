@@ -656,8 +656,9 @@ public class Cloud {
     }
 
     public void setCloudProxyConnection(SSLSocket cloudProxy) {
-        reset();
+        stop();
         this.cloudProxy = cloudProxy;
+        start();
      }
 
     public void reset() {
