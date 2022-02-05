@@ -33,8 +33,6 @@ public class CloudListener implements SslContextProvider {
     private static final int BUFFER_SIZE = 1024;
     private final static int tokenLength = Integer.BYTES;
 
-    final private int cloudProxyFacingPort = 8081;
-    private final int browserFacingPort = 8083;
     private ExecutorService acceptConnectionsFromCloudProxyExecutor = null;
     private ExecutorService browserReadExecutor = null;
     private ExecutorService acceptConnectionsFromBrowserExecutor = null;
@@ -47,7 +45,13 @@ public class CloudListener implements SslContextProvider {
 
     public void start()
     {
+        int cloudProxyFacingPort;
+        int browserFacingPort;
+
         if(!allRunning) {
+            browserFacingPort = cloudProperties.getBROWSER_FACING_PORT();
+            cloudProxyFacingPort = cloudProperties.getCLOUD_PROXY_FACING_PORT();
+
             acceptConnectionsFromCloudProxyExecutor= Executors.newSingleThreadExecutor();
             acceptConnectionsFromBrowserExecutor = Executors.newSingleThreadExecutor();
             browserReadExecutor = Executors.newCachedThreadPool();
