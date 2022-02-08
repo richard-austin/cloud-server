@@ -1,5 +1,3 @@
-// secCamSecurityEventListener is included so that login/logout events get handled.
-// secCamAuthFailEventListener deals with failed login attempts
 grails.plugin.springsecurity.logout.handlerNames = [
 		'rememberMeServices',
 		'securityContextLogoutHandler',

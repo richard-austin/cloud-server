@@ -140,6 +140,7 @@ public class Cloud {
                         "Host: "+socket.getInetAddress().getHostAddress()+"\r\n" +
                         "DNT: 1\r\n" +
                         "Upgrade-Insecure-Requests: 1\r\n" +
+                        "X-Auth-Token: 7yk=zJu+@77x@MTJG2HD*YLJgvBthkW!\r\n"+
                         "Content-type: application/x-www-form-urlencoded\r\n" +
                         "Content-Length: " + payload.length() + "\r\n\r\n" +
                         payload + "\r\n";
@@ -150,7 +151,7 @@ public class Cloud {
                 if (buf != null) {
                     HttpMessage hdrs = new HttpMessage(buf);
                     var l = hdrs.getHeader("location");
-                    String location = l.size() == 1 ? l.get(0) : null;
+                    String location = (l != null && l.size() == 1) ? l.get(0) : null;
                     if (location != null && !location.contains("authfail")) {
                         List<String> setCookie = hdrs.getHeader("set-cookie");
                         for (String cookie : setCookie) {
