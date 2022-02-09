@@ -17,7 +17,10 @@ class BootStrap {
             }
         }
         if ( !userService.findByUsername('admin') ) {
-            User u = new User(username: 'admin', password: 'elementary')
+            User u = new User(username: 'admin', productid: 'O3RY-HQGC-W5FP-6UYW', password: 'elementary')
+            u = userService.save(u)
+            userRoleService.save(u, roleService.findByAuthority('ROLE_CLIENT'))
+            u = new User(username: 'admin2', productid: 'TZS5-NLFF-A1PI-KEJV', password: 'elementary')
             u = userService.save(u)
             userRoleService.save(u, roleService.findByAuthority('ROLE_CLIENT'))
         }

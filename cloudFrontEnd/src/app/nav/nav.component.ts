@@ -95,8 +95,12 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
             this.tempAlertClass = 'warning';
           else
             this.tempAlertClass = 'danger'
-        } else
+        }
+        else
+        {
           this.noTemperature = false;
+          this.tempAlertClass = 'danger';
+        }
       },
       () => {
         this.noTemperature = true;
@@ -174,6 +178,10 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
 
         // Get the initial core temperature
         this.getTemperature();
+      }
+      else if (message.messageType == messageType.loggedOut)
+      {
+        window.location.href = "#/";  // Remove any displayed components
       }
     });
 

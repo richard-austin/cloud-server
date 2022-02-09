@@ -108,42 +108,51 @@ dataSource:
 
 environments:
     development:
-        plugin:
-         cors:
-            enabled: true
+        grails:
+            plugin:
+                springsecurity:
+                    active: true
+                    auth:
+                        loginFormUrl: /login/denied
+
+            cors:
+                enabled: true
 
         dataSource:
             dbCreate: create-drop
             url: jdbc:h2:mem:devDb;LOCK_TIMEOUT=10000;DB_CLOSE_ON_EXIT=FALSE
 
         cloud:
-            username: admin
-            password: P0larC@mper
+            username: cloud
+            password: "DrN3yuFAtSsK2w7AtTf66FFRVveBwtjU"
             trustStorePath: ../xtrn-files-and-config/cacert.jks
             keyStorePath: ../xtrn-files-and-config/cloud.jks
             keyStorePassword: B0331e
+            privateKeyPath: ../xtrn-files-and-config/privateKey
             trustStorePassword: B0331e
-            cloudHost: localhost
-            cloudPort: 8081
-            webServerHost: localhost
-            webServerPort: 8088
+            cloudProxyFacingPort: 8081
+            browserFacingPort: 8083
 
     test:
         dataSource:
             dbCreate: update
             url: jdbc:h2:mem:testDb;LOCK_TIMEOUT=10000;DB_CLOSE_ON_EXIT=FALSE
     production:
+        grails:
+            plugin:
+                springsecurity:
+                    active: true
+
         cloud:
-            username: admin
-            password: P0larC@mper
+            username: cloud
+            password: "DrN3yuFAtSsK2w7AtTf66FFRVveBwtjU"
             trustStorePath: /etc/cloud/cacert.jks
             keyStorePath: /etc/cloud/cloud.jks
             keyStorePassword: B0331e
+            privateKeyPath: /etc/cloud/privateKey
             trustStorePassword: B0331e
-            cloudHost: localhost
-            cloudPort: 8081
-            webServerHost: localhost
-            webServerPort: 8088
+            cloudProxyFacingPort: 8081
+            browserFacingPort: 8083
 
         dataSource:
             dbCreate: update

@@ -17,7 +17,7 @@ export class MyIp {
   myIp: string = "";
 }
 
-export enum messageType {idleTimeoutStatus, loggedIn}
+export enum messageType {idleTimeoutStatus, loggedIn, loggedOut}
 
 export abstract class Message {
   protected constructor(messageType: messageType) {
@@ -41,6 +41,12 @@ export class LoggedinMessage extends Message {
    constructor() {
      super(messageType.loggedIn);
    }
+}
+
+export class LoggedOutMessage extends Message {
+  constructor() {
+    super(messageType.loggedOut);
+  }
 }
 
 @Injectable({
@@ -98,6 +104,7 @@ export class UtilsService {
         },
         (reason) => {
           this._loggedIn = false;
+          this.sendMessage(new LoggedOutMessage())
         }),
       catchError((err: HttpErrorResponse) => throwError(err))
     );
