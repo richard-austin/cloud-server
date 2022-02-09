@@ -179,9 +179,9 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
         // Get the initial core temperature
         this.getTemperature();
       }
-      else if (message.messageType == messageType.loggedOut)
+      else if (message.messageType == messageType.loggedOut )
       {
-        window.location.href = "#/";  // Remove any displayed components
+        this.login();  // Show the login component
       }
     });
 
