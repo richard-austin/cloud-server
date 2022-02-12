@@ -10,6 +10,7 @@ import {CameraParamsComponent} from "./camera-params/camera-params.component";
 import {DrawdownCalcContainerComponent} from "./drawdown-calc-container/drawdown-calc-container.component";
 import {ConfigSetupComponent} from "./config-setup/config-setup.component";
 import {LoginComponent} from "./login/login.component";
+import {RegisterAccountComponent} from "./register-account/register-account.component";
 
 const routes: Routes = [
   {path: 'live', component: LiveContainerComponent},
@@ -21,6 +22,7 @@ const routes: Routes = [
   {path: 'cameraparams', component: CameraParamsComponent},
   {path: 'configsetup', component: ConfigSetupComponent},
   {path: 'login', component: LoginComponent},
+  {path: 'register', component: RegisterAccountComponent},
   {path: 'dc', component: DrawdownCalcContainerComponent}
 ];
 

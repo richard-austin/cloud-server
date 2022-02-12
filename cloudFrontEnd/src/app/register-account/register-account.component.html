@@ -1,0 +1,70 @@
+<div class="register-container">
+  <mat-card class="mat-elevation-z8" xmlns="http://www.w3.org/1999/html">
+    <mat-card-title>Register A New Account</mat-card-title>
+    <mat-card-content>
+      <div class="alert-danger mat-elevation-z4" [style]="'display: '+(errorMessage != '' ? 'inline-block' : 'none')">{{errorMessage}}</div>
+      <div>
+        <mat-form-field appearance="legacy" [style.width.px]="225">
+          <input #username matInput type="text" autocomplete="off" maxlength="20"
+                 [formControl]="getFormControl('username')"
+                 (keypress)="confirmOnReturn($event)"
+                 matTooltip="Enter a Cloud Service user name."
+                 matTooltipClass="tooltip"
+                 placeholder="New User name">
+          <mat-hint>User name for your Cloud account</mat-hint>
+          <mat-error *ngIf="accountRegistrationForm.controls['username'].hasError('pattern')">5 or more characters and numbers
+          </mat-error>
+          <mat-error *ngIf="accountRegistrationForm.controls['username'].hasError('required')">User name is required</mat-error>
+        </mat-form-field>
+      </div>
+        <app-product-id-input [formControl]="getFormControl('productId')"></app-product-id-input>
+      <div>
+        <mat-form-field appearance="legacy" [style.width.px]="225">
+          <input matInput type="password" autocomplete="off" maxlength="25"
+                 [formControl]="getFormControl('password')"
+                 (keypress)="confirmOnReturn($event)"
+                 matTooltip="Enter your Cloud Service password"
+                 matTooltipClass="tooltip"
+                 placeholder="Password">
+          <mat-hint>Password for the Cloud account</mat-hint>
+          <mat-error *ngIf="accountRegistrationForm.controls['password'].hasError('pattern')">Upper, lower case, numbers and special
+            chars
+          </mat-error>
+          <mat-error *ngIf="accountRegistrationForm.controls['password'].hasError('required')">Password is required</mat-error>
+        </mat-form-field>
+      </div>
+      <div>
+        <mat-form-field appearance="legacy" [style.width.px]="225">
+          <input matInput type="password" autocomplete="off" maxlength="25"
+                 [formControl]="getFormControl('confirmPassword')"
+                 (keypress)="confirmOnReturn($event)"
+                 matTooltip="Enter your Cloud Service password"
+                 matTooltipClass="tooltip"
+                 placeholder="Confirm Password">
+          <mat-hint>Confirm the password</mat-hint>
+          <mat-error *ngIf="accountRegistrationForm.controls['confirmPassword'].hasError('notMatching')">Must match password
+          </mat-error>
+          <mat-error *ngIf="accountRegistrationForm.controls['confirmPassword'].hasError('required')">Confirm Password is required</mat-error>
+        </mat-form-field>
+      </div>
+      <br>
+      <span class="cam-creds-confirm-group">
+      <button color="default" mat-flat-button (click)="hideRegisterForm()"
+              matTooltip="Close this dialogue and leave the existing user name and password in place"
+              matTooltipClass="tooltip">
+        Cancel
+      </button>
+              <span>&nbsp;&nbsp;</span>
+      <button color="warning" mat-flat-button
+              [disabled]="anyInvalid()"
+              (click)="register()"
+              matTooltip="Login into the CCTV Cloud Service with the given username and password"
+              matTooltipClass="tooltip">
+        Register Account
+      </button>
+    </span>
+    </mat-card-content>
+  </mat-card>
+</div>
+
+
