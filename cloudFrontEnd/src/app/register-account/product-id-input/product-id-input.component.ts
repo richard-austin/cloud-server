@@ -56,9 +56,6 @@ export class ProductIdInputComponent implements OnInit, AfterViewInit {
 
   handleKeyDown($event: KeyboardEvent, productIdInput: HTMLInputElement) {
     let cursor: number = productIdInput.selectionStart == null ? 0 : productIdInput.selectionStart;
-    if(cursor > 0 && cursor < (this.indexMax-4) && (cursor+1) % 5 == 0)
-      ++cursor;
-
     $event.preventDefault();
 
     let code = $event.code
@@ -67,7 +64,7 @@ export class ProductIdInputComponent implements OnInit, AfterViewInit {
       case "Backspace":
         if (cursor > 0)
           --cursor;
-        if(cursor > 0 && cursor < (this.indexMax-4) && cursor % 5 == 0)
+        if(cursor > 0 && cursor < (this.indexMax-4) && (cursor + 1) % 5 == 0)
           --cursor;
         break;
       // case "ArrowLeft"
@@ -77,16 +74,16 @@ export class ProductIdInputComponent implements OnInit, AfterViewInit {
       case "ArrowRight":
         if (cursor < this.indexMax)
           ++cursor;
-        if(cursor > 0 && cursor < (this.indexMax-4) && (cursor+1) % 5 == 0)
-          ++cursor;
+        // if(cursor > 0 && cursor < (this.indexMax-4) && (cursor+1) % 5 == 0)
+        //   ++cursor;
         break;
       default:
         if (/^[0-9A-Za-z]$/.test($event.key)) {
           if (cursor < this.indexMax) {
-            productIdInput.value = [productIdInput.value.slice(0, cursor), $event.key.toUpperCase(), productIdInput.value.slice(cursor + 1)].join('');
-            ++cursor;
             if(cursor > 0 && (cursor+1) % 5 == 0)
               ++cursor;
+            productIdInput.value = [productIdInput.value.slice(0, cursor), $event.key.toUpperCase(), productIdInput.value.slice(cursor + 1)].join('');
+            ++cursor;
           }
         }
     }
