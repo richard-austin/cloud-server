@@ -1,7 +1,7 @@
 <mat-form-field class="prod_id_input-container" appearance="legacy" [style.width.px]="225">
-  <input #productIdCtl matInput type="tel" autocomplete="off" maxlength="16"
+  <input #productIdCtl matInput type="text" autocomplete="off" maxlength="19"
          [formControl]="getFormControl()"
-         (keypress)="handleKeyPress($event, this.productIdCtl)"
+         (focus)="setFocus()"
          (keydown)="handleKeyDown($event, this.productIdCtl)"
          class="mono"
          matTooltip="Enter your NVRs Product ID"

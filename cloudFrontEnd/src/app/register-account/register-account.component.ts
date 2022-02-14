@@ -26,7 +26,7 @@ export class RegisterAccountComponent implements OnInit, AfterViewInit {
         let cpControl:AbstractControl | null = this.accountRegistrationForm.get("confirmPassword");
         cpControl?.updateValueAndValidity();
       }
-      let value = control.value;
+
       const ok = !new RegExp("^(?=.*[A-Za-z])(?=.*\\d)(?=.*[@$!%*#?&])[A-Za-z\\d@$!%*#?&]{8,}$").test(control.value);
       return ok ? {pattern: {value: control.value}} : null;
     };
@@ -41,7 +41,7 @@ export class RegisterAccountComponent implements OnInit, AfterViewInit {
   }
 
   confirmOnReturn($event: KeyboardEvent) {
-    // Ensure password field is up to date for the confirmPassword validity check
+    // Ensure password field is up-to-date for the confirmPassword validity check
     this.password = this.getFormControl('password').value;
 
     if($event.key == 'Enter')
@@ -73,7 +73,7 @@ export class RegisterAccountComponent implements OnInit, AfterViewInit {
   ngOnInit(): void {
     this.accountRegistrationForm = new FormGroup({
       username: new FormControl(this.username, [Validators.required, Validators.maxLength(20), Validators.pattern("^[a-zA-Z0-9](_(?!(\.|_))|\.(?!(_|\.))|[a-zA-Z0-9]){3,18}[a-zA-Z0-9]$")]),
-      productId: new FormControl(this.productId, [Validators.required]),
+      productId: new FormControl(this.productId, [Validators.required, Validators.pattern(/^(?:[A-Z0-9]{4}-){3}[A-Z0-9]{4}/)]),
       password: new FormControl(this.password, [Validators.required, Validators.maxLength(25), this.passwordValidator()]),
       confirmPassword: new FormControl(this.confirmPassword, [Validators.required, Validators.maxLength(25), this.passwordMatchValidator()])
     }, {updateOn: "change"});

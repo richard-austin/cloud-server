@@ -1,5 +1,6 @@
 import {AfterViewInit, Component, ElementRef, Input, OnInit, ViewChild, ViewEncapsulation} from '@angular/core';
 import {FormControl} from '@angular/forms';
+import {timer} from "rxjs";
 
 @Component({
   selector: 'app-product-id-input',
@@ -11,55 +12,19 @@ export class ProductIdInputComponent implements OnInit, AfterViewInit {
   @Input() formControl!: FormControl;
   @ViewChild('productIdCtl') productIdCtl!: ElementRef<HTMLInputElement>;
   readonly indexMax: number = 19;
-  readonly productId: string[];
   cursor: number = 0;
 
   constructor() {
-    this.productId = new Array<string>(this.indexMax);
-    this.productId[0] = '\xa0\xa0\xa0\xa0-\xa0\xa0\xa0\xa0-\xa0\xa0\xa0\xa0-\xa0\xa0\xa0\xa0';
-  }
-
-
-  setValue() {
-    //this.formControl.setValue('AV6Y-AS');
-  }
-
-  getFormControl(): FormControl {
-    return this.formControl;
-  }
-
-  ngOnInit(): void {
-    this.setValue();
-  }
-
-  ngAfterViewInit(): void {
-    // this.productIdCtl.nativeElement.onkeypress= (ev:KeyboardEvent) => {
-    //   let valid: RegExp = new RegExp("[A-Za-z0-9]")
-    //   this.productIdCtl.nativeElement.value = this.split_product_key(this.productIdCtl.nativeElement.value);
-    //   //this.productId.nativeElement.setSelectionRange(2,2);
-    //   this.productIdCtl.nativeElement.value = this.productIdCtl.nativeElement.value.toUpperCase();
-    //   if(!valid.test(ev.key))
-    //       ev.preventDefault();
-    // };
-  }
-
-  handleKeyPress($event: KeyboardEvent, productIdInput: HTMLInputElement) {
-    let y = $event;
-    let curs = $event.target;
-    let x = productIdInput.selectionStart;
-
-    // if(this.cursor < this.indexMax)
-    //   this.productId[this.cursor] = $event.key;
-    // if (this.cursor < this.indexMax)
-    //   ++this.cursor;
   }
 
   handleKeyDown($event: KeyboardEvent, productIdInput: HTMLInputElement) {
     let cursor: number = productIdInput.selectionStart == null ? 0 : productIdInput.selectionStart;
-    $event.preventDefault();
 
     let code = $event.code
+
     switch (code) {
+      case "Tab":
+        return;   // Don't preventDefault on tab to enable tab field switching
       case "ArrowLeft":
       case "Backspace":
         if (cursor > 0)
@@ -67,15 +32,15 @@ export class ProductIdInputComponent implements OnInit, AfterViewInit {
         if(cursor > 0 && cursor < (this.indexMax-4) && (cursor + 1) % 5 == 0)
           --cursor;
         break;
-      // case "ArrowLeft"
-      //   if (cursor > 0)
-      //     --cursor;
-      //   break;
       case "ArrowRight":
         if (cursor < this.indexMax)
           ++cursor;
-        // if(cursor > 0 && cursor < (this.indexMax-4) && (cursor+1) % 5 == 0)
-        //   ++cursor;
+         break;
+      case "Home":
+        cursor = 0;
+        break;
+      case "End":
+        cursor = this.lastCharPosition();
         break;
       default:
         if (/^[0-9A-Za-z]$/.test($event.key)) {
@@ -87,11 +52,26 @@ export class ProductIdInputComponent implements OnInit, AfterViewInit {
           }
         }
     }
-    productIdInput.value = this.putDashes(productIdInput.value);
+    $event.preventDefault();
+    this.getFormControl().setValue(productIdInput.value = this.putDashes(productIdInput.value));
     productIdInput.selectionStart = productIdInput.selectionEnd = cursor;
   }
 
-  putDashes(input: any): string {
+  setFocus() {
+    let productIDInput: HTMLInputElement = this.productIdCtl.nativeElement;
+    this.getFormControl().setValue(this.putDashes(productIDInput.value));
+    this.cursor = productIDInput.selectionStart = productIDInput.selectionEnd = 0;
+
+    // f the mouse positioned the cursor after any entered characters, set it t the last character.
+    timer(1).subscribe(() => {
+      let firstSpace = this.lastCharPosition();
+      // @ts-ignore
+      if( productIDInput.selectionStart > firstSpace)
+        productIDInput.selectionStart = productIDInput.selectionEnd = firstSpace;
+    })
+   }
+
+  putDashes(input: string): string {
     input = input.replace(/-/g, "");
 
     let retVal: string = "";
@@ -106,8 +86,19 @@ export class ProductIdInputComponent implements OnInit, AfterViewInit {
     return retVal;
   }
 
-  // select($event: MouseEvent, index: number) {
-  //   this.cursor = index;
-  // }
+  getFormControl(): FormControl {
+    return this.formControl;
+  }
 
+  lastCharPosition(): number
+  {
+    let productIDInput: HTMLInputElement = this.productIdCtl.nativeElement;
+    return productIDInput.value.indexOf(" ");
+  }
+
+  ngOnInit(): void {
+  }
+
+  ngAfterViewInit(): void {
+  }
 }
