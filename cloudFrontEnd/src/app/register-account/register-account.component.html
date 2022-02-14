@@ -17,7 +17,8 @@
           <mat-error *ngIf="accountRegistrationForm.controls['username'].hasError('required')">User name is required</mat-error>
         </mat-form-field>
       </div>
-        <app-product-id-input [formControl]="getFormControl('productId')"></app-product-id-input>
+      <br>
+      <app-product-id-input [formControl]="getFormControl('productId')"></app-product-id-input>
       <div>
         <mat-form-field appearance="legacy" [style.width.px]="225">
           <input matInput type="password" autocomplete="off" maxlength="25"
@@ -33,18 +34,49 @@
           <mat-error *ngIf="accountRegistrationForm.controls['password'].hasError('required')">Password is required</mat-error>
         </mat-form-field>
       </div>
+      <br>
       <div>
         <mat-form-field appearance="legacy" [style.width.px]="225">
           <input matInput type="password" autocomplete="off" maxlength="25"
                  [formControl]="getFormControl('confirmPassword')"
                  (keypress)="confirmOnReturn($event)"
-                 matTooltip="Enter your Cloud Service password"
+                 matTooltip="Confirm your Cloud Service password"
                  matTooltipClass="tooltip"
                  placeholder="Confirm Password">
           <mat-hint>Confirm the password</mat-hint>
           <mat-error *ngIf="accountRegistrationForm.controls['confirmPassword'].hasError('notMatching')">Must match password
           </mat-error>
           <mat-error *ngIf="accountRegistrationForm.controls['confirmPassword'].hasError('required')">Confirm Password is required</mat-error>
+        </mat-form-field>
+      </div>
+      <br>
+      <div>
+        <mat-form-field appearance="legacy" [style.width.px]="225">
+          <input matInput type="email" autocomplete="off" maxlength="40"
+                 [formControl]="getFormControl('email')"
+                 (keypress)="confirmOnReturn($event)"
+                 matTooltip="Enter your email address"
+                 matTooltipClass="tooltip"
+                 placeholder="email address">
+          <mat-hint>Your email address</mat-hint>
+          <mat-error *ngIf="accountRegistrationForm.controls['email'].hasError('pattern')">Please enter valid email address
+          </mat-error>
+          <mat-error *ngIf="accountRegistrationForm.controls['email'].hasError('required')">email address is required</mat-error>
+        </mat-form-field>
+      </div>
+      <br>
+      <div>
+        <mat-form-field appearance="legacy" [style.width.px]="225">
+          <input matInput type="email" autocomplete="off" maxlength="40"
+                 [formControl]="getFormControl('confirmEmail')"
+                 (keypress)="confirmOnReturn($event)"
+                 matTooltip="Confirm your email address"
+                 matTooltipClass="tooltip"
+                 placeholder="Confirm email address">
+          <mat-hint>Confirm email address</mat-hint>
+          <mat-error *ngIf="accountRegistrationForm.controls['confirmEmail'].hasError('notMatching')">Must match email address
+          </mat-error>
+          <mat-error *ngIf="accountRegistrationForm.controls['confirmEmail'].hasError('required')">Confirm Password is required</mat-error>
         </mat-form-field>
       </div>
       <br>

@@ -1,8 +1,8 @@
 import {Injectable} from '@angular/core';
 import {HttpClient, HttpErrorResponse, HttpHeaders} from "@angular/common/http";
 import {BaseUrl} from "./BaseUrl/BaseUrl";
-import {Observable, Subject, throwError, timer} from "rxjs";
-import {catchError, delay, tap, timeout} from "rxjs/operators";
+import {Observable, Subject, throwError} from "rxjs";
+import {catchError, tap} from "rxjs/operators";
 import {CameraParams} from "../cameras/Camera";
 
 export class Temperature {
@@ -106,6 +106,15 @@ export class UtilsService {
           this._loggedIn = false;
           this.sendMessage(new LoggedOutMessage())
         }),
+      catchError((err: HttpErrorResponse) => throwError(err))
+    );
+  }
+
+  register(userName: string, NVRProductId: string, password: string, confirmPassword: string, email: string, confirmEmail:string): Observable<any>
+  {
+    let details: {userName: string, NVRProductId: string, password: string, confirmPassword: string, email: string, confirmEmail:string} =
+      {userName: userName, NVRProductId: NVRProductId, password: password, confirmPassword: confirmPassword, email: email, confirmEmail:confirmEmail};
+    return this.http.post<any>(this._baseUrl.getLink("cloud", "register"), details, this.httpJSONOptions).pipe(
       catchError((err: HttpErrorResponse) => throwError(err))
     );
   }
