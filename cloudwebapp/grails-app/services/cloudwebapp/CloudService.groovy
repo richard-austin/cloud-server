@@ -1,5 +1,7 @@
 package cloudwebapp
 
+import cloudservice.User
+import cloudservice.commands.RegisterUserCommand
 import cloudservice.enums.PassFail
 import cloudservice.interfaceobjects.ObjectCommandResponse
 import cloudservice.interfaceobjects.RestfulResponse
@@ -19,8 +21,11 @@ class Temperature {
 @Transactional
 class CloudService {
     LogService logService
-    GrailsApplication grailsApplication
+   // GrailsApplication grailsApplication
     CloudListener cloudListener = null
+    UserService userService
+    UserRoleService userRoleService
+    RoleService roleService
 
     def start() {
         if(cloudListener == null)
@@ -48,9 +53,9 @@ class CloudService {
     def getTemperature(HttpServletRequest request) {
         RestfulResponse response = new RestfulResponse()
         ObjectCommandResponse result = new ObjectCommandResponse()
-        InputStream is = null
+        InputStream is
 
-        Reader inp = null
+        Reader inp
         try {
             URL url = new URL("http://localhost:8083/utils/getTemperature")
 
@@ -95,4 +100,24 @@ class CloudService {
         return result
     }
 
+    /**
+     * register: Register a new user
+     * @param cmd: Command object (username, NVR ProductID, password, confirmPassword, email, confirm email
+     * @return
+     */
+    ObjectCommandResponse register(RegisterUserCommand cmd) {
+        ObjectCommandResponse response = new ObjectCommandResponse()
+        try {
+            User u = new User(username: cmd.username, productid: cmd.productId, password: cmd.password, email: cmd.email)
+            u = userService.save(u)
+            userRoleService.save(u, roleService.findByAuthority('ROLE_CLIENT'))
+        }
+        catch(Exception ex)
+        {
+            logService.cloud.error(ex.getClass().getName()+" in CloudService.register: "+ex.getMessage())
+            response.error = ex.getMessage()
+            response.status = PassFail.FAIL
+        }
+        return response
+    }
 }

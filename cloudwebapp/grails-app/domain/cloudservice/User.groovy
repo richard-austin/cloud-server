@@ -14,6 +14,7 @@ class User implements Serializable {
     String username
     String password
     String productid
+    String email
 
     boolean enabled = true
     boolean accountExpired
@@ -32,6 +33,12 @@ class User implements Serializable {
                     if (!productid.matches(/^(?:[A-Z0-9]{4}-){3}[A-Z0-9]{4}/))
                         return "Product ID Format is Invalid"
                 }
+        )
+        email( nullable: false, blank: false, unique: true,
+              validator: { String email ->
+                  if(!email.matches(/^([a-zA-Z0-9_\-\.]+)@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.)|(([a-zA-Z0-9\-]+\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\]?)$/))
+                     return "email address is invalid"
+              }
         )
     }
 

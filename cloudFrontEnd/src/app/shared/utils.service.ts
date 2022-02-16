@@ -110,10 +110,10 @@ export class UtilsService {
     );
   }
 
-  register(userName: string, NVRProductId: string, password: string, confirmPassword: string, email: string, confirmEmail:string): Observable<any>
+  register(userName: string, productId: string, password: string, confirmPassword: string, email: string, confirmEmail:string): Observable<any>
   {
-    let details: {userName: string, NVRProductId: string, password: string, confirmPassword: string, email: string, confirmEmail:string} =
-      {userName: userName, NVRProductId: NVRProductId, password: password, confirmPassword: confirmPassword, email: email, confirmEmail:confirmEmail};
+    let details: {username: string, productId: string, password: string, confirmPassword: string, email: string, confirmEmail:string} =
+      {username: userName, productId: productId, password: password, confirmPassword: confirmPassword, email: email, confirmEmail:confirmEmail};
     return this.http.post<any>(this._baseUrl.getLink("cloud", "register"), details, this.httpJSONOptions).pipe(
       catchError((err: HttpErrorResponse) => throwError(err))
     );
