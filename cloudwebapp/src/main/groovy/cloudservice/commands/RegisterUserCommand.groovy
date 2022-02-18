@@ -23,7 +23,7 @@ class RegisterUserCommand implements Validateable {
         }})
         password (nullable: false, blank: false, maxSize: 25,
         validator: {password -> {
-            if(!password.matches(/^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/))
+            if(!password.matches(/^[A-Za-z0-9][A-Za-z0-9(){\[1*£$\]}=@~?^]{7,31}$/))
                 return "Password should contain alpha characters, numbers and special characters"
         }})
         confirmPassword (

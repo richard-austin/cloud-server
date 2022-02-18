@@ -6,7 +6,6 @@ import cloudservice.enums.PassFail
 import cloudservice.interfaceobjects.ObjectCommandResponse
 import cloudservice.interfaceobjects.RestfulResponse
 import com.proxy.CloudListener
-import grails.core.GrailsApplication
 import grails.gorm.transactions.Transactional
 
 import javax.servlet.http.HttpServletRequest
@@ -21,7 +20,6 @@ class Temperature {
 @Transactional
 class CloudService {
     LogService logService
-   // GrailsApplication grailsApplication
     CloudListener cloudListener = null
     UserService userService
     UserRoleService userRoleService
@@ -108,9 +106,22 @@ class CloudService {
     ObjectCommandResponse register(RegisterUserCommand cmd) {
         ObjectCommandResponse response = new ObjectCommandResponse()
         try {
-            User u = new User(username: cmd.username, productid: cmd.productId, password: cmd.password, email: cmd.email)
-            u = userService.save(u)
-            userRoleService.save(u, roleService.findByAuthority('ROLE_CLIENT'))
+            String nvrSessionId = cloudListener.authenticate(cmd.productId)
+
+            if(User.findByProductid(cmd.productId) != null)
+                throw new Exception("Product ID "+cmd.productId+" is already registered")
+            else if(User.findByUsername(cmd.username) != null)
+                throw new Exception("Username "+cmd.username+" is already registered")
+
+            if(nvrSessionId != "" && nvrSessionId != "NO_CONN") {
+                User u = new User(username: cmd.username, productid: cmd.productId, password: cmd.password, email: cmd.email)
+                u = userService.save(u)
+                userRoleService.save(u, roleService.findByAuthority('ROLE_CLIENT'))
+            }
+            else if(nvrSessionId == "")
+                throw new Exception("Failed to login to NVR")
+            else
+                throw new Exception("NVR not connected or entered product id was incorrect")
         }
         catch(Exception ex)
         {

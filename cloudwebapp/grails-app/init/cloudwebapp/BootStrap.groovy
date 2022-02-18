@@ -20,7 +20,7 @@ class BootStrap {
             User u = new User(username: 'admin', productid: 'O3RY-HQGC-W5FP-6UYW', password: 'elementary', email: 'a@b.com')
             u = userService.save(u)
             userRoleService.save(u, roleService.findByAuthority('ROLE_CLIENT'))
-//            u = new User(username: 'admin2', productid: 'TZS5-NLFF-A1PI-KEJV', password: 'elementary', email: 'changeme@changeme.com')
+//            u = new User(username: 'austin', productid: 'TZS5-NLFF-A1PI-KEJV', password: '9asswor?d({[1*£$]}=@~?^)', email: 'changeme@changeme.com')
 //            u = userService.save(u)
 //            userRoleService.save(u, roleService.findByAuthority('ROLE_CLIENT'))
         }
