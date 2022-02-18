@@ -2,8 +2,11 @@
   <mat-card class="mat-elevation-z8" xmlns="http://www.w3.org/1999/html">
     <mat-card-title>Register A New Account</mat-card-title>
     <mat-card-content>
-      <div class="alert-danger mat-elevation-z4" [style]="'display: '+(errorMessage != '' ? 'inline-block' : 'none')">{{errorMessage}}</div>
-      <div>
+      <div class="message-display">
+        <div class="alert-danger mat-elevation-z4" [style]="'display: '+(errorMessage != '' ? 'inline-block' : 'none')">{{errorMessage}}</div>
+        <div class="alert-success mat-elevation-z4" [style]="'display: '+(successMessage != '' ? 'inline-block' : 'none')">{{successMessage}}</div>
+      </div>
+     <div>
         <mat-form-field appearance="legacy" [style.width.px]="225">
           <input #username matInput type="text" autocomplete="off" maxlength="20"
                  [formControl]="getFormControl('username')"
@@ -82,13 +85,13 @@
       <br>
       <span class="cam-creds-confirm-group">
       <button color="default" mat-flat-button (click)="hideRegisterForm()"
-              matTooltip="Close this dialogue and leave the existing user name and password in place"
+              matTooltip="{{successMessage == '' ? 'Close this dialogue and abandon setting up an account': 'Close this dialogue box'}}"
               matTooltipClass="tooltip">
-        Cancel
+        {{successMessage == '' ? 'Cancel' : 'Exit'}}
       </button>
               <span>&nbsp;&nbsp;</span>
       <button color="warning" mat-flat-button
-              [disabled]="anyInvalid()"
+              [disabled]="anyInvalid() || successMessage != ''"
               (click)="register()"
               matTooltip="Login into the CCTV Cloud Service with the given username and password"
               matTooltipClass="tooltip">

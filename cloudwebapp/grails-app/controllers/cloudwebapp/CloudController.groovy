@@ -49,7 +49,7 @@ class CloudController {
             }
             else {
                 logService.cloud.info("User "+cmd.username+" registered successfully")
-                render("Registered "+cmd.username+" successfully")
+                render(status: 200, text: [message: "Registered "+cmd.username+" with product ID "+cmd.productId+" successfully"] as JSON)
             }
         }
     }

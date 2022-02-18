@@ -16,6 +16,7 @@ export class RegisterAccountComponent implements OnInit, AfterViewInit {
   confirmEmail: string = '';
   accountRegistrationForm!: FormGroup;
   errorMessage: string = '';
+  successMessage: string = '';
   @ViewChild('username') usernameInput!: ElementRef<HTMLInputElement>
 
   constructor(private utilsService: UtilsService) { }
@@ -75,16 +76,16 @@ export class RegisterAccountComponent implements OnInit, AfterViewInit {
   }
 
   register() {
+    this.successMessage = this.errorMessage = '';
     this.username = this.getFormControl('username').value;
     this.productId = this.getFormControl('productId').value;
 
-    this.utilsService.register(this.username, this.productId, this.password, this.confirmPassword, this.email, this.confirmEmail).subscribe(() => {
-
+    this.utilsService.register(this.username, this.productId, this.password, this.confirmPassword, this.email, this.confirmEmail).subscribe((result) => {
+      this.successMessage = result.message;
     },
-      () => {
-
+      (reason) => {
+        this.errorMessage = reason.error;
       });
-
   }
 
   getFormControl(fcName: string): FormControl {
