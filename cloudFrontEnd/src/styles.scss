@@ -165,3 +165,10 @@ mat-card.hide-background {
   }
 }
 
+div.message-display {
+  display: flex;
+  > div {
+    margin-bottom: 1rem;
+    flex-grow: 2;
+  }
+}

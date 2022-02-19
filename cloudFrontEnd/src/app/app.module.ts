@@ -42,6 +42,8 @@ import { DisableControlDirective } from './config-setup/disable-control.directiv
 import { MapToKeyValuePipe } from './config-setup/map-to-key-value.pipe';
 import { CredentialsForCameraAccessComponent } from './credentials-for-camera-access/credentials-for-camera-access.component';
 import { LoginComponent } from './login/login.component';
+import { RegisterAccountComponent } from './register-account/register-account.component';
+import { ProductIdInputComponent } from './register-account/product-id-input/product-id-input.component';
 
 @NgModule({
   declarations: [
@@ -64,7 +66,9 @@ import { LoginComponent } from './login/login.component';
     DisableControlDirective,
     MapToKeyValuePipe,
     CredentialsForCameraAccessComponent,
-    LoginComponent
+    LoginComponent,
+    RegisterAccountComponent,
+    ProductIdInputComponent
   ],
     imports: [
         BrowserModule,

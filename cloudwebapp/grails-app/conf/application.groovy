@@ -28,7 +28,8 @@ grails.plugin.springsecurity.controllerAnnotations.staticRules = [
 	[pattern: '/**/*.js',        access: ['permitAll']],
 	[pattern: '/**/*.css',       access: ['permitAll']],
 	[pattern: '/**/*.ttf',       access: ['permitAll']],
-	[pattern: '/**/*.woff2',     access: ['permitAll']]
+	[pattern: '/**/*.woff2',     access: ['permitAll']],
+	[pattern: '/cloud/register', access: ['permitAll']]
 ]
 
 grails.plugin.springsecurity.filterChain.chainMap = [

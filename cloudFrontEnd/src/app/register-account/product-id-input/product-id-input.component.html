@@ -1,0 +1,14 @@
+<mat-form-field class="prod_id_input-container" appearance="legacy" [style.width.px]="225">
+  <input #productIdCtl matInput type="text" autocomplete="off" maxlength="19"
+         [formControl]="getFormControl()"
+         (focus)="setFocus()"
+         (keydown)="handleKeyDown($event, this.productIdCtl)"
+         class="mono"
+         matTooltip="Enter your NVR Product ID. This will have been provided on a note with your NVR"
+         matTooltipClass="tooltip"
+         placeholder="NVR Product ID">
+  <mat-hint>The 16 character product ID of your NVR</mat-hint>
+  <mat-error *ngIf="formControl.hasError('pattern')">All 16 characters of the product ID are required
+  </mat-error>
+</mat-form-field>
+

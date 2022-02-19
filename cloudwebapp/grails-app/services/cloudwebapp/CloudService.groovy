@@ -1,10 +1,11 @@
 package cloudwebapp
 
+import cloudservice.User
+import cloudservice.commands.RegisterUserCommand
 import cloudservice.enums.PassFail
 import cloudservice.interfaceobjects.ObjectCommandResponse
 import cloudservice.interfaceobjects.RestfulResponse
 import com.proxy.CloudListener
-import grails.core.GrailsApplication
 import grails.gorm.transactions.Transactional
 
 import javax.servlet.http.HttpServletRequest
@@ -19,8 +20,10 @@ class Temperature {
 @Transactional
 class CloudService {
     LogService logService
-    GrailsApplication grailsApplication
     CloudListener cloudListener = null
+    UserService userService
+    UserRoleService userRoleService
+    RoleService roleService
 
     def start() {
         if(cloudListener == null)
@@ -48,9 +51,9 @@ class CloudService {
     def getTemperature(HttpServletRequest request) {
         RestfulResponse response = new RestfulResponse()
         ObjectCommandResponse result = new ObjectCommandResponse()
-        InputStream is = null
+        InputStream is
 
-        Reader inp = null
+        Reader inp
         try {
             URL url = new URL("http://localhost:8083/utils/getTemperature")
 
@@ -95,4 +98,37 @@ class CloudService {
         return result
     }
 
+    /**
+     * register: Register a new user
+     * @param cmd: Command object (username, NVR ProductID, password, confirmPassword, email, confirm email
+     * @return
+     */
+    ObjectCommandResponse register(RegisterUserCommand cmd) {
+        ObjectCommandResponse response = new ObjectCommandResponse()
+        try {
+            String nvrSessionId = cloudListener.authenticate(cmd.productId)
+
+            if(User.findByProductid(cmd.productId) != null)
+                throw new Exception("Product ID "+cmd.productId+" is already registered")
+            else if(User.findByUsername(cmd.username) != null)
+                throw new Exception("Username "+cmd.username+" is already registered")
+
+            if(nvrSessionId != "" && nvrSessionId != "NO_CONN") {
+                User u = new User(username: cmd.username, productid: cmd.productId, password: cmd.password, email: cmd.email)
+                u = userService.save(u)
+                userRoleService.save(u, roleService.findByAuthority('ROLE_CLIENT'))
+            }
+            else if(nvrSessionId == "")
+                throw new Exception("Failed to login to NVR")
+            else
+                throw new Exception("NVR not connected or entered product id was incorrect")
+        }
+        catch(Exception ex)
+        {
+            logService.cloud.error(ex.getClass().getName()+" in CloudService.register: "+ex.getMessage())
+            response.error = ex.getMessage()
+            response.status = PassFail.FAIL
+        }
+        return response
+    }
 }

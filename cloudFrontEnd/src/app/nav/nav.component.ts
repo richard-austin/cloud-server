@@ -40,6 +40,10 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
     window.location.href = '#/login'
   }
 
+  registerAccount() {
+    window.location.href = '#/register'
+  }
+
   setVideoStream(camStream: CameraStream): void {
     this.cameraSvc.setActiveLive([camStream]);
     window.location.href = '#/live';
@@ -181,7 +185,8 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
       }
       else if (message.messageType == messageType.loggedOut )
       {
-        this.login();  // Show the login component
+        if(!window.location.href.endsWith("#/login") && !window.location.href.endsWith("#/register"))
+            window.location.href = "#/";  // Remove any displayed components
       }
     });
 

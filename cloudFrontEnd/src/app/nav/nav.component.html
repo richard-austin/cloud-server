@@ -52,10 +52,8 @@
 
   <!--    <div *ngIf="!noTemperature" [ngClass]="tempAlertClass" class="mx-auto temp">Core Temp: {{temperature}} °C</div>-->
     <div [style]="'display:'+ (utilsService.loggedIn ? 'none' : 'inherit')">
-      <button mat-button #loginButton [matMenuTriggerFor]="menuLogin">Log in</button>
-      <mat-menu #menuLogin="matMenu">
-        <button mat-menu-item (click)="login();menuClosed()">Login</button>
-      </mat-menu>
+      <button mat-button (click)="login();menuClosed()">Log in</button>
+      <button mat-button (click)="registerAccount();menuClosed()">Create Account</button>
     </div>
     <div [style]="'display:'+ (utilsService.loggedIn ? 'inherit' : 'none')">
       <button mat-button [matMenuTriggerFor]="menuGeneral">General</button>

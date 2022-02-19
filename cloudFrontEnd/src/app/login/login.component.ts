@@ -55,7 +55,7 @@ export class LoginComponent implements OnInit, AfterViewInit {
   ngOnInit(): void {
     this.loginForm = new FormGroup({
       username: new FormControl(this.username, [Validators.required, Validators.maxLength(20), Validators.pattern("^[a-zA-Z0-9](_(?!(\.|_))|\.(?!(_|\.))|[a-zA-Z0-9]){3,18}[a-zA-Z0-9]$")]),
-      password: new FormControl(this.password, [Validators.required, Validators.maxLength(25), /*Validators.pattern("^(?=.*[A-Za-z])(?=.*\\d)(?=.*[@$!%*#?&])[A-Za-z\\d@$!%*#?&]{8,}$")*/])
+      password: new FormControl(this.password, [Validators.required, Validators.maxLength(32)])
     }, {updateOn: "change"});
 
     // Ensure camera form controls highlight immediately if invalid
