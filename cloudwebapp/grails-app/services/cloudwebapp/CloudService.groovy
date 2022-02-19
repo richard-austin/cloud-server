@@ -5,7 +5,7 @@ import cloudservice.commands.RegisterUserCommand
 import cloudservice.enums.PassFail
 import cloudservice.interfaceobjects.ObjectCommandResponse
 import cloudservice.interfaceobjects.RestfulResponse
-import com.proxy.CloudListener
+import com.proxy.cloudListener.CloudListener
 import grails.gorm.transactions.Transactional
 
 import javax.servlet.http.HttpServletRequest

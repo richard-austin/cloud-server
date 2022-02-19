@@ -4,7 +4,6 @@ import javax.net.ssl.SSLSocket;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
@@ -13,6 +12,7 @@ import java.util.*;
 import java.util.concurrent.*;
 
 import ch.qos.logback.classic.Logger;
+import com.proxy.cloudListener.CloudListener;
 import org.slf4j.LoggerFactory;
 
 import java.util.zip.CRC32;
@@ -42,7 +42,7 @@ public class Cloud {
     private final CloudProperties cloudProperties = CloudProperties.getInstance();
     private final boolean protocolAgnostic = true;  // ProtocolAgnostic means that login to NVR won't be done automatically by the Cloud
 
-    Cloud(SSLSocket cloudProxy, String productId)
+    public Cloud(SSLSocket cloudProxy, String productId)
     {
         this.cloudProxy = cloudProxy;
         this.productId = productId;
