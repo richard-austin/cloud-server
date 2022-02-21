@@ -3,7 +3,7 @@ package com.proxy;
 import java.nio.ByteBuffer;
 import java.util.*;
 
-class HttpMessage extends HashMap<String, List<String>> {
+public class HttpMessage extends HashMap<String, List<String>> {
     final ByteBuffer httpMessage;
     final byte[] crlfcrlf = {'\r', '\n','\r', '\n'};
     final byte [] crlf = {'\r', '\n'};

@@ -13,7 +13,7 @@ public final class CloudProperties {
     {
     }
 
-    static CloudProperties getInstance()
+    public static CloudProperties getInstance()
     {
         return theInstance;
     }
