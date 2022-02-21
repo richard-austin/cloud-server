@@ -38,8 +38,10 @@ export class IdleTimeoutStatusMessage extends Message {
 }
 
 export class LoggedinMessage extends Message {
-   constructor() {
+  role: string;
+   constructor(role: string) {
      super(messageType.loggedIn);
+     this.role = role;
    }
 }
 
@@ -79,9 +81,9 @@ export class UtilsService {
     // );
   }
 
-  login(username: string, password: string): Observable<void> {
+  login(username: string, password: string): Observable<{ role: string }> {
     let creds: string = "username=" + username + "&password=" + password;
-    return this.http.post<void>(this._baseUrl.getLink("login", "authenticate"), creds, this.httpUrlEncoded).pipe(
+    return this.http.post<{role: string}>(this._baseUrl.getLink("login", "authenticate"), creds, this.httpUrlEncoded).pipe(
       tap(() => {
           this._loggedIn = true;
         },

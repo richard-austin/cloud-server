@@ -7,6 +7,7 @@ import cloudservice.interfaceobjects.ObjectCommandResponse
 import cloudservice.interfaceobjects.RestfulResponse
 import com.proxy.cloudListener.CloudListener
 import grails.gorm.transactions.Transactional
+import grails.plugin.springsecurity.SpringSecurityService
 
 import javax.servlet.http.HttpServletRequest
 
@@ -24,6 +25,7 @@ class CloudService {
     UserService userService
     UserRoleService userRoleService
     RoleService roleService
+    SpringSecurityService springSecurityService
 
     def start() {
         if(cloudListener == null)
@@ -51,10 +53,19 @@ class CloudService {
     def getTemperature(HttpServletRequest request) {
         RestfulResponse response = new RestfulResponse()
         ObjectCommandResponse result = new ObjectCommandResponse()
+
         InputStream is
 
         Reader inp
         try {
+            String[] auths = springSecurityService.getPrincipal().getAuthorities()
+            if(auths.contains("ROLE_ADMIN"))
+            {
+                // No NVR to call for temperature when admin
+                result.responseObject =  new Temperature("temp=-10.0'C\n")
+                return result
+            }
+
             URL url = new URL("http://localhost:8083/utils/getTemperature")
 
             HttpURLConnection conn = (HttpURLConnection) url.openConnection()

@@ -23,12 +23,12 @@ export class LoginComponent implements OnInit, AfterViewInit {
     this.username = this.getFormControl('username').value;
     this.password = this.getFormControl('password').value;
 
-    this.utilsService.login(this.username, this.password).subscribe(() => {
+    this.utilsService.login(this.username, this.password).subscribe((result) => {
         this.getFormControl('username').setValue("");
         this.getFormControl('password').setValue("");
         this.username = this.password = "";
         this.cameraSvc.initialiseCameras();
-        this.utilsService.sendMessage(new LoggedinMessage());  // Tell nav component we are logged in
+        this.utilsService.sendMessage(new LoggedinMessage(result.role));  // Tell nav component we are logged in
       },
       (reason)=> {
       this.errorMessage = reason.error;

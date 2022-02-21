@@ -16,6 +16,7 @@ beans = {
     authenticationSuccessHandler(CloudSecurityEventListener) {
         logService = ref("logService")
         cloudService = ref("cloudService")
+        springSecurityService = ref("springSecurityService")
     }
 
     // This bean audits failed user logins

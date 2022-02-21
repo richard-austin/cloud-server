@@ -17,9 +17,9 @@ class BootStrap {
             }
         }
         if ( !userService.findByUsername('admin') ) {
-            User u = new User(username: 'admin', productid: 'O3RY-HQGC-W5FP-6UYW', password: 'elementary', email: 'changeme@changeme.com')
+            User u = new User(username: 'admin', productid: '0000-0000-0000-0000', password: 'elementary', email: 'changeme@changeme.com')
             u = userService.save(u)
-            userRoleService.save(u, roleService.findByAuthority('ROLE_CLIENT'))
+            userRoleService.save(u, roleService.findByAuthority('ROLE_ADMIN'))
         }
     }
     def destroy = {
