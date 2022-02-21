@@ -1,6 +1,7 @@
 package cloudwebapp
 
 import cloudservice.commands.RegisterUserCommand
+import cloudservice.commands.ResetPasswordCommand
 import cloudservice.enums.PassFail
 import cloudservice.interfaceobjects.ObjectCommandResponse
 import grails.converters.JSON
@@ -11,6 +12,7 @@ class CloudController {
     CloudService cloudService
     LogService logService
     ValidationErrorService validationErrorService
+    UserAdminService userAdminService
     /**
      * getTemperature: Get the core temperature (Raspberry pi only). This is called at intervals to keep the session alive
      * @return: The temperature as a string. On non Raspberry pi systems an error is returned.
@@ -53,4 +55,28 @@ class CloudController {
             }
         }
     }
+
+    @Secured(['ROLE_CLIENT', 'ROLE_ADMIN'])
+    def changePassword(ResetPasswordCommand cmd) {
+        ObjectCommandResponse result
+
+        if(cmd.hasErrors())
+        {
+            def errorsMap = validationErrorService.commandErrors(cmd.errors as ValidationErrors, 'changePassword')
+            logService.cloud.error "changePassword: Validation error: "+errorsMap.toString()
+            render(status: 400, text: errorsMap as JSON)
+        }
+        else
+        {
+            result = userAdminService.resetPassword(cmd)
+            if (result.status != PassFail.PASS) {
+                render(status: 500, text: result.error)
+            }
+            else {
+                logService.cloud.info("changePassword: success")
+                render ""
+            }
+        }
+    }
+
 }
