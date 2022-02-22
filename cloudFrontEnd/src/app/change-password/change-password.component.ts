@@ -1,7 +1,6 @@
-import {Component, OnInit, ViewChild} from '@angular/core';
+import {Component, OnInit, } from '@angular/core';
 import {AbstractControl, FormControl, FormGroup, ValidationErrors, Validators} from "@angular/forms";
 import {ChangePasswordService} from "./change-password.service";
-import {ReportingComponent} from "../reporting/reporting.component";
 import {HttpErrorResponse} from "@angular/common/http";
 
 @Component({
@@ -15,7 +14,8 @@ export class ChangePasswordComponent implements OnInit {
   oldPassword: string = '';
   newPassword: string = '';
   confirmNewPassword: string = '';
-  @ViewChild(ReportingComponent) reporting!: ReportingComponent;
+  errorMessage: string = '';
+  successMessage: string = '';
 
   constructor(private changePasswordService: ChangePasswordService) {
   }
@@ -29,9 +29,10 @@ export class ChangePasswordComponent implements OnInit {
   }
 
   formSubmitted() {
+    this.errorMessage = this.successMessage = '';
     this.oldPassword = this.getFormControl('oldPassword').value;
     this.changePasswordService.changePassword(this.oldPassword, this.newPassword, this.confirmNewPassword).subscribe(() => {
-        this.reporting.successMessage = "Password changed";
+        this.successMessage = "Password changed";
       },
       (reason: HttpErrorResponse) => {
         if (reason.status === 400) {
@@ -40,7 +41,7 @@ export class ChangePasswordComponent implements OnInit {
               this.invalidPassword();
           }
         } else
-          this.reporting.error = reason;
+          this.errorMessage = reason.error;
       });
   }
 
@@ -59,8 +60,15 @@ export class ChangePasswordComponent implements OnInit {
       cpControl?.updateValueAndValidity();
     }
 
-    const ok = !new RegExp("^[A-Za-z0-9][A-Za-z0-9(){\[1*£$\\]}=@~?^]{7,31}$").test(control.value);
-    return ok ? {pattern: {value: control.value}} : null;
+    let value: string = control.value;
+    if(value !== "") {
+      if(value.length < 8)
+        return {tooShort: {value: value}};
+      const ok = !new RegExp("^[A-Za-z0-9][A-Za-z0-9(){\[1*£$\\]}=@~?^]{7,31}$").test(value);
+      return ok ? {pattern: {value: control.value}} : null;
+    }
+    else
+      return {required: {value: value}};
   };
 
   /**
@@ -72,6 +80,8 @@ export class ChangePasswordComponent implements OnInit {
     this.confirmNewPassword = control.value;
     let fg: FormGroup = control.parent as FormGroup;
     let ac: AbstractControl = fg?.controls['newPassword'];
+    if (control.value == "")
+      return {required: {value: control.value}}
     if (control.value == "" || control.value !== ac?.value) {
       return {confirmNewPassword: {value: control.value}};
     }
@@ -82,10 +92,14 @@ export class ChangePasswordComponent implements OnInit {
     return this.changePasswordForm.invalid;
   }
 
+  exit() {
+    window.location.href = "#/"
+  }
+
   ngOnInit(): void {
     this.changePasswordForm = new FormGroup({
       oldPassword: new FormControl(this.oldPassword, [Validators.required]),
-      newPassword: new FormControl(this.newPassword, [Validators.required, this.passwordValidator]),
+      newPassword: new FormControl(this.newPassword, [this.passwordValidator]),
       confirmNewPassword: new FormControl(this.confirmNewPassword, [this.comparePasswords])
     }, {updateOn: "change"});
     this.changePasswordForm.markAllAsTouched();
