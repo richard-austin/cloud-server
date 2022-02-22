@@ -71,8 +71,15 @@ export class UtilsService {
 
   private _messaging: Subject<any> = new Subject<any>();
   private _loggedIn: boolean = false;
+  private _isAdmin: boolean = false;
+
   get loggedIn(): boolean {
     return this._loggedIn;
+  }
+
+  get isAdmin()
+  {
+      return this._isAdmin;
   }
 
   constructor(private http: HttpClient, private _baseUrl: BaseUrl) {
@@ -84,11 +91,14 @@ export class UtilsService {
   login(username: string, password: string): Observable<{ role: string }> {
     let creds: string = "username=" + username + "&password=" + password;
     return this.http.post<{role: string}>(this._baseUrl.getLink("login", "authenticate"), creds, this.httpUrlEncoded).pipe(
-      tap(() => {
+      tap((result) => {
+        if(result.role === 'ROLE_ADMIN')
+          this._isAdmin = true;
+        else
           this._loggedIn = true;
         },
         reason => {
-          this._loggedIn = false;
+        this._isAdmin = this._loggedIn = false;
         }),
       catchError((err: HttpErrorResponse) => throwError(err))
     );
@@ -102,10 +112,10 @@ export class UtilsService {
   getTemperature(): Observable<Temperature> {
     return this.http.post<Temperature>(this._baseUrl.getLink("cloud", "getTemperature"), '', this.httpJSONOptions).pipe(
       tap(() => {
-          this._loggedIn = true;
+//          this._loggedIn = true;
         },
         (reason) => {
-          this._loggedIn = false;
+          this._loggedIn =this._isAdmin = false;
           this.sendMessage(new LoggedOutMessage())
         }),
       catchError((err: HttpErrorResponse) => throwError(err))

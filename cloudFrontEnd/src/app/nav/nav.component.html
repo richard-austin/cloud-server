@@ -4,7 +4,7 @@
   </a>
 
   <div>
-    <div *ngIf="!noTemperature" [ngClass]="tempAlertClass">Core Temp: {{temperature}} °C</div>
+    <div *ngIf="!noTemperature && !utilsService.isAdmin" [ngClass]="tempAlertClass">Core Temp: {{temperature}} °C</div>
   </div>
 
   <button mat-button class="navbar-toggler" type="button" (click)="toggleMenu()"
@@ -50,22 +50,46 @@
       </mat-menu>
     </div>
 
-  <!--    <div *ngIf="!noTemperature" [ngClass]="tempAlertClass" class="mx-auto temp">Core Temp: {{temperature}} °C</div>-->
-    <div [style]="'display:'+ (utilsService.loggedIn ? 'none' : 'inherit')">
+    <div *ngIf="utilsService.isAdmin">
+      <button mat-button [matMenuTriggerFor]="admin">Admin</button>
+      <mat-menu #admin=matMenu>
+        <button mat-menu-item (click)="menuClosed()">
+          Users admin
+        </button>
+      </mat-menu>
+    </div>
+
+    <div class="float-right" *ngIf="!utilsService.loggedIn && !utilsService.isAdmin">
       <button mat-button (click)="login();menuClosed()">Log in</button>
       <button mat-button (click)="registerAccount();menuClosed()">Create Account</button>
     </div>
-    <div [style]="'display:'+ (utilsService.loggedIn ? 'inherit' : 'none')">
+
+    <div class="float-right" *ngIf="utilsService.loggedIn || utilsService.isAdmin">
       <button mat-button [matMenuTriggerFor]="menuGeneral">General</button>
       <mat-menu #menuGeneral="matMenu">
-        <button mat-menu-item (click)="configSetup();menuClosed()">Configure Camera Setup</button>
-        <button mat-menu-item (click)="confirmLogoff();menuClosed()">Log Off</button>
-        <button mat-menu-item (click)="changePassword();menuClosed()">Change Password</button>
-        <div class="dropdown-divider"></div>
-        <button mat-menu-item (click)="setIp();menuClosed()">Save Current Public IP</button>
-        <button mat-menu-item (click)="drawdownCalc();menuClosed()">Pension Drawdown Calculator</button>
-        <div class="dropdown-divider"></div>
-        <button mat-menu-item (click)="about();menuClosed()">About Security Cam</button>
+        <button *ngIf="utilsService.loggedIn" mat-menu-item (click)="configSetup();menuClosed()">
+          Configure Camera Setup
+        </button>
+        <button mat-menu-item (click)="confirmLogoff();menuClosed()">
+          Log Off
+        </button>
+        <button mat-menu-item (click)="changePassword();menuClosed()">
+          Change Password
+        </button>
+        <div *ngIf="utilsService.loggedIn" class="dropdown-divider"></div>
+        <button *ngIf="utilsService.loggedIn" mat-menu-item (click)="setIp();menuClosed()">
+          Save Current Public IP
+        </button>
+        <button *ngIf="utilsService.loggedIn" mat-menu-item (click)="drawdownCalc();menuClosed()">
+          Pension Drawdown Calculator
+        </button>
+        <div *ngIf="utilsService.loggedIn" class="dropdown-divider"></div>
+        <button *ngIf="utilsService.loggedIn" mat-menu-item (click)="about();menuClosed()">
+          About Security Cam
+        </button>
+        <button *ngIf="utilsService.isAdmin" mat-menu-item (click)="aboutCCTVCloud();menuClosed()">
+          About CCTV Cloud
+        </button>
       </mat-menu>
     </div>
   </div>
