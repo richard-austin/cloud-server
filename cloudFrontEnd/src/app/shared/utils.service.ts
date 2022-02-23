@@ -131,8 +131,8 @@ export class UtilsService {
     );
   }
 
-  getVersion(): Observable<Version> {
-    return this.http.post<Version>(this._baseUrl.getLink("utils", "getVersion"), '', this.httpJSONOptions).pipe(
+  getVersion(isLocal: boolean): Observable<Version> {
+    return this.http.post<Version>(this._baseUrl.getLink(isLocal?"cloud":"utils", "getVersion"), '', this.httpJSONOptions).pipe(
       tap(),
       catchError((err: HttpErrorResponse) => throwError(err))
     );

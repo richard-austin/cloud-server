@@ -53,8 +53,8 @@
     <div *ngIf="utilsService.isAdmin">
       <button mat-button [matMenuTriggerFor]="admin">Admin</button>
       <mat-menu #admin=matMenu>
-        <button mat-menu-item (click)="menuClosed()">
-          Users admin
+        <button mat-menu-item (click)="nvrAdmin(); menuClosed()">
+          NVRs admin
         </button>
       </mat-menu>
     </div>
