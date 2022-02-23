@@ -5,12 +5,11 @@ import com.proxy.Cloud;
 import org.checkerframework.checker.regex.qual.Regex;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Timer;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class CloudInstanceMap {
     private final Logger logger = (Logger) LoggerFactory.getLogger("CLOUD");
@@ -67,6 +66,26 @@ public class CloudInstanceMap {
         }
         return map.get(key);
     }
+
+    /**
+     * getSessions: Gets the number of currently active sessions against product ID
+     * @return: Map of number of sessions by product ID
+     */
+    public Map<String, Integer> getSessions()
+    {
+        Map<String, Integer> retVal = new ConcurrentHashMap<>();
+
+        keyList.forEach((cloud, keyList) -> {
+            final String productId = cloud.getProductId();
+
+            List<String> sessions = keyList.stream()
+                    .filter((key) -> !key.matches(productIdRegex))
+                    .collect(Collectors.toList());
+
+            retVal.put(productId, sessions.size());
+        });
+        return retVal;
+     }
 
     /**
      * remove: Remove this key reference to the Cloud instance. If the key is a product ID, remove the Cloud instance and all references

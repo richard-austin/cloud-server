@@ -19,6 +19,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.PrivateKey;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -88,6 +89,15 @@ public class CloudListener implements SslContextProvider {
         {
             logger.error(ex.getClass().getName()+" when closing CloudProxy listening socket: "+ex.getMessage());
         }
+    }
+
+    /**
+     * getSessions: Gets the number of currently active sessions against product ID
+     * @return: Map of number of sessions by product ID
+     */
+    public Map<String, Integer> getSessions()
+    {
+        return instances.getSessions();
     }
 
     private void acceptConnectionsFromCloudProxy(final int cloudProxyFacingPort) {

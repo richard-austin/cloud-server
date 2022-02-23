@@ -20,12 +20,25 @@ class Temperature {
     }
     String temp
 }
+
 class Version {
     Version(String version) {
         this.version = version
     }
 
     String version
+}
+
+class Account {
+    String productId
+    String userName
+    boolean nvrConnected = false
+    boolean userConnected = false
+
+    Account(String productId, String userName) {
+        this.productId = productId
+        this.userName = userName
+    }
 }
 
 @Transactional
@@ -39,25 +52,23 @@ class CloudService {
     AssetResourceLocator assetResourceLocator
 
     def start() {
-        if(cloudListener == null)
+        if (cloudListener == null)
             cloudListener = new CloudListener()
 
         ObjectCommandResponse response = new ObjectCommandResponse()
-        try
-        {
+        try {
             cloudListener.start()
         }
-        catch(Exception ex)
-        {
-            response.status= PassFail.FAIL
-            response.error = ex.getClass().getName()+" in CloudListener.start: "+ex.getClass().getName()+": "+ex.getMessage()
+        catch (Exception ex) {
+            response.status = PassFail.FAIL
+            response.error = ex.getClass().getName() + " in CloudListener.start: " + ex.getClass().getName() + ": " + ex.getMessage()
             logService.cloud.error(response.error)
         }
         return response
     }
 
     def stop() {
-        if(cloudListener)
+        if (cloudListener)
             cloudListener.stop()
     }
 
@@ -91,10 +102,9 @@ class CloudService {
         Reader inp
         try {
             String[] auths = springSecurityService.getPrincipal().getAuthorities()
-            if(auths.contains("ROLE_ADMIN"))
-            {
+            if (auths.contains("ROLE_ADMIN")) {
                 // No NVR to call for temperature when admin
-                result.responseObject =  new Temperature("temp=-10.0'C\n")
+                result.responseObject = new Temperature("temp=-10.0'C\n")
                 return result
             }
 
@@ -134,7 +144,7 @@ class CloudService {
             result.responseObject = temp
         }
         catch (Exception ex) {
-            logService.cloud.error(ex.getClass().getName()+" in getTemperature: " + ex.getCause() + ' ' + ex.getMessage())
+            logService.cloud.error(ex.getClass().getName() + " in getTemperature: " + ex.getCause() + ' ' + ex.getMessage())
             result.status = PassFail.FAIL
             result.error = ex.getMessage()
         }
@@ -143,7 +153,7 @@ class CloudService {
 
     /**
      * register: Register a new user
-     * @param cmd: Command object (username, NVR ProductID, password, confirmPassword, email, confirm email
+     * @param cmd : Command object (username, NVR ProductID, password, confirmPassword, email, confirm email
      * @return
      */
     ObjectCommandResponse register(RegisterUserCommand cmd) {
@@ -151,27 +161,56 @@ class CloudService {
         try {
             String nvrSessionId = cloudListener.authenticate(cmd.productId)
 
-            if(User.findByProductid(cmd.productId) != null)
-                throw new Exception("Product ID "+cmd.productId+" is already registered")
-            else if(User.findByUsername(cmd.username) != null)
-                throw new Exception("Username "+cmd.username+" is already registered")
+            if (User.findByProductid(cmd.productId) != null)
+                throw new Exception("Product ID " + cmd.productId + " is already registered")
+            else if (User.findByUsername(cmd.username) != null)
+                throw new Exception("Username " + cmd.username + " is already registered")
 
-            if(nvrSessionId != "" && nvrSessionId != "NO_CONN") {
+            if (nvrSessionId != "" && nvrSessionId != "NO_CONN") {
                 User u = new User(username: cmd.username, productid: cmd.productId, password: cmd.password, email: cmd.email)
                 u = userService.save(u)
                 userRoleService.save(u, roleService.findByAuthority('ROLE_CLIENT'))
-            }
-            else if(nvrSessionId == "")
+            } else if (nvrSessionId == "")
                 throw new Exception("Failed to login to NVR")
             else
                 throw new Exception("NVR not connected or entered product id was incorrect")
         }
-        catch(Exception ex)
-        {
-            logService.cloud.error(ex.getClass().getName()+" in CloudService.register: "+ex.getMessage())
+        catch (Exception ex) {
+            logService.cloud.error(ex.getClass().getName() + " in CloudService.register: " + ex.getMessage())
             response.error = ex.getMessage()
             response.status = PassFail.FAIL
         }
+        return response
+    }
+
+    ObjectCommandResponse getUsers() {
+        ObjectCommandResponse response = new ObjectCommandResponse()
+
+        try {
+            List<Account> accounts = new ArrayList<Account>()
+
+            if (cloudListener != null) {
+                List<User> users = User.getAll()
+                Map<String, Integer> sessions = cloudListener.getSessions();
+
+                users.forEach((User user) -> {
+                    Account acc = new Account(user.getProductid(), user.getUsername())
+                    accounts.add(acc)
+                    if (sessions.containsKey(acc.productId)) {
+                        acc.nvrConnected = true
+                        if (sessions.get(acc.productId) > 0)
+                            acc.userConnected = true
+                    }
+                })
+                response.responseObject = accounts
+            }
+        }
+        catch (Exception ex) {
+            logService.cloud.error(ex.getClass().getName() + " exception in getUsers: " + ex.getMessage())
+            response.status = PassFail.FAIL
+            response.error = ex.getMessage()
+        }
+
         return response
     }
 }

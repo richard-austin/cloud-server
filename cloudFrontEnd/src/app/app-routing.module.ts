@@ -11,7 +11,7 @@ import {DrawdownCalcContainerComponent} from "./drawdown-calc-container/drawdown
 import {ConfigSetupComponent} from "./config-setup/config-setup.component";
 import {LoginComponent} from "./login/login.component";
 import {RegisterAccountComponent} from "./register-account/register-account.component";
-import { NVRAdminComponent } from './nvradmin/nvradmin.component';
+import { AccountAdminComponent } from './accountAdmin/account-admin.component';
 
 const routes: Routes = [
   {path: 'live', component: LiveContainerComponent},
@@ -25,7 +25,7 @@ const routes: Routes = [
   {path: 'configsetup', component: ConfigSetupComponent},
   {path: 'login', component: LoginComponent},
   {path: 'register', component: RegisterAccountComponent},
-  {path: 'nvradmin', component: NVRAdminComponent},
+  {path: 'accountadmin', component: AccountAdminComponent},
   {path: 'dc', component: DrawdownCalcContainerComponent}
 ];
 

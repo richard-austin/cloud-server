@@ -89,8 +89,8 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
 
-  nvrAdmin() {
-    window.location.href = '#/nvradmin';
+  accountsAdmin() {
+    window.location.href = '#/accountadmin';
   }
 
   private getTemperature(): void {

@@ -44,7 +44,7 @@ import { CredentialsForCameraAccessComponent } from './credentials-for-camera-ac
 import { LoginComponent } from './login/login.component';
 import { RegisterAccountComponent } from './register-account/register-account.component';
 import { ProductIdInputComponent } from './register-account/product-id-input/product-id-input.component';
-import { NVRAdminComponent } from './nvradmin/nvradmin.component';
+import { AccountAdminComponent } from './accountAdmin/account-admin.component';
 
 @NgModule({
   declarations: [
@@ -70,7 +70,7 @@ import { NVRAdminComponent } from './nvradmin/nvradmin.component';
     LoginComponent,
     RegisterAccountComponent,
     ProductIdInputComponent,
-    NVRAdminComponent
+    AccountAdminComponent
   ],
     imports: [
         BrowserModule,

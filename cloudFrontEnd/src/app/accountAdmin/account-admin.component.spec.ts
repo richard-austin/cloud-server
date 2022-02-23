@@ -1,20 +1,20 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { NVRAdminComponent } from './nvradmin.component';
+import { AccountAdminComponent } from './account-admin.component';
 
 describe('NVRAdminComponent', () => {
-  let component: NVRAdminComponent;
-  let fixture: ComponentFixture<NVRAdminComponent>;
+  let component: AccountAdminComponent;
+  let fixture: ComponentFixture<AccountAdminComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [ NVRAdminComponent ]
+      declarations: [ AccountAdminComponent ]
     })
     .compileComponents();
   });
 
   beforeEach(() => {
-    fixture = TestBed.createComponent(NVRAdminComponent);
+    fixture = TestBed.createComponent(AccountAdminComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

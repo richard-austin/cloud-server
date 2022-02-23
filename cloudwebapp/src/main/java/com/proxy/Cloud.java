@@ -340,6 +340,11 @@ public class Cloud {
         }
     }
 
+    public String getProductId()
+    {
+        return productId;
+    }
+
     /**
      * getBuffer: Get a new ByteBuffer of BUFFER_SIZE bytes length.
      *

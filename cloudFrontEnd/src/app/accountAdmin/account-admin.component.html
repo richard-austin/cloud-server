@@ -1,0 +1,42 @@
+<mat-card>
+  <mat-card-title>Accounts Admin</mat-card-title>
+  <mat-card-content class="wait-box mat-form-field-flex" *ngIf="downloading">
+    <mat-spinner [diameter]="25"></mat-spinner>
+    <span>Loading, Please wait..</span>
+  </mat-card-content>
+  <mat-card-content>
+    <table mat-table class="mat-elevation-z8"
+    [dataSource]="accounts">
+      <ng-container matColumnDef="productId">
+        <th mat-header-cell *matHeaderCellDef>ProductId</th>
+        <td mat-cell *matCellDef="let account; let i = dataIndex">
+          {{account.productId}}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="userName">
+        <th mat-header-cell *matHeaderCellDef>Username</th>
+        <td mat-cell *matCellDef="let account; let i = dataIndex">
+          {{account.userName}}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="nvrConnected">
+        <th mat-header-cell *matHeaderCellDef>NVR Connected</th>
+        <td mat-cell *matCellDef="let account; let i = dataIndex">
+          {{account.nvrConnected}}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="userConnected">
+        <th mat-header-cell *matHeaderCellDef>User Connected</th>
+        <td mat-cell *matCellDef="let account; let i = dataIndex">
+          {{account.userConnected}}
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+    </table>
+  </mat-card-content>
+</mat-card>

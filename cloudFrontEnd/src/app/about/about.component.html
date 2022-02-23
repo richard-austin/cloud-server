@@ -5,8 +5,8 @@
     <mat-card-title>About {{isLocal?"CCTV Cloud":"NVR"}}</mat-card-title>
     <mat-card-content>
        <div>Version: {{version}}</div>
-      <hr>
-      <img src="{{getOnvifUrl()}}" alt="Onvif logo" >
+      <hr *ngIf="!isLocal">
+      <img *ngIf="!isLocal" src="{{getOnvifUrl()}}" alt="Onvif logo" >
     </mat-card-content>
   </mat-card>
 </div>

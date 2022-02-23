@@ -53,8 +53,8 @@
     <div *ngIf="utilsService.isAdmin">
       <button mat-button [matMenuTriggerFor]="admin">Admin</button>
       <mat-menu #admin=matMenu>
-        <button mat-menu-item (click)="nvrAdmin(); menuClosed()">
-          NVRs admin
+        <button mat-menu-item (click)="accountsAdmin(); menuClosed()">
+          Accounts admin
         </button>
       </mat-menu>
     </div>
@@ -85,7 +85,7 @@
         </button>
         <div *ngIf="utilsService.loggedIn" class="dropdown-divider"></div>
         <button *ngIf="utilsService.loggedIn" mat-menu-item (click)="about();menuClosed()">
-          About Security Cam
+          About NVR
         </button>
         <button *ngIf="utilsService.isAdmin" mat-menu-item (click)="aboutCCTVCloud();menuClosed()">
           About CCTV Cloud
