@@ -140,7 +140,7 @@ public class CloudListener implements SslContextProvider {
 
     private void startNewInstance(SSLSocket cloudProxy, String prodId) {
         if(!instances.containsKey(prodId)) {
-            Cloud newInstance = new Cloud(cloudProxy, prodId);
+            Cloud newInstance = new Cloud(cloudProxy, prodId, instances);
             newInstance.start();
             instances.put(prodId, newInstance);
         }

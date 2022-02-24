@@ -80,9 +80,9 @@ class CloudController {
     }
 
     @Secured(['ROLE_ADMIN'])
-    def getUsers()
+    def getAccounts()
     {
-        ObjectCommandResponse response = cloudService.getUsers()
+        ObjectCommandResponse response = cloudService.getAccounts()
         if (response.status != PassFail.PASS)
             render(status: 500, text: response.error)
         else

@@ -7,6 +7,7 @@ import {CameraParams} from "../cameras/Camera";
 
 export class Temperature {
   temp: string = "";
+  isAdmin: boolean =false;
 }
 
 export class Version {
@@ -49,6 +50,13 @@ export class LoggedOutMessage extends Message {
   constructor() {
     super(messageType.loggedOut);
   }
+}
+
+export class Account {
+  productId!: string;
+  userName!: string;
+  nvrConnected!: boolean;
+  userConnected!: boolean;
 }
 
 @Injectable({
@@ -111,8 +119,9 @@ export class UtilsService {
 
   getTemperature(): Observable<Temperature> {
     return this.http.post<Temperature>(this._baseUrl.getLink("cloud", "getTemperature"), '', this.httpJSONOptions).pipe(
-      tap(() => {
-//          this._loggedIn = true;
+      tap((result) => {
+          this._loggedIn = !result.isAdmin;
+          this._isAdmin = result.isAdmin;
         },
         (reason) => {
           this._loggedIn =this._isAdmin = false;
@@ -164,6 +173,14 @@ export class UtilsService {
       tap(),
       catchError((err: HttpErrorResponse) => throwError(err))
     );
+  }
+
+  getAccounts():Observable<Account[]>
+  {
+     return this.http.post<Account[]>(this._baseUrl.getLink('cloud', 'getAccounts'), '', this.httpJSONOptions).pipe(
+       tap(),
+       catchError((err:HttpErrorResponse) => throwError(err))
+     )
   }
 
   sendMessage(message: Message) {

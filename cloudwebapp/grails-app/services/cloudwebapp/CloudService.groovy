@@ -15,10 +15,12 @@ import javax.servlet.http.HttpServletRequest
 import java.nio.charset.StandardCharsets
 
 class Temperature {
-    Temperature(String temp) {
+    Temperature(String temp, boolean isAdmin) {
         this.temp = temp
+        this.isAdmin = isAdmin
     }
     String temp
+    boolean isAdmin
 }
 
 class Version {
@@ -104,7 +106,7 @@ class CloudService {
             String[] auths = springSecurityService.getPrincipal().getAuthorities()
             if (auths.contains("ROLE_ADMIN")) {
                 // No NVR to call for temperature when admin
-                result.responseObject = new Temperature("temp=-10.0'C\n")
+                result.responseObject = new Temperature("temp=-10.0'C\n", true)
                 return result
             }
 
@@ -140,7 +142,7 @@ class CloudService {
                     out.append(buffer, 0, readCount)
                 }
             }
-            Temperature temp = new Temperature(out.toString())
+            Temperature temp = new Temperature(out.toString(), false)
             result.responseObject = temp
         }
         catch (Exception ex) {
@@ -183,7 +185,7 @@ class CloudService {
         return response
     }
 
-    ObjectCommandResponse getUsers() {
+    ObjectCommandResponse getAccounts() {
         ObjectCommandResponse response = new ObjectCommandResponse()
 
         try {
@@ -206,7 +208,7 @@ class CloudService {
             }
         }
         catch (Exception ex) {
-            logService.cloud.error(ex.getClass().getName() + " exception in getUsers: " + ex.getMessage())
+            logService.cloud.error(ex.getClass().getName() + " exception in getAccounts: " + ex.getMessage())
             response.status = PassFail.FAIL
             response.error = ex.getMessage()
         }

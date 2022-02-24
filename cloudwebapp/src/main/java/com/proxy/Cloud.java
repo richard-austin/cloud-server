@@ -12,6 +12,7 @@ import java.util.*;
 import java.util.concurrent.*;
 
 import ch.qos.logback.classic.Logger;
+import com.proxy.cloudListener.CloudInstanceMap;
 import com.proxy.cloudListener.CloudListener;
 import org.slf4j.LoggerFactory;
 
@@ -41,11 +42,13 @@ public class Cloud {
     final private String productId;
     private final CloudProperties cloudProperties = CloudProperties.getInstance();
     private final boolean protocolAgnostic = true;  // ProtocolAgnostic means that login to NVR won't be done automatically by the Cloud
+    private final CloudInstanceMap instances;
 
-    public Cloud(SSLSocket cloudProxy, String productId)
+    public Cloud(SSLSocket cloudProxy, String productId, CloudInstanceMap instances)
     {
         this.cloudProxy = cloudProxy;
         this.productId = productId;
+        this.instances = instances;
     }
 
     /**
@@ -253,6 +256,7 @@ public class Cloud {
         // Dump the connection test heartbeats
         final String ignored = "Ignore";
         if (getToken(buf) == -1 && getDataLength(buf) == ignored.length()) {
+            instances.resetNVRTimeout(getProductId());  // Reset the timeout which would remove this Cloud instance from the map
             String strVal = new String(Arrays.copyOfRange(buf.array(), headerLength, buf.limit()), StandardCharsets.UTF_8);
             return ignored.equals(strVal);
         }
