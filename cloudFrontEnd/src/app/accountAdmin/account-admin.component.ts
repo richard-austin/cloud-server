@@ -1,6 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import {Account} from "./account";
-import {UtilsService} from "../shared/utils.service";
+import {UtilsService, Account} from "../shared/utils.service";
 
 @Component({
   selector: 'app-nvradmin',
@@ -10,7 +9,7 @@ import {UtilsService} from "../shared/utils.service";
 export class AccountAdminComponent implements OnInit {
   downloading: boolean = false;
   accounts: Account[] = [];
-  displayedColumns: string[] = ['productId', 'userName', 'nvrConnected', 'userConnected'];
+  displayedColumns: string[] = ['productId', 'userName', 'nvrConnected', 'usersConnected'];
 
   constructor(private utilsService: UtilsService) {
   }

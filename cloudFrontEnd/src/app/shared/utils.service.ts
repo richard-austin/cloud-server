@@ -56,7 +56,7 @@ export class Account {
   productId!: string;
   userName!: string;
   nvrConnected!: boolean;
-  userConnected!: boolean;
+  usersConnected!: number;
 }
 
 @Injectable({

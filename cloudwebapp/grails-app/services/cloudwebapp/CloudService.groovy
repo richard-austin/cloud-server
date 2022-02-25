@@ -35,7 +35,7 @@ class Account {
     String productId
     String userName
     boolean nvrConnected = false
-    boolean userConnected = false
+    int usersConnected = 0
 
     Account(String productId, String userName) {
         this.productId = productId
@@ -193,7 +193,7 @@ class CloudService {
 
             if (cloudListener != null) {
                 List<User> users = User.getAll()
-                Map<String, Integer> sessions = cloudListener.getSessions();
+                Map<String, Integer> sessions = cloudListener.getSessions()
 
                 users.forEach((User user) -> {
                     Account acc = new Account(user.getProductid(), user.getUsername())
@@ -201,7 +201,7 @@ class CloudService {
                     if (sessions.containsKey(acc.productId)) {
                         acc.nvrConnected = true
                         if (sessions.get(acc.productId) > 0)
-                            acc.userConnected = true
+                            acc.usersConnected=sessions.get(acc.productId)
                     }
                 })
                 response.responseObject = accounts
