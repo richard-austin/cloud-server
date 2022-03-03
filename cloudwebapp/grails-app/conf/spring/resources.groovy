@@ -3,6 +3,7 @@ package spring
 import cloudservice.UserPasswordEncoderListener
 import cloudservice.eventlisteners.CloudAuthFailEventListener
 import cloudservice.eventlisteners.CloudSecurityEventListener
+import cloudservice.eventlisteners.WebSocketConfiguration
 import com.proxy.CloudProperties
 
 // Place your Spring DSL code here
@@ -24,4 +25,6 @@ beans = {
         logService = ref("logService")
         cloudService = ref("cloudService")
     }
+
+    webSocketConfiguration(WebSocketConfiguration)
 }

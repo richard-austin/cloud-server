@@ -7,6 +7,12 @@ import cloudservice.interfaceobjects.ObjectCommandResponse
 import grails.converters.JSON
 import grails.plugin.springsecurity.annotation.Secured
 import grails.validation.ValidationErrors
+import grails.web.controllers.ControllerMethod
+import org.springframework.messaging.handler.annotation.MessageMapping
+import org.springframework.messaging.handler.annotation.SendTo
+import org.springframework.security.access.prepost.PreAuthorize
+
+import java.security.Principal
 
 class CloudController {
     CloudService cloudService
@@ -96,5 +102,15 @@ class CloudController {
             render(status: 500, text: response.error)
         else
             render response.responseObject as JSON
+    }
+
+    @ControllerMethod
+    @MessageMapping("/accountUpdates")
+    @PreAuthorize("hasRole('ROLE_ADMIN'")
+    @SendTo("/topic/accountUpdates")
+    @Secured('hasRole("ROLE_ADMIN")')
+    String accountUpdates(String message, Principal principal)
+    {
+        return "Account: "+message
     }
 }

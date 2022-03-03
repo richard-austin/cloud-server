@@ -20,9 +20,10 @@ const PROXY_CONFIG = [
     context: [
       "/login",
       "/logoff",
-      "/cloud"
+      "/cloud",
+      "/stomp"
     ],
-    ws: false,
+    ws: true,
     target: "http://localhost:8086",
     changeOrigin: false,
     secure: false

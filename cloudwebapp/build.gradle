@@ -7,6 +7,7 @@ buildscript {
         classpath "org.grails.plugins:hibernate5:7.1.0"
         classpath "gradle.plugin.com.github.erdi.webdriver-binaries:webdriver-binaries-gradle-plugin:2.6"
         classpath "com.bertramlabs.plugins:asset-pipeline-gradle:3.3.4"
+        classpath 'org.grails.plugins:quartz:2.0.13' // Needed to compile *Job classes
     }
 }
 
@@ -80,7 +81,10 @@ dependencies {
     testImplementation "org.seleniumhq.selenium:selenium-support:3.141.59"
     testRuntimeOnly "org.seleniumhq.selenium:selenium-chrome-driver:3.141.59"
     testRuntimeOnly "org.seleniumhq.selenium:selenium-firefox-driver:3.141.59"
+    implementation 'org.quartz-scheduler:quartz:2.2.1' // Is not pulled in by default
+    implementation 'org.grails.plugins:quartz:2.0.13' // Needed to compile *Job classes
     implementation 'com.bertramlabs.plugins:i18n-asset-pipeline-grails:3.3.6'
+    implementation 'org.springframework.boot:spring-boot-starter-websocket:2.6.3'
 }
 
 task prepareKotlinBuildScriptModel {
