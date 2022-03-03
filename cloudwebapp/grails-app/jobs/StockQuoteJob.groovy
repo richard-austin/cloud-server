@@ -47,6 +47,6 @@ class StockQuoteJob {
         }
 
         //Publish the new quote
-        brokerMessagingTemplate.convertAndSend "/topic/accountUpdates", builder
+        brokerMessagingTemplate.convertAndSend"/topic/accountUpdates", builder
     }
 }
