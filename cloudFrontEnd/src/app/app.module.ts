@@ -45,8 +45,6 @@ import { LoginComponent } from './login/login.component';
 import { RegisterAccountComponent } from './register-account/register-account.component';
 import { ProductIdInputComponent } from './register-account/product-id-input/product-id-input.component';
 import { AccountAdminComponent } from './accountAdmin/account-admin.component';
-import { RxStompService } from './rxStomp/rx-stomp-service.service';
-import { rxStompServiceFactory } from './rxStomp/rx-stomp-service-factory';
 
 @NgModule({
   declarations: [
@@ -102,11 +100,7 @@ import { rxStompServiceFactory } from './rxStomp/rx-stomp-service-factory';
         MatSortModule,
         MatTooltipModule
     ],
-  providers: [HttpClient, BaseUrl,
-    {
-      provide: RxStompService,
-      useFactory: rxStompServiceFactory,
-    } ],
+  providers: [HttpClient, BaseUrl],
   bootstrap: [AppComponent],
   entryComponents: [IdleTimeoutModalComponent]
 })

@@ -1,8 +1,5 @@
 import { Component, OnInit } from '@angular/core';
 import {UtilsService, Account} from "../shared/utils.service";
-import {webSocket} from "rxjs/webSocket";
-import { Subscription } from 'rxjs';
-import { RxStompService } from '../rxStomp/rx-stomp-service.service';
 
 declare let SockJS: any;
 declare let Stomp: any;
@@ -18,13 +15,10 @@ export class AccountAdminComponent implements OnInit {
 
 
   private serverUrl = 'http://localhost:4200/stomp'
-  private title = 'WebSockets chat';
   private stompClient:any;
 
-  private subs!: Subscription;
-
-  constructor(private utilsService: UtilsService, private rxStompService: RxStompService) {
-//    this.initializeWebSocketConnection();
+  constructor(private utilsService: UtilsService) {
+    this.initializeWebSocketConnection();
   }
 
   initializeWebSocketConnection(){
@@ -53,10 +47,6 @@ export class AccountAdminComponent implements OnInit {
       reason => {
 
       });
-
-    this.rxStompService.watch("/topic/accountUpdates").subscribe( msg => {
-      console.log(msg.body);
-    });
 
 // Note that at least one consumer has to subscribe to the created subject - otherwise "nexted" values will be just buffered and not sent,
 // since no connection was established!
