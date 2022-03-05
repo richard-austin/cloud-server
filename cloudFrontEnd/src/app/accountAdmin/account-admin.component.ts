@@ -29,25 +29,32 @@ export class AccountAdminComponent implements OnInit {
     this.stompClient.connect({}, function(frame:any) {
       that.stompClient.subscribe("/topic/accountUpdates", (message:any) => {
         if(message.body) {
-        //  $(".chat").append("<div class='message'>"+message.body+"</div>")
-          console.log(message.body);
+          let msgObj = JSON.parse(message.body);
+          if(msgObj.message === "update") {
+            that.getAccounts();
+            console.log(message.body);
+          }
         }
       });
     });
   }
 
+  getAccounts():void
+  {
+    this.utilsService.getAccounts().subscribe((result) => {
+        this.accounts = result;
+      },
+      reason => {
+
+      });
+  }
   sendMessage(message:any){
     this.stompClient.send("/topic/accountUpdates" , {}, message);
    // $('#input').val('');
   }
 
   ngOnInit(): void {
-    this.utilsService.getAccounts().subscribe((result) => {
-      this.accounts = result;
-    },
-      reason => {
-
-      });
+    this.getAccounts();
 
 // Note that at least one consumer has to subscribe to the created subject - otherwise "nexted" values will be just buffered and not sent,
 // since no connection was established!
