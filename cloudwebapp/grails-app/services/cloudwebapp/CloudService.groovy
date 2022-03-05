@@ -10,6 +10,7 @@ import com.proxy.cloudListener.CloudListener
 import grails.gorm.transactions.Transactional
 import grails.plugin.springsecurity.SpringSecurityService
 import org.springframework.core.io.Resource
+import org.springframework.messaging.simp.SimpMessagingTemplate
 
 import javax.servlet.http.HttpServletRequest
 import java.nio.charset.StandardCharsets
@@ -52,6 +53,7 @@ class CloudService {
     RoleService roleService
     SpringSecurityService springSecurityService
     AssetResourceLocator assetResourceLocator
+    SimpMessagingTemplate brokerMessagingTemplate;
 
     def start() {
         if (cloudListener == null)
@@ -214,5 +216,16 @@ class CloudService {
         }
 
         return response
+    }
+
+    def pushAccounts()
+    {
+        ObjectCommandResponse response = getAccounts()
+
+        if(response.status != PassFail.FAIL) {
+            List<Account> accounts = response.responseObject
+            brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", accounts)
+        }
+
     }
 }

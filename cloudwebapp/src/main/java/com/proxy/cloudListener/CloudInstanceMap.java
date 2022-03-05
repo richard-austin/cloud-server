@@ -2,12 +2,28 @@ package com.proxy.cloudListener;
 
 import ch.qos.logback.classic.Logger;
 import com.proxy.Cloud;
+import grails.util.Holders;
+import groovy.json.JsonBuilder;
+import org.grails.web.json.JSONObject;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationContext;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Timer;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
+
+//interface CloudService {
+//    ObjectCommandResponse getAccounts();
+//}
+//
+//interface ObjectCommandResponse {
+//    Object responseObject = null;
+//}
 
 public class CloudInstanceMap {
     private final Logger logger = (Logger) LoggerFactory.getLogger("CLOUD");
@@ -18,8 +34,14 @@ public class CloudInstanceMap {
     // List of keys by Cloud instance value, used for remove by value
     Map<Cloud, List<String>> keyList;
     Map<String, Timer> timers;
+    SimpMessagingTemplate brokerMessagingTemplate;
+    final String update = new JSONObject()
+            .put("message", "update")
+            .toString();
 
     CloudInstanceMap() {
+        ApplicationContext ctx = Holders.getGrailsApplication().getMainContext();
+        brokerMessagingTemplate = (SimpMessagingTemplate) ctx.getBean("brokerMessagingTemplate");
         map = new ConcurrentHashMap<>();
         keyList = new ConcurrentHashMap<>();
         timers = new ConcurrentHashMap<>();
@@ -34,6 +56,7 @@ public class CloudInstanceMap {
      */
     Cloud put(String key, Cloud cloud) {
         final boolean isSessionId = !key.matches(productIdRegex);
+        brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", update);
 
         if (!keyList.containsKey(cloud)) {
             List<String> list = new ArrayList<>();
@@ -91,6 +114,7 @@ public class CloudInstanceMap {
      * @return: The Cloud instance
      */
     public Cloud remove(String key) {
+        brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", update);
         final boolean isProductId = key.matches(productIdRegex);
 
         Cloud inst = null;
@@ -120,6 +144,7 @@ public class CloudInstanceMap {
      * @return: The Cloud instance
      */
     public Cloud removeByValue(Cloud cloud) {
+        brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", update);
         List<String> kl = this.keyList.get(cloud);
         kl.forEach(key -> {
             map.remove(key);

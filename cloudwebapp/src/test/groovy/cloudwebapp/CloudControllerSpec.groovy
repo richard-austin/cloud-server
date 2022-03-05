@@ -1,5 +1,6 @@
 package cloudwebapp
 
+import cloudwebappServices.CloudController
 import grails.testing.web.controllers.ControllerUnitTest
 import spock.lang.Specification
 

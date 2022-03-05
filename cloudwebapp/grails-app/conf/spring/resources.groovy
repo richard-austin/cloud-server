@@ -5,6 +5,7 @@ import cloudservice.eventlisteners.CloudAuthFailEventListener
 import cloudservice.eventlisteners.CloudSecurityEventListener
 import cloudservice.eventlisteners.WebSocketConfiguration
 import com.proxy.CloudProperties
+import com.proxy.cloudListener.CloudInstanceMap
 
 // Place your Spring DSL code here
 beans = {

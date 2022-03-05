@@ -13,8 +13,6 @@ export class AccountAdminComponent implements OnInit {
   accounts: Account[] = [];
   displayedColumns: string[] = ['productId', 'userName', 'nvrConnected', 'usersConnected'];
 
-
-  private serverUrl = 'http://localhost:4200/stomp'
   private stompClient:any;
 
   constructor(private utilsService: UtilsService) {
@@ -22,8 +20,11 @@ export class AccountAdminComponent implements OnInit {
   }
 
   initializeWebSocketConnection(){
-    let ws = new SockJS(this.serverUrl);
+    let serverUrl: string = window.location.origin+"/stomp";
+
+    let ws = new SockJS(serverUrl);
     this.stompClient = Stomp.over(ws);
+    this.stompClient.debug = null;
     let that = this;
     this.stompClient.connect({}, function(frame:any) {
       that.stompClient.subscribe("/topic/accountUpdates", (message:any) => {
