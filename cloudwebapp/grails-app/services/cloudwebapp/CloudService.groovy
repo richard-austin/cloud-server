@@ -9,6 +9,7 @@ import cloudservice.interfaceobjects.RestfulResponse
 import com.proxy.cloudListener.CloudListener
 import grails.gorm.transactions.Transactional
 import grails.plugin.springsecurity.SpringSecurityService
+import org.grails.web.json.JSONObject
 import org.springframework.core.io.Resource
 import org.springframework.messaging.simp.SimpMessagingTemplate
 
@@ -53,7 +54,10 @@ class CloudService {
     RoleService roleService
     SpringSecurityService springSecurityService
     AssetResourceLocator assetResourceLocator
-    SimpMessagingTemplate brokerMessagingTemplate;
+    SimpMessagingTemplate brokerMessagingTemplate
+    final String update = new JSONObject()
+            .put("message", "update")
+            .toString()
 
     def start() {
         if (cloudListener == null)
@@ -178,6 +182,8 @@ class CloudService {
                 throw new Exception("Failed to login to NVR")
             else
                 throw new Exception("NVR not connected or entered product id was incorrect")
+
+            brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", update)
         }
         catch (Exception ex) {
             logService.cloud.error(ex.getClass().getName() + " in CloudService.register: " + ex.getMessage())
@@ -216,16 +222,5 @@ class CloudService {
         }
 
         return response
-    }
-
-    def pushAccounts()
-    {
-        ObjectCommandResponse response = getAccounts()
-
-        if(response.status != PassFail.FAIL) {
-            List<Account> accounts = response.responseObject
-            brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", accounts)
-        }
-
     }
 }
