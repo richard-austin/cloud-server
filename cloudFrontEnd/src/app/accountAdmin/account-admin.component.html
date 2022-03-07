@@ -9,7 +9,7 @@
     [dataSource]="accounts">
       <ng-container matColumnDef="productId">
         <th mat-header-cell *matHeaderCellDef>ProductId</th>
-        <td mat-cell *matCellDef="let account; let i = dataIndex">
+        <td mat-cell class="product-id" *matCellDef="let account; let i = dataIndex">
           {{account.productId}}
         </td>
       </ng-container>
