@@ -293,6 +293,10 @@ public class CloudListener implements SslContextProvider {
         }
     }
 
+    public void removeKey(String productId) {
+        instances.remove(productId);
+    }
+
     /**
      * getBuffer: Get a new ByteBuffer of BUFFER_SIZE bytes length.
      *

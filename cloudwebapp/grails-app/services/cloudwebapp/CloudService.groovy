@@ -36,6 +36,7 @@ class Version {
 class Account {
     String productId
     String userName
+    boolean accountCreated = false
     boolean nvrConnected = false
     int usersConnected = 0
 
@@ -168,6 +169,8 @@ class CloudService {
         ObjectCommandResponse response = new ObjectCommandResponse()
         try {
             String nvrSessionId = cloudListener.authenticate(cmd.productId)
+            cloudListener.removeKey(nvrSessionId)   // Remove the key from the instance map as it would show as a session on
+                                                    //  the admin accounts list until it timed out
 
             if (User.findByProductid(cmd.productId) != null)
                 throw new Exception("Product ID " + cmd.productId + " is already registered")
@@ -204,12 +207,25 @@ class CloudService {
                 Map<String, Integer> sessions = cloudListener.getSessions()
 
                 users.forEach((User user) -> {
-                    Account acc = new Account(user.getProductid(), user.getUsername())
-                    accounts.add(acc)
-                    if (sessions.containsKey(acc.productId)) {
+                    if(user.getProductid() != "0000-0000-0000-0000") {   // Don't include the admin account
+                        Account acc = new Account(user.getProductid(), user.getUsername())
+                        acc.accountCreated = true
+                        accounts.add(acc)
+                        if (sessions.containsKey(acc.productId)) {
+                            acc.nvrConnected = true
+                            if (sessions.get(acc.productId) > 0)
+                                acc.usersConnected = sessions.get(acc.productId)
+                        }
+                    }
+                })
+
+                // Add any connected NVR's where no account has been created
+                sessions.forEach((key, session) -> {
+                    if (!accounts.find((account) -> { account.getProductId() == key })) {
+                        Account acc = new Account(key, '')
+                        acc.accountCreated = false
                         acc.nvrConnected = true
-                        if (sessions.get(acc.productId) > 0)
-                            acc.usersConnected=sessions.get(acc.productId)
+                        accounts.add(acc)
                     }
                 })
                 response.responseObject = accounts

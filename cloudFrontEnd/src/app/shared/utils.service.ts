@@ -54,6 +54,7 @@ export class LoggedOutMessage extends Message {
 
 export class Account {
   productId!: string;
+  accountCreated!: boolean;
   userName!: string;
   nvrConnected!: boolean;
   usersConnected!: number;

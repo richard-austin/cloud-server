@@ -11,7 +11,7 @@ declare let Stomp: any;
 export class AccountAdminComponent implements OnInit {
   downloading: boolean = false;
   accounts: Account[] = [];
-  displayedColumns: string[] = ['productId', 'userName', 'nvrConnected', 'usersConnected'];
+  displayedColumns: string[] = ['productId', 'accountCreated', 'userName', 'nvrConnected', 'usersConnected'];
 
   private stompClient:any;
 
