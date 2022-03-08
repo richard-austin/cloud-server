@@ -14,9 +14,18 @@
              matTooltipClass="tooltip"
              placeholder="Filter">
     </mat-form-field>
+    <mat-checkbox class="filter-checkbox"
+                  [color]="'primary'"
+                  matTooltip="Only show rows for accounts where the NVR is offline"
+                  matTooltipClass="tooltip"
+                  (change)="onlyNVROffline($event)">Only NVR Offline</mat-checkbox>
+    <mat-checkbox class="filter-checkbox" [color]="'primary'"
+                  matTooltip="Only show rows for NVRs where no account has yet been created"
+                  matTooltipClass="tooltip"
+                  (change)="noAccountOnly($event)">Only No Account</mat-checkbox>
 
     <table mat-table class="mat-elevation-z8"
-           [dataSource]="accounts | filter:filterText">
+           [dataSource]="accounts | filter:filterText:bOnlyNVROffline.toString():bNoAccountOnly.toString()">
       <ng-container matColumnDef="productId">
         <th mat-header-cell *matHeaderCellDef>ProductId</th>
         <td mat-cell class="product-id" *matCellDef="let account; let i = dataIndex">

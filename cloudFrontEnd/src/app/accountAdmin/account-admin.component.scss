@@ -21,3 +21,9 @@ table {
   @extend .status;
   color: red;
 }
+
+.filter-checkbox {
+  margin-left: 1rem;
+  position: relative;
+  top: 0.25rem;
+}

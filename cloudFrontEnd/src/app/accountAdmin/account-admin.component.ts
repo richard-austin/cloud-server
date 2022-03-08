@@ -1,6 +1,7 @@
 import { ViewChild } from '@angular/core';
 import { ElementRef } from '@angular/core';
 import { Component, OnInit } from '@angular/core';
+import { MatCheckboxChange } from '@angular/material/checkbox';
 import {UtilsService, Account} from "../shared/utils.service";
 
 declare let SockJS: any;
@@ -17,6 +18,8 @@ export class AccountAdminComponent implements OnInit {
   @ViewChild('filter') filterEl!: ElementRef<HTMLInputElement>
   private stompClient:any;
   filterText: string = "";
+  bOnlyNVROffline: boolean = false;
+  bNoAccountOnly: boolean = false;
 
   constructor(private utilsService: UtilsService) {
     this.initializeWebSocketConnection();
@@ -59,6 +62,13 @@ export class AccountAdminComponent implements OnInit {
   updateFilter() {
     this.filterText = this.filterEl.nativeElement.value;
   }
+  onlyNVROffline($event: MatCheckboxChange) {
+      this.bOnlyNVROffline = $event.checked
+  }
+
+  noAccountOnly($event: MatCheckboxChange) {
+      this.bNoAccountOnly = $event.checked
+  }
 
   ngOnInit(): void {
     this.getAccounts();
@@ -74,4 +84,5 @@ export class AccountAdminComponent implements OnInit {
  //   subject.error({code: 4000, reason: 'I think our app just broke!'});
 
   }
+
 }

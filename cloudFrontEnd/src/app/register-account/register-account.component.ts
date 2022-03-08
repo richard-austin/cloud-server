@@ -71,8 +71,10 @@ export class RegisterAccountComponent implements OnInit, AfterViewInit {
     // Ensure password field is up-to-date for the confirmPassword validity check
     this.password = this.getFormControl('password').value;
 
-    if($event.key == 'Enter')
-      this.register();
+    if($event.key == 'Enter') {
+      if(!this.anyInvalid())
+        this.register();
+    }
   }
 
   register() {
