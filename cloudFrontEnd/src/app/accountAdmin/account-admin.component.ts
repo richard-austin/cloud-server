@@ -1,3 +1,5 @@
+import { ViewChild } from '@angular/core';
+import { ElementRef } from '@angular/core';
 import { Component, OnInit } from '@angular/core';
 import {UtilsService, Account} from "../shared/utils.service";
 
@@ -12,8 +14,9 @@ export class AccountAdminComponent implements OnInit {
   downloading: boolean = false;
   accounts: Account[] = [];
   displayedColumns: string[] = ['productId', 'accountCreated', 'userName', 'nvrConnected', 'usersConnected'];
-
+  @ViewChild('filter') filterEl!: ElementRef<HTMLInputElement>
   private stompClient:any;
+  filterText: string = "";
 
   constructor(private utilsService: UtilsService) {
     this.initializeWebSocketConnection();
@@ -51,6 +54,10 @@ export class AccountAdminComponent implements OnInit {
   sendMessage(message:any){
     this.stompClient.send("/topic/accountUpdates" , {}, message);
    // $('#input').val('');
+  }
+
+  updateFilter() {
+    this.filterText = this.filterEl.nativeElement.value;
   }
 
   ngOnInit(): void {
