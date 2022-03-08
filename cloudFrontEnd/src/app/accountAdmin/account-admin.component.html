@@ -17,7 +17,11 @@
       <ng-container matColumnDef="accountCreated">
         <th mat-header-cell *matHeaderCellDef>Account Created</th>
         <td mat-cell *matCellDef="let account; let i = dataIndex">
-          {{account.accountCreated}}
+          <mat-icon matTooltip="{{account.accountCreated?'An account has been created':'No account has yet been created'}}"
+                    matTooltipClass="tooltip"
+                    [ngClass]="account.accountCreated?'status-ok':'status-warn'">
+            {{account.accountCreated?'account_circle':'notification_important'}}
+          </mat-icon>
         </td>
       </ng-container>
 
@@ -32,7 +36,11 @@
       <ng-container matColumnDef="nvrConnected">
         <th mat-header-cell *matHeaderCellDef>NVR Connected</th>
         <td mat-cell *matCellDef="let account; let i = dataIndex">
-          {{account.nvrConnected}}
+          <mat-icon matTooltip="{{account.nvrConnected?'NVR is connected':'NVR is not connected'}}"
+                    matTooltipClass="tooltip"
+                    [ngClass]="account.nvrConnected?'status-ok':'status-warn'">
+            {{account.nvrConnected?'sync':'sync_problem'}}
+          </mat-icon>
         </td>
       </ng-container>
 

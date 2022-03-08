@@ -5,3 +5,19 @@ table {
 .product-id {
   font-family: monospace, sans-serif;
 }
+
+.status {
+  background-color: lightgrey;
+  border-radius: 0.9rem;
+  cursor: default;
+}
+
+.status-ok {
+  @extend .status;
+  color: green;
+}
+
+.status-warn {
+  @extend .status;
+  color: red;
+}
