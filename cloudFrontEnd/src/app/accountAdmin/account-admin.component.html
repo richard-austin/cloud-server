@@ -18,14 +18,43 @@
                   [color]="'primary'"
                   matTooltip="Only show rows for accounts where the NVR is offline"
                   matTooltipClass="tooltip"
-                  (change)="onlyNVROffline($event)">Only NVR Offline</mat-checkbox>
+                  (change)="onlyNVROffline($event)">Only NVR Offline
+    </mat-checkbox>
     <mat-checkbox class="filter-checkbox" [color]="'primary'"
                   matTooltip="Only show rows for NVRs where no account has yet been created"
                   matTooltipClass="tooltip"
-                  (change)="noAccountOnly($event)">Only No Account</mat-checkbox>
+                  (change)="noAccountOnly($event)">Only No Account
+    </mat-checkbox>
 
     <table mat-table class="mat-elevation-z8"
            [dataSource]="accounts | filter:filterText:bOnlyNVROffline.toString():bNoAccountOnly.toString()">
+
+      <ng-container matColumnDef="changePassword">
+        <th mat-header-cell *matHeaderCellDef>Change Password</th>
+        <td class="buttons" mat-cell *matCellDef="let account">
+          <button mat-icon-button matTooltip="Change the password for this account" matTooltipClass="tooltip"
+                  color="warn"
+                  [disabled]="!account.accountCreated"
+                  (click)="changePassword(account)">
+            <mat-icon>security</mat-icon>
+          </button>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="disableAccount">
+        <th mat-header-cell *matHeaderCellDef>Enable/Disable Account</th>
+        <td class="check-box" mat-cell *matCellDef="let account">
+          <mat-checkbox color="accent"
+                        [matTooltip]="(account.accountEnabled ? 'Disable':'Re-enable') + ' this account'"
+                        matTooltipClass="tooltip"
+                        [checked]="account.accountEnabled"
+                        [disabled]="!account.accountCreated"
+                        (change)="setAccountEnabledStatus(account, $event)">
+            {{account.accountEnabled?"Enabled":"Disabled"}}
+          </mat-checkbox>
+         </td>
+      </ng-container>
+
       <ng-container matColumnDef="productId">
         <th mat-header-cell *matHeaderCellDef>ProductId</th>
         <td mat-cell class="product-id" *matCellDef="let account; let i = dataIndex">
@@ -44,7 +73,6 @@
           </mat-icon>
         </td>
       </ng-container>
-
 
       <ng-container matColumnDef="userName">
         <th mat-header-cell *matHeaderCellDef>Username</th>

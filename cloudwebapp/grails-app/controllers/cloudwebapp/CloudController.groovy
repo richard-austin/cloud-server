@@ -2,6 +2,7 @@ package cloudwebapp
 
 import cloudservice.commands.RegisterUserCommand
 import cloudservice.commands.ResetPasswordCommand
+import cloudservice.commands.SetAccountEnabledStatusCommand
 import cloudservice.enums.PassFail
 import cloudservice.interfaceobjects.ObjectCommandResponse
 import grails.converters.JSON
@@ -104,13 +105,36 @@ class CloudController {
             render response.responseObject as JSON
     }
 
-    @ControllerMethod
-    @MessageMapping("/accountUpdates")
-    @PreAuthorize("hasRole('ROLE_ADMIN'")
-    @SendTo("/topic/accountUpdates")
-    @Secured('hasRole("ROLE_ADMIN")')
-    String accountUpdates(String message, Principal principal)
+    @Secured(['ROLE_ADMIN'])
+    def setAccountEnabledStatus(SetAccountEnabledStatusCommand cmd)
     {
-        return "Account: "+message
+        ObjectCommandResponse response
+        if(cmd.hasErrors())
+        {
+            def errorsMap = validationErrorService.commandErrors(cmd.errors as ValidationErrors, 'changePassword')
+            logService.cloud.error "setAccountEnabledStatus: Validation error: "+errorsMap.toString()
+            render(status: 400, text: errorsMap as JSON)
+        }
+        else
+        {
+            response = userAdminService.setAccountEnabledStatus(cmd)
+            if (response.status != PassFail.PASS) {
+                render(status: 500, text: response.error)
+            }
+            else {
+                logService.cloud.info("setAccountEnabledStatus: success")
+                render ""
+            }
+        }
     }
+
+//    @ControllerMethod
+//    @MessageMapping("/accountUpdates")
+//    @PreAuthorize("hasRole('ROLE_ADMIN'")
+//    @SendTo("/topic/accountUpdates")
+//    @Secured('hasRole("ROLE_ADMIN")')
+//    String accountUpdates(String message, Principal principal)
+//    {
+//        return "Account: "+message
+//    }
 }

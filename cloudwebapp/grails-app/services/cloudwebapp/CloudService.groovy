@@ -3,6 +3,7 @@ package cloudwebapp
 import asset.pipeline.grails.AssetResourceLocator
 import cloudservice.User
 import cloudservice.commands.RegisterUserCommand
+import cloudservice.commands.SetAccountEnabledStatusCommand
 import cloudservice.enums.PassFail
 import cloudservice.interfaceobjects.ObjectCommandResponse
 import cloudservice.interfaceobjects.RestfulResponse
@@ -37,6 +38,7 @@ class Account {
     String productId
     String userName
     boolean accountCreated = false
+    boolean accountEnabled = false
     boolean nvrConnected = false
     int usersConnected = 0
 
@@ -196,6 +198,10 @@ class CloudService {
         return response
     }
 
+    /**
+     * getAccounts: Get all the registered accounts and online NVR's with no registered account
+     * @return: Account data
+     */
     ObjectCommandResponse getAccounts() {
         ObjectCommandResponse response = new ObjectCommandResponse()
 
@@ -210,6 +216,7 @@ class CloudService {
                     if(user.getProductid() != "0000-0000-0000-0000") {   // Don't include the admin account
                         Account acc = new Account(user.getProductid(), user.getUsername())
                         acc.accountCreated = true
+                        acc.accountEnabled = user.getEnabled()
                         accounts.add(acc)
                         if (sessions.containsKey(acc.productId)) {
                             acc.nvrConnected = true

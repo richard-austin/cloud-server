@@ -55,6 +55,7 @@ export class LoggedOutMessage extends Message {
 export class Account {
   productId!: string;
   accountCreated!: boolean;
+  accountEnabled!: boolean;
   userName!: string;
   nvrConnected!: boolean;
   usersConnected!: number;
@@ -184,6 +185,15 @@ export class UtilsService {
      )
   }
 
+  setAccountEnabledStatus(account: Account) : Observable<void>
+  {
+    let acc:{username: string, accountEnabled: boolean} = {username: account.userName, accountEnabled: account.accountEnabled}
+    return this.http.post<void>(this._baseUrl.getLink('cloud', 'setAccountEnabledStatus'), JSON.stringify(acc), this.httpJSONOptions).pipe(
+      tap(),
+      catchError((err:HttpErrorResponse) => throwError(err))
+    )
+
+  }
   sendMessage(message: Message) {
     this._messaging.next(message);
   }

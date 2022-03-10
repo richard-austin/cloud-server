@@ -14,7 +14,7 @@ declare let Stomp: any;
 export class AccountAdminComponent implements OnInit {
   downloading: boolean = false;
   accounts: Account[] = [];
-  displayedColumns: string[] = ['productId', 'accountCreated', 'userName', 'nvrConnected', 'usersConnected'];
+  displayedColumns: string[] = ['changePassword', 'disableAccount', 'productId', 'accountCreated', 'userName', 'nvrConnected', 'usersConnected'];
   @ViewChild('filter') filterEl!: ElementRef<HTMLInputElement>
   private stompClient:any;
   filterText: string = "";
@@ -32,7 +32,7 @@ export class AccountAdminComponent implements OnInit {
     this.stompClient = Stomp.over(ws);
     this.stompClient.debug = null;
     let that = this;
-    this.stompClient.connect({}, function(frame:any) {
+    this.stompClient.connect({}, () =>{
       that.stompClient.subscribe("/topic/accountUpdates", (message:any) => {
         if(message.body) {
           let msgObj = JSON.parse(message.body);
@@ -51,7 +51,7 @@ export class AccountAdminComponent implements OnInit {
         this.accounts = result;
       },
       reason => {
-
+        
       });
   }
   sendMessage(message:any){
@@ -62,6 +62,21 @@ export class AccountAdminComponent implements OnInit {
   updateFilter() {
     this.filterText = this.filterEl.nativeElement.value;
   }
+
+  changePassword(account: Account) {
+
+  }
+
+  setAccountEnabledStatus(account: Account, $event: MatCheckboxChange) {
+    account.accountEnabled = !account.accountEnabled;
+      this.utilsService.setAccountEnabledStatus(account).subscribe(() => {
+
+      },
+        reason => {
+          account.accountEnabled = ! account.accountEnabled;  // Roll back local copy if it failed.
+        })
+  }
+
   onlyNVROffline($event: MatCheckboxChange) {
       this.bOnlyNVROffline = $event.checked
   }
@@ -84,5 +99,4 @@ export class AccountAdminComponent implements OnInit {
  //   subject.error({code: 4000, reason: 'I think our app just broke!'});
 
   }
-
 }

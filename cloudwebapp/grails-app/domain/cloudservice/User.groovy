@@ -40,10 +40,11 @@ class User implements Serializable {
                      return "email address is invalid"
               }
         )
+        enabled nullable: false, inList: [true, false]
     }
 
     static mapping = {
         password column: '`password`'
-//        productid column: '`password`'
+        dynamicUpdate true
     }
 }
