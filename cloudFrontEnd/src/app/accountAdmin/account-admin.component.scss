@@ -36,3 +36,12 @@ table {
 .check-box {
   background: linear-gradient(90deg, #323232 95%, #424242 95%);
 }
+
+div.message-display {
+  width: fit-content;
+  display: flex;
+  > div {
+    margin-bottom: 1rem;
+    flex-grow: 2;
+  }
+}
