@@ -3,6 +3,8 @@ import {ElementRef} from '@angular/core';
 import {Component, OnInit} from '@angular/core';
 import {MatCheckboxChange} from '@angular/material/checkbox';
 import {UtilsService, Account} from "../shared/utils.service";
+import {animate, state, style, transition, trigger} from "@angular/animations";
+import {Camera} from "../cameras/Camera";
 
 declare let SockJS: any;
 declare let Stomp: any;
@@ -10,12 +12,35 @@ declare let Stomp: any;
 @Component({
   selector: 'app-nvradmin',
   templateUrl: './account-admin.component.html',
-  styleUrls: ['./account-admin.component.scss']
+  styleUrls: ['./account-admin.component.scss'],
+  animations: [
+    trigger('detailExpand', [
+      state('collapsed', style({height: '0px', minHeight: '0'})),
+      state('expanded', style({height: '*'})),
+      transition('expanded <=> collapsed', animate('225ms cubic-bezier(0.4, 0.0, 0.2, 1)')),
+    ]),
+    trigger('openClose', [
+      // ...
+      state('open', style({
+        transform: 'rotate(90deg)'
+      })),
+      state('closed', style({
+        transform: 'rotate(0deg)'
+      })),
+      transition('open => closed', [
+        animate('.2s')
+      ]),
+      transition('closed => open', [
+        animate('.2s')
+      ]),
+    ])
+  ],
 })
 export class AccountAdminComponent implements OnInit {
   downloading: boolean = false;
   accounts: Account[] = [];
   displayedColumns: string[] = ['changePassword', 'disableAccount', 'productId', 'accountCreated', 'userName', 'nvrConnected', 'usersConnected'];
+  changePasswordColumns: string[] = ['password', 'confirmPassword', 'cancel', 'confirm'];
   @ViewChild('filter') filterEl!: ElementRef<HTMLInputElement>
   private stompClient: any;
   filterText: string = "";
@@ -23,6 +48,8 @@ export class AccountAdminComponent implements OnInit {
   bNoAccountOnly: boolean = false;
   errorMessage: string = '';
   successMessage: string = '';
+  expandedElement: Account | null | undefined = undefined;
+
 
   constructor(private utilsService: UtilsService) {
     this.initializeWebSocketConnection();
@@ -67,16 +94,19 @@ export class AccountAdminComponent implements OnInit {
   }
 
   changePassword(account: Account) {
-
+    if(this.expandedElement === undefined)
+      this.expandedElement = account;
+    else
+      this.expandedElement = undefined;
   }
 
   setAccountEnabledStatus(account: Account, $event: MatCheckboxChange) {
-    account.accountEnabled = !account.accountEnabled;
+    account.accountEnabled = $event.checked;
     this.utilsService.setAccountEnabledStatus(account).subscribe(() => {
         this.successMessage = "Account " + account.userName + " now " + (account.accountEnabled ? "enabled" : "disabled");
       },
       reason => {
-        account.accountEnabled = !account.accountEnabled;  // Roll back local copy if it failed.
+        account.accountEnabled = !$event.checked;  // Roll back local copy if it failed.
         this.errorMessage = reason.error;
       })
   }

@@ -33,7 +33,8 @@
     </mat-checkbox>
 
     <table mat-table class="mat-elevation-z8"
-           [dataSource]="accounts | filter:filterText:bOnlyNVROffline.toString():bNoAccountOnly.toString()">
+           [dataSource]="accounts | filter:filterText:bOnlyNVROffline.toString():bNoAccountOnly.toString()"
+           multiTemplateDataRows>
 
       <ng-container matColumnDef="changePassword">
         <th mat-header-cell *matHeaderCellDef>Change Password</th>
@@ -98,6 +99,43 @@
         </td>
       </ng-container>
 
+      <!-- Expanded Streams Column - The streams row is made up of this one column that spans across all columns -->
+      <ng-container matColumnDef="expandedEditRow">
+        <td mat-cell *matCellDef="let account; let accIndex=dataIndex" [attr.colspan]="displayedColumns.length">
+          <div class="edit-element-detail mat-elevation-z10"
+               [@detailExpand]="account == expandedElement ? 'expanded' : 'collapsed'">
+            <table [dataSource]="[account]" mat-table class="mat-elevation-z10">
+              <ng-container matColumnDef="password">
+                <th mat-header-cell *matHeaderCellDef>password</th>
+                <td mat-cell *matCellDef="let acc">
+                 {{acc.productId}}
+                </td>
+              </ng-container>
+              <ng-container matColumnDef="confirmPassword">
+                <th mat-header-cell *matHeaderCellDef>confirm password</th>
+                <td mat-cell *matCellDef="let acc">
+                  Text
+                </td>
+              </ng-container>
+              <ng-container matColumnDef="cancel">
+                <th mat-header-cell *matHeaderCellDef>cancel</th>
+                <td mat-cell *matCellDef="let acc">
+                  Text
+                </td>
+              </ng-container>
+              <ng-container matColumnDef="confirm">
+                <th mat-header-cell *matHeaderCellDef>confirm</th>
+                <td mat-cell *matCellDef="let acc">
+                  Text
+                </td>
+              </ng-container>
+              <tr mat-header-row *matHeaderRowDef="changePasswordColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: changePasswordColumns;"></tr>
+            </table>
+          </div>
+        </td>
+      </ng-container>
+
       <ng-container matColumnDef="usersConnected">
         <th mat-header-cell *matHeaderCellDef>Users Connected</th>
         <td mat-cell *matCellDef="let account; let i = dataIndex">
@@ -107,6 +145,7 @@
 
       <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
       <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+      <tr mat-row *matRowDef="let e; columns: ['expandedEditRow']" class="edit-detail-row">
     </table>
   </mat-card-content>
 </mat-card>

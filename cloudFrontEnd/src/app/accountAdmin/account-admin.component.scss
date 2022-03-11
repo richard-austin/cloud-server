@@ -45,3 +45,56 @@ div.message-display {
     flex-grow: 2;
   }
 }
+
+table {
+  width: 100%;
+}
+
+tr.edit-detail-row {
+  height: 0;
+}
+
+tr.edit-element-row.edit-expanded-row:hover {
+  background: darkblue;
+}
+
+tr.edit-element-row:not(.edit-expanded-row):hover {
+  background: darkblue;
+}
+
+tr.edit-element-row:not(.edit-expanded-row):active {
+  background: grey;
+}
+
+.edit-element-row td {
+  border-bottom-width: 0;
+}
+
+.edit-element-detail {
+  overflow: hidden;
+  display: flex;
+}
+
+.edit-element-diagram {
+  min-width: 80px;
+  border: 2px solid black;
+  padding: 8px;
+  font-weight: lighter;
+  margin: 8px 0;
+  height: 104px;
+}
+
+.edit-element-symbol {
+  font-weight: bold;
+  font-size: 40px;
+  line-height: normal;
+}
+
+.edit-element-description {
+  padding: 16px;
+}
+
+.edit-element-description-attribution {
+  opacity: 0.5;
+}
+
