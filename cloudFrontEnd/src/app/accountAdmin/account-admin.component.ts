@@ -5,6 +5,7 @@ import {MatCheckboxChange} from '@angular/material/checkbox';
 import {UtilsService, Account} from "../shared/utils.service";
 import {animate, state, style, transition, trigger} from "@angular/animations";
 import {Camera} from "../cameras/Camera";
+import {AbstractControl, FormControl, FormGroup, ValidationErrors, ValidatorFn, Validators} from "@angular/forms";
 
 declare let SockJS: any;
 declare let Stomp: any;
@@ -40,7 +41,7 @@ export class AccountAdminComponent implements OnInit {
   downloading: boolean = false;
   accounts: Account[] = [];
   displayedColumns: string[] = ['changePassword', 'disableAccount', 'productId', 'accountCreated', 'userName', 'nvrConnected', 'usersConnected'];
-  changePasswordColumns: string[] = ['password', 'confirmPassword', 'cancel', 'confirm'];
+  changePasswordColumns: string[] = ['password'];
   @ViewChild('filter') filterEl!: ElementRef<HTMLInputElement>
   private stompClient: any;
   filterText: string = "";
@@ -49,10 +50,35 @@ export class AccountAdminComponent implements OnInit {
   errorMessage: string = '';
   successMessage: string = '';
   expandedElement: Account | null | undefined = undefined;
-
+  changePasswordForm!: FormGroup;
+  private password: string = "";
+  private confirmPassword: string = "";
 
   constructor(private utilsService: UtilsService) {
     this.initializeWebSocketConnection();
+  }
+
+  private passwordValidator(): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      this.password = control.value;
+      // Update the validation status of the confirmPassword field
+      if(this.confirmPassword !== "")
+      {
+        let cpControl:AbstractControl | null = this.changePasswordForm.get("confirmPassword");
+        cpControl?.updateValueAndValidity();
+      }
+
+      const ok = !this.utilsService.passwordRegex.test(control.value);
+      return ok ? {pattern: {value: control.value}} : null;
+    };
+  }
+
+  private passwordMatchValidator(): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      this.confirmPassword = control.value;
+      const ok = this.password !== control.value;
+      return ok ? {notMatching: {value: control.value}} : null;
+    };
   }
 
   initializeWebSocketConnection() {
@@ -94,6 +120,11 @@ export class AccountAdminComponent implements OnInit {
   }
 
   changePassword(account: Account) {
+    this.password = this.confirmPassword = "";
+    let pw: AbstractControl = this.getFormControl(this.changePasswordForm, 'password');
+    let cpw: AbstractControl = this.getFormControl(this.changePasswordForm, 'confirmPassword');
+    pw.setValue("");
+    cpw.setValue("");
     if(this.expandedElement === undefined)
       this.expandedElement = account;
     else
@@ -119,18 +150,23 @@ export class AccountAdminComponent implements OnInit {
     this.bNoAccountOnly = $event.checked
   }
 
+  getFormControl(formGroup:FormGroup, fcName: string): FormControl {
+    return formGroup.get(fcName) as FormControl;
+  }
+
+  anyInvalid():boolean {
+    return false;
+  }
+
   ngOnInit(): void {
     this.getAccounts();
 
-// Note that at least one consumer has to subscribe to the created subject - otherwise "nexted" values will be just buffered and not sent,
-// since no connection was established!
+    this.changePasswordForm = new FormGroup({
+      password: new FormControl(this.password, [Validators.required, Validators.maxLength(25), this.passwordValidator()]),
+      confirmPassword: new FormControl(this.confirmPassword, [Validators.required, Validators.maxLength(25), this.passwordMatchValidator()]),
+    }, {updateOn: "change"});
 
-    //   subject.next({message: 'some message'});
-// This will send a message to the server once a connection is made. Remember value is serialized with JSON.stringify by default!
-
-    //   subject.complete(); // Closes the connection.
-
-    //   subject.error({code: 4000, reason: 'I think our app just broke!'});
-
+    this.changePasswordForm.markAllAsTouched();
   }
+
 }

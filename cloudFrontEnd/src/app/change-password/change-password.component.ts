@@ -2,6 +2,7 @@ import {Component, OnInit, } from '@angular/core';
 import {AbstractControl, FormControl, FormGroup, ValidationErrors, Validators} from "@angular/forms";
 import {ChangePasswordService} from "./change-password.service";
 import {HttpErrorResponse} from "@angular/common/http";
+import { UtilsService } from '../shared/utils.service';
 
 @Component({
   selector: 'app-change-password',
@@ -17,7 +18,7 @@ export class ChangePasswordComponent implements OnInit {
   errorMessage: string = '';
   successMessage: string = '';
 
-  constructor(private changePasswordService: ChangePasswordService) {
+  constructor(private changePasswordService: ChangePasswordService, private utilsService:UtilsService) {
   }
 
   hasError = (controlName: string, errorName: string): boolean | undefined => {
@@ -64,7 +65,7 @@ export class ChangePasswordComponent implements OnInit {
     if(value !== "") {
       if(value.length < 8)
         return {tooShort: {value: value}};
-      const ok = !new RegExp("^[A-Za-z0-9][A-Za-z0-9(){\[1*£$\\]}=@~?^]{7,31}$").test(value);
+      const ok = !this.utilsService.passwordRegex.test(value);
       return ok ? {pattern: {value: control.value}} : null;
     }
     else

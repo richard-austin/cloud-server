@@ -82,6 +82,7 @@ export class UtilsService {
   private _messaging: Subject<any> = new Subject<any>();
   private _loggedIn: boolean = false;
   private _isAdmin: boolean = false;
+  public readonly passwordRegex:RegExp = new RegExp("^[A-Za-z0-9][A-Za-z0-9(){\[1*£$\\]}=@~?^]{7,31}$");
 
   get loggedIn(): boolean {
     return this._loggedIn;

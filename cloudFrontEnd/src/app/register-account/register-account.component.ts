@@ -31,7 +31,7 @@ export class RegisterAccountComponent implements OnInit, AfterViewInit {
         cpControl?.updateValueAndValidity();
       }
 
-      const ok = !new RegExp("^[A-Za-z0-9][A-Za-z0-9(){\[1*£$\\]}=@~?^]{7,31}$").test(control.value);
+      const ok = !this.utilsService.passwordRegex.test(control.value);
       return ok ? {pattern: {value: control.value}} : null;
     };
   }
