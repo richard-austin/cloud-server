@@ -193,8 +193,17 @@ export class UtilsService {
       tap(),
       catchError((err:HttpErrorResponse) => throwError(err))
     )
-
   }
+
+  adminChangePassword(account:Account, password: string, confirmPassword: string)
+  {
+    let cpw:{username:string, password: string, confirmPassword:string} = {username: account.userName, password: password, confirmPassword: confirmPassword};
+    return this.http.post<void>(this._baseUrl.getLink('cloud', 'adminChangePassword'), JSON.stringify(cpw), this.httpJSONOptions).pipe(
+      tap(),
+      catchError((err:HttpErrorResponse) => throwError(err))
+    )
+  }
+
   sendMessage(message: Message) {
     this._messaging.next(message);
   }

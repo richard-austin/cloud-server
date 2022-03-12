@@ -1,6 +1,7 @@
 package cloudwebapp
 
 import cloudservice.User
+import cloudservice.commands.AdminChangePasswordCommand
 import cloudservice.commands.ResetPasswordCommand
 import cloudservice.commands.SetAccountEnabledStatusCommand
 import cloudservice.enums.PassFail
@@ -64,4 +65,19 @@ class UserAdminService {
         return response
     }
 
+    ObjectCommandResponse adminChangePassword(AdminChangePasswordCommand cmd) {
+        ObjectCommandResponse result = new ObjectCommandResponse()
+        try {
+            User user = User.findByUsername(cmd.username)
+            user.setPassword(cmd.password)
+            user.save()
+        }
+        catch(Exception ex)
+        {
+            logService.cloud.error("Exception in adminChangePassword: "+ex.getCause()+ ' ' + ex.getMessage())
+            result.status = PassFail.FAIL
+            result.error = ex.getMessage()
+        }
+        return result
+    }
 }

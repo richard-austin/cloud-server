@@ -5,6 +5,7 @@
     <span>Loading, Please wait..</span>
   </mat-card-content>
   <mat-card-content *ngIf="!downloading">
+    <app-reporting></app-reporting>
     <div class="message-display" (click)="errorMessage=''; successMessage=''">
       <div class="alert-danger mat-elevation-z4"
            [style]="'display: '+(errorMessage != '' ? 'inline-block' : 'none')">{{errorMessage}}</div>
@@ -42,7 +43,7 @@
           <button mat-icon-button matTooltip="Change the password for this account" matTooltipClass="tooltip"
                   color="warn"
                   [disabled]="!account.accountCreated"
-                  (click)="changePassword(account)">
+                  (click)="showChangePasswordForm(account)">
             <mat-icon>security</mat-icon>
           </button>
         </td>
@@ -131,7 +132,7 @@
                     </mat-card>
                     <br>
                     <span class="cam-creds-confirm-group">
-                      <button color="default" mat-flat-button (click)="changePassword(acc)"
+                      <button color="default" mat-flat-button (click)="showChangePasswordForm(acc)"
                               matTooltip="Close the change password form"
                               matTooltipClass="tooltip">
                         Cancel
@@ -145,10 +146,12 @@
                         Reset Password
                       </button>
                     </span>
+                    <br>
+                    <br>
                   </ng-container>
                 </td>
               </ng-container>
-              <tr mat-header-row *matHeaderRowDef="changePasswordColumns"></tr>
+<!--              <tr mat-header-row *matHeaderRowDef="changePasswordColumns"></tr>-->
               <tr mat-row *matRowDef="let row; columns: changePasswordColumns;"></tr>
             </table>
           </div>

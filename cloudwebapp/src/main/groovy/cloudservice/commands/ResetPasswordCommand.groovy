@@ -1,5 +1,6 @@
 package cloudservice.commands
 
+import cloudwebapp.UtilsService
 import grails.plugin.springsecurity.SpringSecurityService
 import grails.validation.Validateable
 import org.springframework.security.authentication.BadCredentialsException
@@ -11,6 +12,8 @@ class ResetPasswordCommand implements Validateable{
     String confirmNewPassword
     SpringSecurityService springSecurityService
     def authenticationManager
+
+    UtilsService utilsService
 
     static constraints = {
         oldPassword(nullable: false, blank: false,
@@ -33,8 +36,8 @@ class ResetPasswordCommand implements Validateable{
 
         newPassword(nullable: false, blank: false,
         validator: {newPassword, cmd ->
-            if(!newPassword.matches(/^[-\[\]!\"#$%&\'()*+,.\/:;<=>?@^_\`{}|~\\0-9A-Za-z]{1,64}$/))
-                return "New password contains invalid characters or is too long (must be <= 64 characters)"
+            if(!newPassword.matches(utilsService.passwordRegex))
+                return "New password contains invalid characters or is too long (must be <= 32 characters)"
         })
 
         confirmNewPassword(validator: {confirmNewPassword, cmd ->

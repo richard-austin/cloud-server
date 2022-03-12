@@ -4,8 +4,8 @@ import {Component, OnInit} from '@angular/core';
 import {MatCheckboxChange} from '@angular/material/checkbox';
 import {UtilsService, Account} from "../shared/utils.service";
 import {animate, state, style, transition, trigger} from "@angular/animations";
-import {Camera} from "../cameras/Camera";
 import {AbstractControl, FormControl, FormGroup, ValidationErrors, ValidatorFn, Validators} from "@angular/forms";
+import {ReportingComponent} from "../reporting/reporting.component";
 
 declare let SockJS: any;
 declare let Stomp: any;
@@ -19,21 +19,6 @@ declare let Stomp: any;
       state('collapsed', style({height: '0px', minHeight: '0'})),
       state('expanded', style({height: '*'})),
       transition('expanded <=> collapsed', animate('225ms cubic-bezier(0.4, 0.0, 0.2, 1)')),
-    ]),
-    trigger('openClose', [
-      // ...
-      state('open', style({
-        transform: 'rotate(90deg)'
-      })),
-      state('closed', style({
-        transform: 'rotate(0deg)'
-      })),
-      transition('open => closed', [
-        animate('.2s')
-      ]),
-      transition('closed => open', [
-        animate('.2s')
-      ]),
     ])
   ],
 })
@@ -43,6 +28,8 @@ export class AccountAdminComponent implements OnInit {
   displayedColumns: string[] = ['changePassword', 'disableAccount', 'productId', 'accountCreated', 'userName', 'nvrConnected', 'usersConnected'];
   changePasswordColumns: string[] = ['password'];
   @ViewChild('filter') filterEl!: ElementRef<HTMLInputElement>
+  @ViewChild(ReportingComponent) errorReporting!: ReportingComponent;
+
   private stompClient: any;
   filterText: string = "";
   bOnlyNVROffline: boolean = false;
@@ -119,7 +106,7 @@ export class AccountAdminComponent implements OnInit {
     this.filterText = this.filterEl.nativeElement.value;
   }
 
-  changePassword(account: Account) {
+  showChangePasswordForm(account: Account) {
     this.password = this.confirmPassword = "";
     let pw: AbstractControl = this.getFormControl(this.changePasswordForm, 'password');
     let cpw: AbstractControl = this.getFormControl(this.changePasswordForm, 'confirmPassword');
@@ -131,6 +118,16 @@ export class AccountAdminComponent implements OnInit {
       this.expandedElement = undefined;
   }
 
+
+  changePassword(acc: Account):void {
+    this.successMessage = this.errorMessage = "";
+      this.utilsService.adminChangePassword(acc, this.password, this.confirmPassword).subscribe(() => {
+        this.successMessage = "Password successfully updated";
+      }, reason => {
+        this.errorReporting.errorMessage = reason;
+      })
+  }
+
   setAccountEnabledStatus(account: Account, $event: MatCheckboxChange) {
     account.accountEnabled = $event.checked;
     this.utilsService.setAccountEnabledStatus(account).subscribe(() => {
@@ -138,7 +135,7 @@ export class AccountAdminComponent implements OnInit {
       },
       reason => {
         account.accountEnabled = !$event.checked;  // Roll back local copy if it failed.
-        this.errorMessage = reason.error;
+        this.errorReporting.errorMessage = reason;
       })
   }
 
@@ -155,7 +152,7 @@ export class AccountAdminComponent implements OnInit {
   }
 
   anyInvalid():boolean {
-    return false;
+    return this.changePasswordForm.invalid;
   }
 
   ngOnInit(): void {
@@ -168,5 +165,4 @@ export class AccountAdminComponent implements OnInit {
 
     this.changePasswordForm.markAllAsTouched();
   }
-
 }

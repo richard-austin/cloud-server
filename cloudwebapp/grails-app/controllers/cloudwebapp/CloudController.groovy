@@ -1,5 +1,6 @@
 package cloudwebapp
 
+import cloudservice.commands.AdminChangePasswordCommand
 import cloudservice.commands.RegisterUserCommand
 import cloudservice.commands.ResetPasswordCommand
 import cloudservice.commands.SetAccountEnabledStatusCommand
@@ -36,29 +37,24 @@ class CloudController {
 
     /**
      * register: Register a user account
-     * @param cmd: Command object (username, NVR ProductID, password, confirmPassword, email, confirm email
+     * @param cmd : Command object (username, NVR ProductID, password, confirmPassword, email, confirm email
      * @return
      */
-    def register(RegisterUserCommand cmd)
-    {
+    def register(RegisterUserCommand cmd) {
         response.contentType = "application/json"
 
-        if(cmd.hasErrors())
-        {
+        if (cmd.hasErrors()) {
             def errorsMap = validationErrorService.commandErrors(cmd.errors as ValidationErrors, 'register')
             logService.cloud.error "register: Validation error: " + errorsMap.toString()
             render(status: 400, text: errorsMap as JSON)
-        }
-        else
-        {
+        } else {
             ObjectCommandResponse registerResponse = cloudService.register(cmd)
-            if(registerResponse.status != PassFail.PASS) {
+            if (registerResponse.status != PassFail.PASS) {
                 logService.cloud.error("Failed to register user: " + registerResponse.error)
                 render(status: 500, text: registerResponse.error)
-            }
-            else {
-                logService.cloud.info("User "+cmd.username+" registered successfully")
-                render(status: 200, text: [message: "Registered "+cmd.username+" with product ID "+cmd.productId+" successfully"] as JSON)
+            } else {
+                logService.cloud.info("User " + cmd.username + " registered successfully")
+                render(status: 200, text: [message: "Registered " + cmd.username + " with product ID " + cmd.productId + " successfully"] as JSON)
             }
         }
     }
@@ -67,19 +63,16 @@ class CloudController {
     def changePassword(ResetPasswordCommand cmd) {
         ObjectCommandResponse result
 
-        if(cmd.hasErrors())
-        {
+        if (cmd.hasErrors()) {
             def errorsMap = validationErrorService.commandErrors(cmd.errors as ValidationErrors, 'changePassword')
-            logService.cloud.error "changePassword: Validation error: "+errorsMap.toString()
+            logService.cloud.error "changePassword: Validation error: " + errorsMap.toString()
             render(status: 400, text: errorsMap as JSON)
-        }
-        else
-        {
+        } else {
             result = userAdminService.resetPassword(cmd)
             if (result.status != PassFail.PASS) {
+                logService.cloud.error "changePassword: error: ${result.error}"
                 render(status: 500, text: result.error)
-            }
-            else {
+            } else {
                 logService.cloud.info("changePassword: success")
                 render ""
             }
@@ -87,8 +80,7 @@ class CloudController {
     }
 
     @Secured(['ROLE_ADMIN'])
-    def getAccounts()
-    {
+    def getAccounts() {
         ObjectCommandResponse response = cloudService.getAccounts()
         if (response.status != PassFail.PASS)
             render(status: 500, text: response.error)
@@ -106,35 +98,42 @@ class CloudController {
     }
 
     @Secured(['ROLE_ADMIN'])
-    def setAccountEnabledStatus(SetAccountEnabledStatusCommand cmd)
-    {
+    def setAccountEnabledStatus(SetAccountEnabledStatusCommand cmd) {
         ObjectCommandResponse response
-        if(cmd.hasErrors())
-        {
+        if (cmd.hasErrors()) {
             def errorsMap = validationErrorService.commandErrors(cmd.errors as ValidationErrors, 'changePassword')
-            logService.cloud.error "setAccountEnabledStatus: Validation error: "+errorsMap.toString()
+            logService.cloud.error "setAccountEnabledStatus: Validation error: " + errorsMap.toString()
             render(status: 400, text: errorsMap as JSON)
-        }
-        else
-        {
+        } else {
             response = userAdminService.setAccountEnabledStatus(cmd)
             if (response.status != PassFail.PASS) {
                 render(status: 500, text: response.error)
-            }
-            else {
+            } else {
                 logService.cloud.info("setAccountEnabledStatus: success")
                 render ""
             }
         }
     }
 
-//    @ControllerMethod
-//    @MessageMapping("/accountUpdates")
-//    @PreAuthorize("hasRole('ROLE_ADMIN'")
-//    @SendTo("/topic/accountUpdates")
-//    @Secured('hasRole("ROLE_ADMIN")')
-//    String accountUpdates(String message, Principal principal)
-//    {
-//        return "Account: "+message
-//    }
+    @Secured(['ROLE_ADMIN'])
+    def adminChangePassword(AdminChangePasswordCommand cmd)
+    {
+        ObjectCommandResponse result
+        if(cmd.hasErrors()) {
+            def errorsMap = validationErrorService.commandErrors(cmd.errors as ValidationErrors, 'changePassword')
+            logService.cloud.error "adminChangePassword: Validation error: " + errorsMap.toString()
+            render(status: 400, text: errorsMap as JSON)
+        }
+        else
+        {
+            result = userAdminService.adminChangePassword(cmd)
+            if (result.status != PassFail.PASS) {
+                logService.cloud.error "adminChangePassword: error: ${result.error}"
+                render(status: 500, text: result.error)
+            } else {
+                logService.cloud.info("adminChangePassword: success")
+                render ""
+            }
+        }
+    }
 }

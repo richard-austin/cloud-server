@@ -1,5 +1,6 @@
 package cloudservice.commands
 
+import cloudwebapp.UtilsService
 import grails.validation.Validateable
 
 class RegisterUserCommand implements Validateable {
@@ -9,6 +10,7 @@ class RegisterUserCommand implements Validateable {
     String confirmPassword
     String email
     String confirmEmail
+    UtilsService utilsService
 
     static constraints = {
         username (nullable: false, blank: false, maxSize: 20,
@@ -22,8 +24,8 @@ class RegisterUserCommand implements Validateable {
                 return "Product ID format is incorrect"
         }})
         password (nullable: false, blank: false, maxSize: 25,
-        validator: {password -> {
-            if(!password.matches(/^[A-Za-z0-9][A-Za-z0-9(){\[1*£$\]}=@~?^]{7,31}$/))
+        validator: {password, cmd -> {
+            if(!password.matches(cmd.utilsService.passwordRegex))
                 return "Password should contain alpha characters, numbers and special characters"
         }})
         confirmPassword (
