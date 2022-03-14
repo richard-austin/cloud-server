@@ -35,8 +35,8 @@ class RegisterUserCommand implements Validateable {
                 }}
         )
         email (nullable: false, blank: false, maxSize: 40,
-        validator: {email -> {
-            if(!email.matches(/^([a-zA-Z0-9_\-\.]+)@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.)|(([a-zA-Z0-9\-]+\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\]?)$/))
+        validator: {email, cmd -> {
+            if(!email.matches(cmd.utilsService.emailRegex))
                 return "email address is invalid"
         }})
         confirmEmail (

@@ -22,7 +22,7 @@ class AdminChangePasswordCommand implements Validateable{
         password(nullable: false, blank: false,
                 validator: {password, cmd ->
                     if(!password.matches(cmd.utilsService.passwordRegex))
-                        return "New password contains invalid characters or is too long (must be <= 64 characters)"
+                        return "New password contains invalid characters or is too long (must be <= 32 characters)"
                 })
 
         confirmPassword(validator: {confirmPassword, cmd ->

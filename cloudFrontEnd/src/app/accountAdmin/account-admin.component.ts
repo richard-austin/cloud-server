@@ -25,7 +25,7 @@ declare let Stomp: any;
 export class AccountAdminComponent implements OnInit {
   downloading: boolean = false;
   accounts: Account[] = [];
-  displayedColumns: string[] = ['changePassword', 'disableAccount', 'productId', 'accountCreated', 'userName', 'nvrConnected', 'usersConnected'];
+  displayedColumns: string[] = ['changePassword', 'changeEmail', 'disableAccount', 'productId', 'accountCreated', 'userName', 'nvrConnected', 'usersConnected'];
   changePasswordColumns: string[] = ['password'];
   @ViewChild('filter') filterEl!: ElementRef<HTMLInputElement>
   @ViewChild(ReportingComponent) errorReporting!: ReportingComponent;
@@ -38,8 +38,13 @@ export class AccountAdminComponent implements OnInit {
   successMessage: string = '';
   expandedElement: Account | null | undefined = undefined;
   changePasswordForm!: FormGroup;
+  changeEmailForm!: FormGroup;
   private password: string = "";
   private confirmPassword: string = "";
+  private email: string = "";
+  private confirmEmail: string = "";
+  showChangePassword: boolean = false;
+  showChangeEmail: boolean = false;
 
   constructor(private utilsService: UtilsService) {
     this.initializeWebSocketConnection();
@@ -49,9 +54,8 @@ export class AccountAdminComponent implements OnInit {
     return (control: AbstractControl): ValidationErrors | null => {
       this.password = control.value;
       // Update the validation status of the confirmPassword field
-      if(this.confirmPassword !== "")
-      {
-        let cpControl:AbstractControl | null = this.changePasswordForm.get("confirmPassword");
+      if (this.confirmPassword !== "") {
+        let cpControl: AbstractControl | null = this.changePasswordForm.get("confirmPassword");
         cpControl?.updateValueAndValidity();
       }
 
@@ -64,6 +68,28 @@ export class AccountAdminComponent implements OnInit {
     return (control: AbstractControl): ValidationErrors | null => {
       this.confirmPassword = control.value;
       const ok = this.password !== control.value;
+      return ok ? {notMatching: {value: control.value}} : null;
+    };
+  }
+
+  emailValidator(): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      this.email = control.value;
+      // Update the validation status of the confirmPassword field
+      if (this.confirmPassword !== "") {
+        let cpControl: AbstractControl | null = this.changeEmailForm.get("confirmEmail");
+        cpControl?.updateValueAndValidity();
+      }
+
+      const ok = !new RegExp("^([a-zA-Z0-9_\\-\\.]+)@((\\[[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.)|(([a-zA-Z0-9\\-]+\\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\\]?)$").test(control.value);
+      return ok ? {pattern: {value: control.value}} : null;
+    };
+  }
+
+  emailMatchValidator(): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      this.confirmEmail = control.value;
+      const ok = this.email !== control.value;
       return ok ? {notMatching: {value: control.value}} : null;
     };
   }
@@ -107,25 +133,53 @@ export class AccountAdminComponent implements OnInit {
   }
 
   showChangePasswordForm(account: Account) {
+    this.showChangePassword = true;
+    this.showChangeEmail = false;
+
     this.password = this.confirmPassword = "";
     let pw: AbstractControl = this.getFormControl(this.changePasswordForm, 'password');
     let cpw: AbstractControl = this.getFormControl(this.changePasswordForm, 'confirmPassword');
     pw.setValue("");
     cpw.setValue("");
-    if(this.expandedElement === undefined)
+    if (this.expandedElement === undefined)
       this.expandedElement = account;
     else
       this.expandedElement = undefined;
   }
 
+  showChangeEmailForm(account: Account) {
+    this.showChangeEmail = true;
+    this.showChangePassword = false;
 
-  changePassword(acc: Account):void {
+    let em: AbstractControl = this.getFormControl(this.changeEmailForm, 'email');
+    let cem: AbstractControl = this.getFormControl(this.changeEmailForm, 'confirmEmail');
+    em.setValue("");
+    cem.setValue("");
+
+    this.email = this.confirmEmail = "";
+    if (this.expandedElement === undefined)
+      this.expandedElement = account;
+    else
+      this.expandedElement = undefined;
+  }
+
+  changePassword(account: Account): void {
     this.successMessage = this.errorMessage = "";
-      this.utilsService.adminChangePassword(acc, this.password, this.confirmPassword).subscribe(() => {
-        this.successMessage = "Password successfully updated";
-      }, reason => {
-        this.errorReporting.errorMessage = reason;
-      })
+    this.utilsService.adminChangePassword(account, this.password, this.confirmPassword).subscribe(() => {
+      this.successMessage = "Password successfully updated";
+    }, reason => {
+      this.errorReporting.errorMessage = reason;
+    })
+  }
+
+
+  changeEmail(account: Account) {
+    this.successMessage = this.errorMessage = "";
+    this.utilsService.adminChangeEmail(account, this.email, this.confirmEmail).subscribe(() => {
+      this.successMessage = "Email address successfully updated";
+    }, reason => {
+      this.errorReporting.errorMessage = reason;
+    })
   }
 
   setAccountEnabledStatus(account: Account, $event: MatCheckboxChange) {
@@ -147,12 +201,16 @@ export class AccountAdminComponent implements OnInit {
     this.bNoAccountOnly = $event.checked
   }
 
-  getFormControl(formGroup:FormGroup, fcName: string): FormControl {
+  getFormControl(formGroup: FormGroup, fcName: string): FormControl {
     return formGroup.get(fcName) as FormControl;
   }
 
-  anyInvalid():boolean {
+  anyInvalid(): boolean {
     return this.changePasswordForm.invalid;
+  }
+
+  anyInvalidEmail(): boolean {
+    return this.changeEmailForm.invalid;
   }
 
   ngOnInit(): void {
@@ -163,6 +221,12 @@ export class AccountAdminComponent implements OnInit {
       confirmPassword: new FormControl(this.confirmPassword, [Validators.required, Validators.maxLength(25), this.passwordMatchValidator()]),
     }, {updateOn: "change"});
 
+    this.changeEmailForm = new FormGroup({
+      email: new FormControl(this.email, [Validators.required, Validators.maxLength(40), this.emailValidator()]),
+      confirmEmail: new FormControl(this.confirmEmail, [Validators.required, Validators.maxLength(40), this.emailMatchValidator()])
+    }, {updateOn: "change"});
+
     this.changePasswordForm.markAllAsTouched();
+    this.changeEmailForm.markAllAsTouched();
   }
 }

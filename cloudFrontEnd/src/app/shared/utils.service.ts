@@ -204,6 +204,14 @@ export class UtilsService {
     )
   }
 
+  adminChangeEmail(account: Account, email: string, confirmEmail: string) {
+    let cpw:{username:string, email: string, confirmEmail:string} = {username: account.userName, email: email, confirmEmail: confirmEmail};
+    return this.http.post<void>(this._baseUrl.getLink('cloud', 'adminChangeEmail'), JSON.stringify(cpw), this.httpJSONOptions).pipe(
+      tap(),
+      catchError((err:HttpErrorResponse) => throwError(err))
+    )
+  }
+
   sendMessage(message: Message) {
     this._messaging.next(message);
   }
