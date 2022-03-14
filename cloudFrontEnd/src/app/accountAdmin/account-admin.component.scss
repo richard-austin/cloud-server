@@ -73,6 +73,7 @@ tr.edit-element-row:not(.edit-expanded-row):active {
 .edit-element-detail {
   overflow: hidden;
   display: flex;
+  width: fit-content;
 }
 
 .edit-element-diagram {
@@ -98,3 +99,29 @@ tr.edit-element-row:not(.edit-expanded-row):active {
   opacity: 0.5;
 }
 
+.mat-column-changePassword {
+  width: 10%;
+}
+
+.mat-column-changeEmail {
+  width: 10%;
+}
+.mat-column-disableAccount {
+  width: 10%;
+}
+
+.mat-column-productId {
+  width: 12%;
+}
+
+.mat-column-accountCreated {
+  width: 6%;
+}
+
+.mat-column-userName {
+  width: 15%;
+}
+
+.mat-column-nvrConnected {
+  width: 6%;
+}

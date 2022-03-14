@@ -22,7 +22,7 @@ class AdminChangeEmailCommand  implements Validateable{
         email(nullable: false, blank: false,
                 validator: {email, cmd ->
                     if(!email.matches(cmd.utilsService.emailRegex))
-                        return "New email address contains invalid characters or is too long (must be <= 64 characters)"
+                        return "Invalid email address"
                 })
 
         confirmEmail(validator: {confirmEmail, cmd ->
