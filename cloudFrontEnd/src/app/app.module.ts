@@ -44,6 +44,8 @@ import { CredentialsForCameraAccessComponent } from './credentials-for-camera-ac
 import { LoginComponent } from './login/login.component';
 import { RegisterAccountComponent } from './register-account/register-account.component';
 import { ProductIdInputComponent } from './register-account/product-id-input/product-id-input.component';
+import { AccountAdminComponent } from './accountAdmin/account-admin.component';
+import { FilterPipe } from './accountAdmin/filter.pipe';
 
 @NgModule({
   declarations: [
@@ -68,7 +70,9 @@ import { ProductIdInputComponent } from './register-account/product-id-input/pro
     CredentialsForCameraAccessComponent,
     LoginComponent,
     RegisterAccountComponent,
-    ProductIdInputComponent
+    ProductIdInputComponent,
+    AccountAdminComponent,
+    FilterPipe
   ],
     imports: [
         BrowserModule,

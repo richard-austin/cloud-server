@@ -55,19 +55,24 @@ mat-card.confirm-logout {
       display: inline;
       > div {
         display: inline;
-      }:nth-child(5)
-      {
-        float: right;
-      }:nth-child(4)
-       {
-         float: right;
-       }
+      }
+      //}:nth-child(5)
+      //{
+      //  float: right;
+      //}:nth-child(4)
+      // {
+      //   float: right;
+      // }
     }
   }
 }
 
-.collapse {
+div.float-right
+{
+    float: right;
+}
 
+.collapse {
   @media handheld and (max-device-width: 1000px), screen and (max-width: 1000px){
     max-height: 0;
     overflow-y: hidden;

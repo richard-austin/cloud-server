@@ -132,6 +132,8 @@ environments:
             trustStorePassword: B0331e
             cloudProxyFacingPort: 8081
             browserFacingPort: 8083
+        quartz:
+            autoStartup: true
 
     test:
         dataSource:

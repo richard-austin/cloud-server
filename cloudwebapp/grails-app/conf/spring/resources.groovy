@@ -3,7 +3,9 @@ package spring
 import cloudservice.UserPasswordEncoderListener
 import cloudservice.eventlisteners.CloudAuthFailEventListener
 import cloudservice.eventlisteners.CloudSecurityEventListener
+import cloudservice.eventlisteners.WebSocketConfiguration
 import com.proxy.CloudProperties
+import com.proxy.cloudListener.CloudInstanceMap
 
 // Place your Spring DSL code here
 beans = {
@@ -16,6 +18,7 @@ beans = {
     authenticationSuccessHandler(CloudSecurityEventListener) {
         logService = ref("logService")
         cloudService = ref("cloudService")
+        springSecurityService = ref("springSecurityService")
     }
 
     // This bean audits failed user logins
@@ -23,4 +26,6 @@ beans = {
         logService = ref("logService")
         cloudService = ref("cloudService")
     }
+
+    webSocketConfiguration(WebSocketConfiguration)
 }

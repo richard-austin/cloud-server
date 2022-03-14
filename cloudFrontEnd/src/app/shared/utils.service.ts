@@ -7,6 +7,7 @@ import {CameraParams} from "../cameras/Camera";
 
 export class Temperature {
   temp: string = "";
+  isAdmin: boolean =false;
 }
 
 export class Version {
@@ -38,8 +39,10 @@ export class IdleTimeoutStatusMessage extends Message {
 }
 
 export class LoggedinMessage extends Message {
-   constructor() {
+  role: string;
+   constructor(role: string) {
      super(messageType.loggedIn);
+     this.role = role;
    }
 }
 
@@ -47,6 +50,15 @@ export class LoggedOutMessage extends Message {
   constructor() {
     super(messageType.loggedOut);
   }
+}
+
+export class Account {
+  productId!: string;
+  accountCreated!: boolean;
+  accountEnabled!: boolean;
+  userName!: string;
+  nvrConnected!: boolean;
+  usersConnected!: number;
 }
 
 @Injectable({
@@ -69,8 +81,16 @@ export class UtilsService {
 
   private _messaging: Subject<any> = new Subject<any>();
   private _loggedIn: boolean = false;
+  private _isAdmin: boolean = false;
+  public readonly passwordRegex:RegExp = new RegExp("^[A-Za-z0-9][A-Za-z0-9(){\[1*£$\\]}=@~?^]{7,31}$");
+
   get loggedIn(): boolean {
     return this._loggedIn;
+  }
+
+  get isAdmin()
+  {
+      return this._isAdmin;
   }
 
   constructor(private http: HttpClient, private _baseUrl: BaseUrl) {
@@ -79,14 +99,17 @@ export class UtilsService {
     // );
   }
 
-  login(username: string, password: string): Observable<void> {
+  login(username: string, password: string): Observable<{ role: string }> {
     let creds: string = "username=" + username + "&password=" + password;
-    return this.http.post<void>(this._baseUrl.getLink("login", "authenticate"), creds, this.httpUrlEncoded).pipe(
-      tap(() => {
+    return this.http.post<{role: string}>(this._baseUrl.getLink("login", "authenticate"), creds, this.httpUrlEncoded).pipe(
+      tap((result) => {
+        if(result.role === 'ROLE_ADMIN')
+          this._isAdmin = true;
+        else
           this._loggedIn = true;
         },
         reason => {
-          this._loggedIn = false;
+        this._isAdmin = this._loggedIn = false;
         }),
       catchError((err: HttpErrorResponse) => throwError(err))
     );
@@ -99,11 +122,12 @@ export class UtilsService {
 
   getTemperature(): Observable<Temperature> {
     return this.http.post<Temperature>(this._baseUrl.getLink("cloud", "getTemperature"), '', this.httpJSONOptions).pipe(
-      tap(() => {
-          this._loggedIn = true;
+      tap((result) => {
+          this._loggedIn = !result.isAdmin;
+          this._isAdmin = result.isAdmin;
         },
         (reason) => {
-          this._loggedIn = false;
+          this._loggedIn =this._isAdmin = false;
           this.sendMessage(new LoggedOutMessage())
         }),
       catchError((err: HttpErrorResponse) => throwError(err))
@@ -119,8 +143,8 @@ export class UtilsService {
     );
   }
 
-  getVersion(): Observable<Version> {
-    return this.http.post<Version>(this._baseUrl.getLink("utils", "getVersion"), '', this.httpJSONOptions).pipe(
+  getVersion(isLocal: boolean): Observable<Version> {
+    return this.http.post<Version>(this._baseUrl.getLink(isLocal?"cloud":"utils", "getVersion"), '', this.httpJSONOptions).pipe(
       tap(),
       catchError((err: HttpErrorResponse) => throwError(err))
     );
@@ -152,6 +176,40 @@ export class UtilsService {
       tap(),
       catchError((err: HttpErrorResponse) => throwError(err))
     );
+  }
+
+  getAccounts():Observable<Account[]>
+  {
+     return this.http.post<Account[]>(this._baseUrl.getLink('cloud', 'getAccounts'), '', this.httpJSONOptions).pipe(
+       tap(),
+       catchError((err:HttpErrorResponse) => throwError(err))
+     )
+  }
+
+  setAccountEnabledStatus(account: Account) : Observable<void>
+  {
+    let acc:{username: string, accountEnabled: boolean} = {username: account.userName, accountEnabled: account.accountEnabled}
+    return this.http.post<void>(this._baseUrl.getLink('cloud', 'setAccountEnabledStatus'), JSON.stringify(acc), this.httpJSONOptions).pipe(
+      tap(),
+      catchError((err:HttpErrorResponse) => throwError(err))
+    )
+  }
+
+  adminChangePassword(account:Account, password: string, confirmPassword: string)
+  {
+    let cpw:{username:string, password: string, confirmPassword:string} = {username: account.userName, password: password, confirmPassword: confirmPassword};
+    return this.http.post<void>(this._baseUrl.getLink('cloud', 'adminChangePassword'), JSON.stringify(cpw), this.httpJSONOptions).pipe(
+      tap(),
+      catchError((err:HttpErrorResponse) => throwError(err))
+    )
+  }
+
+  adminChangeEmail(account: Account, email: string, confirmEmail: string) {
+    let cpw:{username:string, email: string, confirmEmail:string} = {username: account.userName, email: email, confirmEmail: confirmEmail};
+    return this.http.post<void>(this._baseUrl.getLink('cloud', 'adminChangeEmail'), JSON.stringify(cpw), this.httpJSONOptions).pipe(
+      tap(),
+      catchError((err:HttpErrorResponse) => throwError(err))
+    )
   }
 
   sendMessage(message: Message) {

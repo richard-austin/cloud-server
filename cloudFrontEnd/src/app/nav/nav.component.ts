@@ -84,6 +84,15 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
     window.location.href = '#/about';
   }
 
+  aboutCCTVCloud() {
+    window.location.href = '#/about/true';
+  }
+
+
+  accountsAdmin() {
+    window.location.href = '#/accountadmin';
+  }
+
   private getTemperature(): void {
     this.utilsService.getTemperature().subscribe((tmp) => {
         let temperature: string = tmp.temp;

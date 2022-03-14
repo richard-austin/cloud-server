@@ -20,7 +20,7 @@ export class ChangePasswordService {
   changePassword(oldPassword:string, newPassword:string, confirmNewPassword:string):Observable<void>
   {
     let passwordChange:{oldPassword: string, newPassword:string, confirmNewPassword: string} = {oldPassword: oldPassword, newPassword: newPassword, confirmNewPassword: confirmNewPassword};
-    return this.http.post<void>(this._baseUrl.getLink("user", "changePassword"), JSON.stringify(passwordChange), this.httpJSONOptions).pipe(
+    return this.http.post<void>(this._baseUrl.getLink("cloud", "changePassword"), JSON.stringify(passwordChange), this.httpJSONOptions).pipe(
       tap(),
       catchError((err:HttpErrorResponse) => throwError(err))
     );

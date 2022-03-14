@@ -44,8 +44,6 @@ export function isValidMaskFileName(cameras:Map<string, Camera>): ValidatorFn {
         }
       })
     })
-
-
     return !fileNameValid || duplicateMaskFile ? {mask_file: !fileNameValid, duplicate: duplicateMaskFile} : null;
   }
 }

@@ -1,0 +1,127 @@
+table {
+  width: 50%;
+}
+
+.product-id {
+  font-family: monospace, sans-serif;
+}
+
+.status {
+  background-color: lightgrey;
+  border-radius: 0.9rem;
+  cursor: default;
+}
+
+.status-ok {
+  @extend .status;
+  color: green;
+}
+
+.status-warn {
+  @extend .status;
+  color: red;
+}
+
+.filter-checkbox {
+  margin-left: 1rem;
+  position: relative;
+  top: 0.25rem;
+}
+
+
+.buttons {
+  background-color: #323232;
+}
+
+.check-box {
+  background: linear-gradient(90deg, #323232 95%, #424242 95%);
+}
+
+div.message-display {
+  width: fit-content;
+  display: flex;
+  > div {
+    margin-bottom: 1rem;
+    flex-grow: 2;
+  }
+}
+
+table {
+  width: 100%;
+}
+
+tr.edit-detail-row {
+  height: 0;
+}
+
+tr.edit-element-row.edit-expanded-row:hover {
+  background: darkblue;
+}
+
+tr.edit-element-row:not(.edit-expanded-row):hover {
+  background: darkblue;
+}
+
+tr.edit-element-row:not(.edit-expanded-row):active {
+  background: grey;
+}
+
+.edit-element-row td {
+  border-bottom-width: 0;
+}
+
+.edit-element-detail {
+  overflow: hidden;
+  display: flex;
+  width: fit-content;
+}
+
+.edit-element-diagram {
+  min-width: 80px;
+  border: 2px solid black;
+  padding: 8px;
+  font-weight: lighter;
+  margin: 8px 0;
+  height: 104px;
+}
+
+.edit-element-symbol {
+  font-weight: bold;
+  font-size: 40px;
+  line-height: normal;
+}
+
+.edit-element-description {
+  padding: 16px;
+}
+
+.edit-element-description-attribution {
+  opacity: 0.5;
+}
+
+.mat-column-changePassword {
+  width: 10%;
+}
+
+.mat-column-changeEmail {
+  width: 10%;
+}
+.mat-column-disableAccount {
+  width: 10%;
+}
+
+.mat-column-productId {
+  width: 12%;
+}
+
+.mat-column-accountCreated {
+  width: 6%;
+}
+
+.mat-column-userName {
+  width: 15%;
+}
+
+.mat-column-nvrConnected {
+  width: 6%;
+}

@@ -4,6 +4,7 @@ import cloudservice.User
 import cloudwebapp.CloudService
 import cloudwebapp.LogService
 import grails.gorm.transactions.Transactional
+import grails.plugin.springsecurity.SpringSecurityService
 import org.springframework.security.core.Authentication
 import org.springframework.security.core.AuthenticationException
 import org.springframework.security.web.authentication.AuthenticationFailureHandler
@@ -20,6 +21,7 @@ import javax.servlet.http.HttpServletResponse
 class CloudSecurityEventListener implements LogoutHandler, AuthenticationSuccessHandler{
     LogService logService
     CloudService cloudService
+    SpringSecurityService springSecurityService
 
     @Override
     void logout(HttpServletRequest request, HttpServletResponse response, Authentication authentication) {
@@ -29,20 +31,25 @@ class CloudSecurityEventListener implements LogoutHandler, AuthenticationSuccess
     @Override
     void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
         String productId = getProductId(request.getParameter("username"))
+        String userName = request.getParameter('username')
+        final boolean isAdmin = getRole(userName).contains('ROLE_ADMIN')
 
-        String cookie = cloudService.cloudListener.authenticate(productId)
-        if(cookie != "" && cookie != "NO_CONN") {
-            response.addHeader("Set-Cookie", "NVRSESSIONID="+cookie+"; Path=/; HttpOnly")
-            loginSuccess(request.getParameter("username"))
+        if(!isAdmin) {
+            String cookie = cloudService.cloudListener.authenticate(productId)
+            if (cookie != "" && cookie != "NO_CONN") {
+                response.addHeader("Set-Cookie", "NVRSESSIONID=" + cookie + "; Path=/; HttpOnly")
+                response.getWriter().write('{"role": "ROLE_CLIENT"}')
+                loginSuccess(userName)
+            } else {
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED)
+                if (cookie == "")
+                    response.getWriter().write("Failed to login to NVR")
+                else
+                    response.getWriter().write("Not connected to NVR")
+            }
         }
         else
-        {
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED)
-            if(cookie == "")
-                response.getWriter().write("Failed to login to NVR")
-            else
-                response.getWriter().write("Not connected to NVR")
-        }
+            response.getWriter().write('{"role": "ROLE_ADMIN"}')
     }
 
     @Transactional
@@ -55,7 +62,19 @@ class CloudSecurityEventListener implements LogoutHandler, AuthenticationSuccess
         }
         catch(Exception ex)
         {
-            System.out.println(ex.getMessage())
+            logService.cloud.error(ex.getClass().getName() + " exception in getProductId: " + ex.getMessage())
+        }
+    }
+
+    @Transactional
+    private String[] getRole(String username)
+    {
+        try {
+            String[] roles = springSecurityService.getPrincipal().getAuthorities()
+            return roles
+        }
+        catch(Exception ex) {
+            logService.cloud.error(ex.getClass().getName() + " exception in getRole: " + ex.getMessage())
         }
     }
 

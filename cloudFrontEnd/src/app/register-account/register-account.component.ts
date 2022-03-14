@@ -31,7 +31,7 @@ export class RegisterAccountComponent implements OnInit, AfterViewInit {
         cpControl?.updateValueAndValidity();
       }
 
-      const ok = !new RegExp("^[A-Za-z0-9][A-Za-z0-9(){\[1*£$\\]}=@~?^]{7,31}$").test(control.value);
+      const ok = !this.utilsService.passwordRegex.test(control.value);
       return ok ? {pattern: {value: control.value}} : null;
     };
   }
@@ -71,8 +71,10 @@ export class RegisterAccountComponent implements OnInit, AfterViewInit {
     // Ensure password field is up-to-date for the confirmPassword validity check
     this.password = this.getFormControl('password').value;
 
-    if($event.key == 'Enter')
-      this.register();
+    if($event.key == 'Enter') {
+      if(!this.anyInvalid())
+        this.register();
+    }
   }
 
   register() {
