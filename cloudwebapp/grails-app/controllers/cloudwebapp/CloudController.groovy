@@ -4,18 +4,13 @@ import cloudservice.commands.AdminChangeEmailCommand
 import cloudservice.commands.AdminChangePasswordCommand
 import cloudservice.commands.RegisterUserCommand
 import cloudservice.commands.ResetPasswordCommand
+import cloudservice.commands.SendResetPasswordLinkCommand
 import cloudservice.commands.SetAccountEnabledStatusCommand
 import cloudservice.enums.PassFail
 import cloudservice.interfaceobjects.ObjectCommandResponse
 import grails.converters.JSON
 import grails.plugin.springsecurity.annotation.Secured
 import grails.validation.ValidationErrors
-import grails.web.controllers.ControllerMethod
-import org.springframework.messaging.handler.annotation.MessageMapping
-import org.springframework.messaging.handler.annotation.SendTo
-import org.springframework.security.access.prepost.PreAuthorize
-
-import java.security.Principal
 
 class CloudController {
     CloudService cloudService
@@ -155,6 +150,27 @@ class CloudController {
                 render(status: 500, text: result.error)
             } else {
                 logService.cloud.info("adminChangeEmail: success")
+                render ""
+            }
+        }
+    }
+
+    def sendResetPasswordLink(SendResetPasswordLinkCommand cmd)
+    {
+        ObjectCommandResponse result
+        if(cmd.hasErrors()) {
+            def errorsMap = validationErrorService.commandErrors(cmd.errors as ValidationErrors, 'sendResetPasswordLink')
+            logService.cloud.error "sendResetPasswordLink: Validation error: " + errorsMap.toString()
+            render(status: 400, text: errorsMap as JSON)
+        }
+        else
+        {
+            result = userAdminService.sendResetPasswordLink(cmd)
+            if (result.status != PassFail.PASS) {
+                logService.cloud.error "sendResetPasswordLink: error: ${result.error}"
+                render(status: 500, text: result.error)
+            } else {
+                logService.cloud.info("sendResetPasswordLink: success")
                 render ""
             }
         }
