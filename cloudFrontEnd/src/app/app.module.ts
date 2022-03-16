@@ -97,7 +97,7 @@ import { ForgottenPasswordComponent } from './login/forgotten-password/forgotten
         FormsModule,
         // Optionally you can set time for `idle`, `timeout` and `ping` in seconds.
         // Default values: `idle` is 600 (10 minutes), `timeout` is 300 (5 minutes)
-        // and `ping` is 6q0 (1 minutes).
+        // and `ping` is 60 (1 minutes).
         UserIdleModule.forRoot({idle: 600, timeout: 60, ping: 60}),
         LayoutModule,
         MatTableModule,

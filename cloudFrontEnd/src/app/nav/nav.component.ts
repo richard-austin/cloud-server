@@ -30,7 +30,7 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
   noTemperature: boolean = true;
   tempAlertClass!: string;
   idleTimeoutDialogRef!: MatDialogRef<IdleTimeoutModalComponent>;
-  private idleTimeoutActive: boolean = true;
+  private idleTimeoutActive: boolean = false;
   private messageSubscription!: Subscription;
 
   constructor(private cameraSvc: CameraService, public utilsService: UtilsService, private userIdle: UserIdleService, private dialog: MatDialog) {
@@ -186,6 +186,7 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
       }
       else if (message.messageType === messageType.loggedIn) {
         window.location.href = "#/"
+        this.idleTimeoutActive = true;
         this.cameraStreams = this.cameraSvc.getCameraStreams();
         this.cameras = this.cameraSvc.getCameras()
 
@@ -194,6 +195,7 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
       }
       else if (message.messageType == messageType.loggedOut )
       {
+        this.idleTimeoutActive = false;
         if(!window.location.href.endsWith("#/login") && !window.location.href.endsWith("#/register"))
             window.location.href = "#/";  // Remove any displayed components
       }
