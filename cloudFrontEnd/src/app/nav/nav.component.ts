@@ -30,7 +30,8 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
   noTemperature: boolean = true;
   tempAlertClass!: string;
   idleTimeoutDialogRef!: MatDialogRef<IdleTimeoutModalComponent>;
-  private idleTimeoutActive: boolean = false;
+  private idleTimeoutActive: boolean = false;  // Idle time out inactive when not logged in or showing live video
+  private callGetTemp: boolean = false;  // Prevent calling getTemperature while not logged in
   private messageSubscription!: Subscription;
 
   constructor(private cameraSvc: CameraService, public utilsService: UtilsService, private userIdle: UserIdleService, private dialog: MatDialog) {
@@ -186,7 +187,7 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
       }
       else if (message.messageType === messageType.loggedIn) {
         window.location.href = "#/"
-        this.idleTimeoutActive = true;
+        this.idleTimeoutActive = this.callGetTemp = true;
         this.cameraStreams = this.cameraSvc.getCameraStreams();
         this.cameras = this.cameraSvc.getCameras()
 
@@ -195,7 +196,7 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
       }
       else if (message.messageType == messageType.loggedOut )
       {
-        this.idleTimeoutActive = false;
+        this.idleTimeoutActive = this.callGetTemp = false;
         if(!window.location.href.endsWith("#/login") && !window.location.href.endsWith("#/register"))
             window.location.href = "#/";  // Remove any displayed components
       }
@@ -218,7 +219,10 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
     });
 
     // Gets the core temperature every minute (Raspberry pi only), and keeps the session alive
-    this.pingHandle = this.userIdle.ping$.subscribe(() => this.getTemperature());
+    this.pingHandle = this.userIdle.ping$.subscribe(() => {
+      if(this.callGetTemp)
+        this.getTemperature();
+    });
 
     this.cameraSvc.getConfigUpdates().subscribe(() => {
       this.cameraStreams = this.cameraSvc.getCameraStreams();
