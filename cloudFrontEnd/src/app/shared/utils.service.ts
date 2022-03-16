@@ -209,7 +209,15 @@ export class UtilsService {
     return this.http.post<void>(this._baseUrl.getLink('cloud', 'adminChangeEmail'), JSON.stringify(cpw), this.httpJSONOptions).pipe(
       tap(),
       catchError((err:HttpErrorResponse) => throwError(err))
-    )
+    );
+  }
+
+  sendResetPasswordLink(email: string): Observable<void> {
+    let em: {email: string} = {email: email};
+    return this.http.post<void>(this._baseUrl.getLink('cloud', 'sendResetPasswordLink'), JSON.stringify(em), this.httpJSONOptions).pipe(
+      tap(),
+      catchError((err:HttpErrorResponse) => throwError(err))
+    );
   }
 
   sendMessage(message: Message) {
@@ -219,4 +227,5 @@ export class UtilsService {
   getMessages(): Observable<Message> {
     return this._messaging.asObservable();
   }
+
 }

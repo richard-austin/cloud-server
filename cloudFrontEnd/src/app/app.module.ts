@@ -46,6 +46,7 @@ import { RegisterAccountComponent } from './register-account/register-account.co
 import { ProductIdInputComponent } from './register-account/product-id-input/product-id-input.component';
 import { AccountAdminComponent } from './accountAdmin/account-admin.component';
 import { FilterPipe } from './accountAdmin/filter.pipe';
+import { ForgottenPasswordComponent } from './login/forgotten-password/forgotten-password.component';
 
 @NgModule({
   declarations: [
@@ -72,7 +73,8 @@ import { FilterPipe } from './accountAdmin/filter.pipe';
     RegisterAccountComponent,
     ProductIdInputComponent,
     AccountAdminComponent,
-    FilterPipe
+    FilterPipe,
+    ForgottenPasswordComponent
   ],
     imports: [
         BrowserModule,

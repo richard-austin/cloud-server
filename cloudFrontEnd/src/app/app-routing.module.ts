@@ -12,6 +12,7 @@ import {ConfigSetupComponent} from "./config-setup/config-setup.component";
 import {LoginComponent} from "./login/login.component";
 import {RegisterAccountComponent} from "./register-account/register-account.component";
 import { AccountAdminComponent } from './accountAdmin/account-admin.component';
+import {ForgottenPasswordComponent} from "./login/forgotten-password/forgotten-password.component";
 
 const routes: Routes = [
   {path: 'live', component: LiveContainerComponent},
@@ -26,7 +27,8 @@ const routes: Routes = [
   {path: 'login', component: LoginComponent},
   {path: 'register', component: RegisterAccountComponent},
   {path: 'accountadmin', component: AccountAdminComponent},
-  {path: 'dc', component: DrawdownCalcContainerComponent}
+  {path: 'dc', component: DrawdownCalcContainerComponent},
+  {path: 'forgotpassword', component: ForgottenPasswordComponent}
 ];
 
 @NgModule({

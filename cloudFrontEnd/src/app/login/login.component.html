@@ -9,7 +9,7 @@
         <mat-form-field appearance="legacy" [style.width.px]="225">
           <input #username matInput type="text" autocomplete="off" maxlength="20"
                  [formControl]="getFormControl('username')"
-                 (keypress)="confirmOnReturn($event)"
+                 (beforeinput)="confirmOnReturn($event)"
                  matTooltip="Enter your Cloud Service user name."
                  matTooltipClass="tooltip"
                  placeholder="User name">
@@ -19,11 +19,12 @@
           <mat-error *ngIf="loginForm.controls['username'].hasError('required')">User name is required</mat-error>
         </mat-form-field>
       </div>
+
       <div>
         <mat-form-field appearance="legacy" [style.width.px]="225">
           <input matInput type="password" autocomplete="off" maxlength="25"
                  [formControl]="getFormControl('password')"
-                 (keypress)="confirmOnReturn($event)"
+                 (beforeinput)="confirmOnReturn($event)"
                  matTooltip="Enter your Cloud Service password"
                  matTooltipClass="tooltip"
                  placeholder="Password">
@@ -35,7 +36,11 @@
         </mat-form-field>
       </div>
       <br>
-      <span class="cam-creds-confirm-group">
+      <div>
+        Forgotten <a class="forgot-password" href="/#/forgotpassword">password</a> ?
+      </div>
+      <br>
+      <span>
       <button color="default" mat-flat-button (click)="hideLoginForm()"
               matTooltip="Close this dialogue and leave the existing user name and password in place"
               matTooltipClass="tooltip">
