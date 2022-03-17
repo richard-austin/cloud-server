@@ -11,7 +11,18 @@ import cloudservice.interfaceobjects.ObjectCommandResponse
 import grails.gorm.transactions.Transactional
 import grails.plugin.springsecurity.SpringSecurityService
 
+import javax.mail.Authenticator
+import javax.mail.PasswordAuthentication
+import javax.mail.Message
+import javax.mail.Multipart
+import javax.mail.Session
+import javax.mail.Transport
+import javax.mail.internet.InternetAddress
+import javax.mail.internet.MimeBodyPart
+import javax.mail.internet.MimeMessage
+import javax.mail.internet.MimeMultipart
 import java.util.concurrent.ConcurrentHashMap
+
 
 @Transactional()
 class UserAdminService {
@@ -116,6 +127,8 @@ class UserAdminService {
             Timer timer = new Timer(uniqueString)
             timer.schedule(task, resetPasswordParameterTimeout)
             timerMap.put(cmd.email, timer)
+
+            sendEmail("richard.david.austin@gmail.com", uniqueString)
         }
         catch(Exception ex)
         {
@@ -139,5 +152,42 @@ class UserAdminService {
                 .toString()
         System.out.println(generatedString)
         return generatedString
+    }
+
+    private def sendEmail(String email, String idStr)
+    {
+        Properties prop = new Properties()
+        prop.put("mail.smtp.auth", true)
+        prop.put("mail.smtp.starttls.enable", "true")
+        prop.put("mail.smtp.ssl.protocols", "TLSv1.2")
+        prop.put("mail.smtp.host", "smtp.virginmedia.com")
+        prop.put("mail.smtp.port", "587")
+        prop.put("mail.smtp.ssl.trust", "smtp.virginmedia.com")
+
+        Session session = Session.getDefaultInstance(prop, new Authenticator() {
+            @Override
+            protected PasswordAuthentication getPasswordAuthentication() {
+                return new PasswordAuthentication("rdaustin@virginmedia.com", "DC10plus")
+            }
+        })
+
+        Message message = new MimeMessage(session)
+        message.setFrom(new InternetAddress("cloud@gmail.com"))
+        message.setRecipients(
+                Message.RecipientType.TO, InternetAddress.parse(email))
+        message.setSubject("Reset Password")
+
+        String msg = "<h2>Reset Password</h2>"+
+        "Please click <a href=\"http://localhost:4200/#/resetpassword/${idStr}\">here</a> to reset your password."
+
+        MimeBodyPart mimeBodyPart = new MimeBodyPart()
+        mimeBodyPart.setContent(msg, "text/html; charset=utf-8")
+
+        Multipart multipart = new MimeMultipart()
+        multipart.addBodyPart(mimeBodyPart)
+
+        message.setContent(multipart)
+
+        Transport.send(message)
     }
 }
