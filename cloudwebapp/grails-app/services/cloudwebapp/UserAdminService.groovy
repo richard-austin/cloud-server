@@ -10,6 +10,7 @@ import cloudservice.enums.PassFail
 import cloudservice.interfaceobjects.ObjectCommandResponse
 import grails.gorm.transactions.Transactional
 import grails.plugin.springsecurity.SpringSecurityService
+import org.springframework.security.core.context.SecurityContextHolder
 
 import javax.mail.Authenticator
 import javax.mail.PasswordAuthentication
@@ -136,6 +137,21 @@ class UserAdminService {
             result.status = PassFail.FAIL
             result.error = ex.getMessage()
         }
+        return result
+    }
+
+    ObjectCommandResponse getUserAuthorities() {
+        ObjectCommandResponse result = new ObjectCommandResponse()
+        try {
+            result.responseObject = SecurityContextHolder.getContext().getAuthentication().getAuthorities()
+        }
+        catch (Exception ex)
+        {
+            logService.cloud.error("${ex.getClass().getName()} in getUserAuthorities: ${ex.getCause()} ${ex.getMessage()}")
+            result.status = PassFail.FAIL
+            result.error = ex.getMessage()
+        }
+
         return result
     }
 

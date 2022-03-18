@@ -47,6 +47,7 @@ import { ProductIdInputComponent } from './register-account/product-id-input/pro
 import { AccountAdminComponent } from './accountAdmin/account-admin.component';
 import { FilterPipe } from './accountAdmin/filter.pipe';
 import { ForgottenPasswordComponent } from './login/forgotten-password/forgotten-password.component';
+import {OnlyAdminUsersService} from "./guards/only-admin-users.service";
 
 @NgModule({
   declarations: [
@@ -104,7 +105,7 @@ import { ForgottenPasswordComponent } from './login/forgotten-password/forgotten
         MatSortModule,
         MatTooltipModule
     ],
-  providers: [HttpClient, BaseUrl],
+  providers: [HttpClient, BaseUrl, OnlyAdminUsersService],
   bootstrap: [AppComponent],
   entryComponents: [IdleTimeoutModalComponent]
 })

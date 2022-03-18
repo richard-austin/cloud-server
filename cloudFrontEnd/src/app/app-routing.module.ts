@@ -13,6 +13,7 @@ import {LoginComponent} from "./login/login.component";
 import {RegisterAccountComponent} from "./register-account/register-account.component";
 import { AccountAdminComponent } from './accountAdmin/account-admin.component';
 import {ForgottenPasswordComponent} from "./login/forgotten-password/forgotten-password.component";
+import {OnlyAdminUsersService} from "./guards/only-admin-users.service";
 
 const routes: Routes = [
   {path: 'live', component: LiveContainerComponent},
@@ -26,7 +27,7 @@ const routes: Routes = [
   {path: 'configsetup', component: ConfigSetupComponent},
   {path: 'login', component: LoginComponent},
   {path: 'register', component: RegisterAccountComponent},
-  {path: 'accountadmin', component: AccountAdminComponent},
+  {path: 'accountadmin', component: AccountAdminComponent, canActivate: [OnlyAdminUsersService]},
   {path: 'dc', component: DrawdownCalcContainerComponent},
   {path: 'forgotpassword', component: ForgottenPasswordComponent}
 ];

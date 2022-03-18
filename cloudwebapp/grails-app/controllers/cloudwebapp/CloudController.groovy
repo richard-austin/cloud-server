@@ -175,4 +175,17 @@ class CloudController {
             }
         }
     }
+
+    def getUserAuthorities()
+    {
+        ObjectCommandResponse result
+        result = userAdminService.getUserAuthorities()
+        if (result.status != PassFail.PASS) {
+            logService.cloud.error "getUserAuthorities: error: ${result.error}"
+            render(status: 500, text: result.error)
+        } else {
+            logService.cloud.info("getUserAuthorities: success")
+            render result.responseObject as JSON
+        }
+    }
 }

@@ -220,6 +220,14 @@ export class UtilsService {
     );
   }
 
+  getUserAuthorities() : Observable<{authority: string}[]>
+  {
+    return this.http.post<{authority: string}[]>(this._baseUrl.getLink('cloud', 'getUserAuthorities'), '', this.httpJSONOptions).pipe(
+      tap(),
+      catchError((err:HttpErrorResponse) => throwError(err))
+    );
+  }
+
   sendMessage(message: Message) {
     this._messaging.next(message);
   }
