@@ -48,6 +48,10 @@ import { AccountAdminComponent } from './accountAdmin/account-admin.component';
 import { FilterPipe } from './accountAdmin/filter.pipe';
 import { ForgottenPasswordComponent } from './login/forgotten-password/forgotten-password.component';
 import {OnlyAdminUsersService} from "./guards/only-admin-users.service";
+import {OnlyClientUsersService} from "./guards/only-client-users.service";
+import {OnlyAnonUsersService} from "./guards/only-anon-users.service";
+import { ResetPasswordComponent } from './reset-password/reset-password.component';
+import {OnlyLoggedInService} from "./guards/only-logged-in.service";
 
 @NgModule({
   declarations: [
@@ -75,7 +79,8 @@ import {OnlyAdminUsersService} from "./guards/only-admin-users.service";
     ProductIdInputComponent,
     AccountAdminComponent,
     FilterPipe,
-    ForgottenPasswordComponent
+    ForgottenPasswordComponent,
+    ResetPasswordComponent
   ],
     imports: [
         BrowserModule,
@@ -105,7 +110,7 @@ import {OnlyAdminUsersService} from "./guards/only-admin-users.service";
         MatSortModule,
         MatTooltipModule
     ],
-  providers: [HttpClient, BaseUrl, OnlyAdminUsersService],
+  providers: [HttpClient, BaseUrl, OnlyAdminUsersService, OnlyClientUsersService, OnlyAnonUsersService, OnlyLoggedInService],
   bootstrap: [AppComponent],
   entryComponents: [IdleTimeoutModalComponent]
 })
