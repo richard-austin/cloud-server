@@ -57,6 +57,7 @@ export class Account {
   accountCreated!: boolean;
   accountEnabled!: boolean;
   userName!: string;
+  email!: string;
   nvrConnected!: boolean;
   usersConnected!: number;
 }

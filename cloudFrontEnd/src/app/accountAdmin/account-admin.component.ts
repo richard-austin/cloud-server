@@ -150,10 +150,11 @@ export class AccountAdminComponent implements OnInit {
   showChangeEmailForm(account: Account) {
     this.showChangeEmail = true;
     this.showChangePassword = false;
+    this.email = account.email;
 
     let em: AbstractControl = this.getFormControl(this.changeEmailForm, 'email');
     let cem: AbstractControl = this.getFormControl(this.changeEmailForm, 'confirmEmail');
-    em.setValue("");
+    em.setValue(account.email);
     cem.setValue("");
 
     this.email = this.confirmEmail = "";
@@ -177,6 +178,11 @@ export class AccountAdminComponent implements OnInit {
     this.successMessage = this.errorMessage = "";
     this.utilsService.adminChangeEmail(account, this.email, this.confirmEmail).subscribe(() => {
       this.successMessage = "Email address successfully updated";
+      // Update the local copy
+      let local: Account | undefined = this.accounts.find(acc => acc.userName === account.userName);
+      if(local !== undefined)
+        local.email = this.email;
+
     }, reason => {
       this.errorReporting.errorMessage = reason;
     })
@@ -222,8 +228,8 @@ export class AccountAdminComponent implements OnInit {
     }, {updateOn: "change"});
 
     this.changeEmailForm = new FormGroup({
-      email: new FormControl(this.email, [Validators.required, Validators.maxLength(40), this.emailValidator()]),
-      confirmEmail: new FormControl(this.confirmEmail, [Validators.required, Validators.maxLength(40), this.emailMatchValidator()])
+      email: new FormControl(this.email, [Validators.required, Validators.maxLength(70), this.emailValidator()]),
+      confirmEmail: new FormControl(this.confirmEmail, [Validators.required, Validators.maxLength(70), this.emailMatchValidator()])
     }, {updateOn: "change"});
 
     this.changePasswordForm.markAllAsTouched();

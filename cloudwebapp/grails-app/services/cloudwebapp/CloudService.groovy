@@ -37,14 +37,16 @@ class Version {
 class Account {
     String productId
     String userName
+    String email
     boolean accountCreated = false
     boolean accountEnabled = false
     boolean nvrConnected = false
     int usersConnected = 0
 
-    Account(String productId, String userName) {
+    Account(String productId, String userName, String email) {
         this.productId = productId
         this.userName = userName
+        this.email = email
     }
 }
 
@@ -214,7 +216,7 @@ class CloudService {
 
                 users.forEach((User user) -> {
                     if(user.getProductid() != "0000-0000-0000-0000") {   // Don't include the admin account
-                        Account acc = new Account(user.getProductid(), user.getUsername())
+                        Account acc = new Account(user.getProductid(), user.getUsername(), user.getEmail())
                         acc.accountCreated = true
                         acc.accountEnabled = user.getEnabled()
                         accounts.add(acc)
@@ -229,7 +231,7 @@ class CloudService {
                 // Add any connected NVR's where no account has been created
                 sessions.forEach((key, session) -> {
                     if (!accounts.find((account) -> { account.getProductId() == key })) {
-                        Account acc = new Account(key, '')
+                        Account acc = new Account(key, '', '')
                         acc.accountCreated = false
                         acc.nvrConnected = true
                         accounts.add(acc)
