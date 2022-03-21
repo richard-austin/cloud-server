@@ -188,18 +188,16 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
       else if (message.messageType === messageType.loggedIn) {
         window.location.href = "#/"
         this.idleTimeoutActive = this.callGetTemp = true;
-        this.cameraStreams = this.cameraSvc.getCameraStreams();
-        this.cameras = this.cameraSvc.getCameras()
+        if(!this.utilsService.isAdmin) {
+          this.cameraStreams = this.cameraSvc.getCameraStreams();
+          this.cameras = this.cameraSvc.getCameras()
+        }
 
         // Get the initial core temperature
         this.getTemperature();
       }
       else if (message.messageType == messageType.loggedOut )
-      {
         this.idleTimeoutActive = this.callGetTemp = false;
-        if(!window.location.href.endsWith("#/login") && !window.location.href.endsWith("#/register") && !window.location.href.includes('#/resetpassword'))
-            window.location.href = "#/";  // Remove any displayed components
-      }
     });
 
     // Start watching when user idle is starting.

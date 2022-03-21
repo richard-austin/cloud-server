@@ -25,4 +25,12 @@ export class ChangePasswordService {
       catchError((err:HttpErrorResponse) => throwError(err))
     );
   }
+
+  resetPassword(newPassword: string, confirmNewPassword: string, uniqueId: string) {
+    let passwordChange: {newPassword:string, confirmNewPassword: string, uniqueId: string} = {newPassword: newPassword, confirmNewPassword: confirmNewPassword, uniqueId: uniqueId};
+    return this.http.post<void>(this._baseUrl.getLink("cloud", "resetPassword"), JSON.stringify(passwordChange), this.httpJSONOptions).pipe(
+      tap(),
+      catchError((err:HttpErrorResponse) => throwError(err))
+    );
+  }
 }

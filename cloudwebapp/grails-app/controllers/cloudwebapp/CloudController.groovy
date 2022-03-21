@@ -3,6 +3,7 @@ package cloudwebapp
 import cloudservice.commands.AdminChangeEmailCommand
 import cloudservice.commands.AdminChangePasswordCommand
 import cloudservice.commands.RegisterUserCommand
+import cloudservice.commands.ChangePasswordCommand
 import cloudservice.commands.ResetPasswordCommand
 import cloudservice.commands.SendResetPasswordLinkCommand
 import cloudservice.commands.SetAccountEnabledStatusCommand
@@ -56,7 +57,7 @@ class CloudController {
     }
 
     @Secured(['ROLE_CLIENT', 'ROLE_ADMIN'])
-    def changePassword(ResetPasswordCommand cmd) {
+    def changePassword(ChangePasswordCommand cmd) {
         ObjectCommandResponse result
 
         if (cmd.hasErrors()) {
@@ -64,12 +65,31 @@ class CloudController {
             logService.cloud.error "changePassword: Validation error: " + errorsMap.toString()
             render(status: 400, text: errorsMap as JSON)
         } else {
-            result = userAdminService.resetPassword(cmd)
+            result = userAdminService.changePassword(cmd)
             if (result.status != PassFail.PASS) {
                 logService.cloud.error "changePassword: error: ${result.error}"
                 render(status: 500, text: result.error)
             } else {
                 logService.cloud.info("changePassword: success")
+                render ""
+            }
+        }
+    }
+
+    def resetPassword(ResetPasswordCommand cmd) {
+        ObjectCommandResponse result
+
+        if (cmd.hasErrors()) {
+            def errorsMap = validationErrorService.commandErrors(cmd.errors as ValidationErrors, 'changePassword')
+            logService.cloud.error "resetPassword: Validation error: " + errorsMap.toString()
+            render(status: 400, text: errorsMap as JSON)
+        } else {
+            result = userAdminService.resetPassword(cmd)
+            if (result.status != PassFail.PASS) {
+                logService.cloud.error "resetPassword: error: ${result.error}"
+                render(status: 500, text: result.error)
+            } else {
+                logService.cloud.info("resetPassword: success")
                 render ""
             }
         }

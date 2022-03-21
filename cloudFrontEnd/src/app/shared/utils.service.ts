@@ -94,9 +94,6 @@ export class UtilsService {
   }
 
   constructor(private http: HttpClient, private _baseUrl: BaseUrl) {
-    // timer(1000).subscribe(
-    //   () => this.getTemperature()  // This will set the logged in or out status depending on the result of calling getTemperature
-    // );
   }
 
   login(username: string, password: string): Observable<{ role: string }> {

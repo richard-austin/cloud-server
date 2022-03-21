@@ -3,6 +3,7 @@ package cloudwebapp
 import cloudservice.User
 import cloudservice.commands.AdminChangeEmailCommand
 import cloudservice.commands.AdminChangePasswordCommand
+import cloudservice.commands.ChangePasswordCommand
 import cloudservice.commands.ResetPasswordCommand
 import cloudservice.commands.SendResetPasswordLinkCommand
 import cloudservice.commands.SetAccountEnabledStatusCommand
@@ -36,7 +37,12 @@ class UserAdminService {
     final private Map<String, String> passwordResetParameterMap = new ConcurrentHashMap<>()
     final private Map<String, Timer> timerMap = new ConcurrentHashMap<>()
 
-    ObjectCommandResponse resetPassword(ResetPasswordCommand cmd) {
+    /**
+     * changePassword: Change the password while logged in
+     * @param cmd
+     * @return
+     */
+    ObjectCommandResponse changePassword(ChangePasswordCommand cmd) {
         ObjectCommandResponse result = new ObjectCommandResponse()
         try {
             def principal = springSecurityService.getPrincipal()
@@ -48,11 +54,53 @@ class UserAdminService {
         }
         catch(Exception ex)
         {
-            logService.cloud.error("Exception in resetPassword: "+ex.getCause()+ ' ' + ex.getMessage())
+            logService.cloud.error("Exception in changePassword: "+ex.getCause()+ ' ' + ex.getMessage())
             result.status = PassFail.FAIL
             result.error = ex.getMessage()
         }
 
+        return result
+    }
+
+    /**
+     * resetPassword; Reset the password from an email link
+     * @param cmd
+     * @return
+     */
+    ObjectCommandResponse resetPassword(ResetPasswordCommand cmd) {
+        ObjectCommandResponse result = new ObjectCommandResponse()
+        try {
+            String email = passwordResetParameterMap.get(cmd.getUniqueId())
+            if(email != null) {
+                User user = User.findByEmail(email)
+                if(user != null) {
+                    user.setPassword(cmd.newPassword)
+                    user.save()
+                    passwordResetParameterMap.remove(cmd.uniqueId)
+                    Timer timer = timerMap.get(cmd.uniqueId)
+                    timer.cancel()
+                    timerMap.remove(cmd.uniqueId)
+                }
+                else
+                {
+                    logService.cloud.error "No user for email address ${email}"
+                    result.status = PassFail.FAIL
+                    result.error = "Invalid email for this password reset link"
+                }
+            }
+            else
+            {
+                logService.cloud.error "No email address for uniqueId ${cmd.uniqueId}"
+                result.status = PassFail.FAIL
+                result.error = "Invalid password reset link"
+            }
+        }
+        catch(Exception ex)
+        {
+            logService.cloud.error("Exception in resetPassword: "+ex.getCause()+ ' ' + ex.getMessage())
+            result.status = PassFail.FAIL
+            result.error = ex.getMessage()
+        }
         return result
     }
 
@@ -121,15 +169,15 @@ class UserAdminService {
     ObjectCommandResponse sendResetPasswordLink(SendResetPasswordLinkCommand cmd) {
         ObjectCommandResponse result = new ObjectCommandResponse()
         try {
-            String uniqueString = generateRandomString()
+            String uniqueId = generateRandomString()
 
-            passwordResetParameterMap.put(cmd.email, uniqueString)
-            ResetPasswordParameterTimerTask task = new ResetPasswordParameterTimerTask(cmd.email, passwordResetParameterMap, timerMap)
-            Timer timer = new Timer(uniqueString)
+            passwordResetParameterMap.put(uniqueId, cmd.email)
+            ResetPasswordParameterTimerTask task = new ResetPasswordParameterTimerTask(uniqueId, passwordResetParameterMap, timerMap)
+            Timer timer = new Timer(uniqueId)
             timer.schedule(task, resetPasswordParameterTimeout)
-            timerMap.put(cmd.email, timer)
+            timerMap.put(uniqueId, timer)
 
-            sendEmail("richard.david.austin@gmail.com", uniqueString)
+            sendEmail("richard.david.austin@gmail.com", uniqueId)
         }
         catch(Exception ex)
         {
