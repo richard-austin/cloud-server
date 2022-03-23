@@ -46,6 +46,8 @@ class CloudSecurityEventListener implements LogoutHandler, AuthenticationSuccess
                     response.getWriter().write("Failed to login to NVR")
                 else
                     response.getWriter().write("Not connected to NVR")
+                authentication.authenticated = false
+                response.setHeader("Set-Cookie", "CLOUDSESSIONID=XYZ; Path=/; HttpOnly")
             }
         }
         else

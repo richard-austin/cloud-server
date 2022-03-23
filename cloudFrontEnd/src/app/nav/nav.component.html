@@ -13,7 +13,7 @@
   </button>
 
   <div #navbarCollapse class="collapse" id="navbarSupportedContent">
-    <div [style]="'display:'+ (utilsService.loggedIn ? 'inherit' : 'none')">
+    <div [style]="'display:'+ ((utilsService.loggedIn && !utilsService.isAdmin) ? 'inherit' : 'none')">
       <button mat-button [matMenuTriggerFor]="menuSelectCamera" id="cameraDropdown">
         Select Camera
       </button>
@@ -27,7 +27,7 @@
       </mat-menu>
     </div>
 
-    <div [style]="'display:'+ (utilsService.loggedIn ? 'inherit' : 'none')">
+    <div [style]="'display:'+ ((utilsService.loggedIn && !utilsService.isAdmin) ? 'inherit' : 'none')">
       <button mat-button [matMenuTriggerFor]="menuSelectRecording">Select Recording</button>
       <mat-menu #menuSelectRecording="matMenu">
         <ng-container *ngFor="let cs of cameraStreams">
@@ -38,7 +38,7 @@
       </mat-menu>
     </div>
 
-    <div [style]="'display:'+ (utilsService.loggedIn ? 'inherit' : 'none')">
+    <div [style]="'display:'+ ((utilsService.loggedIn && !utilsService.isAdmin) ? 'inherit' : 'none')">
       <button mat-button [matMenuTriggerFor]="menuCameraSettings">Camera Settings</button>
       <mat-menu #menuCameraSettings="matMenu">
         <ng-container *ngFor="let cam of cameras">
@@ -50,7 +50,7 @@
       </mat-menu>
     </div>
 
-    <div *ngIf="utilsService.isAdmin">
+    <div *ngIf="(utilsService.loggedIn && utilsService.isAdmin)">
       <button mat-button [matMenuTriggerFor]="admin">Admin</button>
       <mat-menu #admin=matMenu>
         <button mat-menu-item (click)="accountsAdmin(); menuClosed()">
@@ -59,15 +59,15 @@
       </mat-menu>
     </div>
 
-    <div class="float-right" *ngIf="!utilsService.loggedIn && !utilsService.isAdmin">
+    <div class="float-right" *ngIf="!utilsService.loggedIn">
       <button mat-button (click)="login();menuClosed()">Log in</button>
       <button mat-button (click)="registerAccount();menuClosed()">Create Account</button>
     </div>
 
-    <div class="float-right" *ngIf="utilsService.loggedIn || utilsService.isAdmin">
+    <div class="float-right" *ngIf="utilsService.loggedIn">
       <button mat-button [matMenuTriggerFor]="menuGeneral">General</button>
       <mat-menu #menuGeneral="matMenu">
-        <button *ngIf="utilsService.loggedIn" mat-menu-item (click)="configSetup();menuClosed()">
+        <button *ngIf="!utilsService.isAdmin" mat-menu-item (click)="configSetup();menuClosed()">
           Configure Camera Setup
         </button>
         <button mat-menu-item (click)="confirmLogoff();menuClosed()">
@@ -76,15 +76,15 @@
         <button mat-menu-item (click)="changePassword();menuClosed()">
           Change Password
         </button>
-        <div *ngIf="utilsService.loggedIn" class="dropdown-divider"></div>
-        <button *ngIf="utilsService.loggedIn" mat-menu-item (click)="setIp();menuClosed()">
+        <div *ngIf="!utilsService.isAdmin" class="dropdown-divider"></div>
+        <button *ngIf="!utilsService.isAdmin" mat-menu-item (click)="setIp();menuClosed()">
           Save Current Public IP
         </button>
-        <button *ngIf="utilsService.loggedIn" mat-menu-item (click)="drawdownCalc();menuClosed()">
+        <button *ngIf="!utilsService.isAdmin" mat-menu-item (click)="drawdownCalc();menuClosed()">
           Pension Drawdown Calculator
         </button>
-        <div *ngIf="utilsService.loggedIn" class="dropdown-divider"></div>
-        <button *ngIf="utilsService.loggedIn" mat-menu-item (click)="about();menuClosed()">
+        <div *ngIf="!utilsService.isAdmin" class="dropdown-divider"></div>
+        <button *ngIf="!utilsService.isAdmin" mat-menu-item (click)="about();menuClosed()">
           About NVR
         </button>
         <button *ngIf="utilsService.isAdmin" mat-menu-item (click)="aboutCCTVCloud();menuClosed()">
