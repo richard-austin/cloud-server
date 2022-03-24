@@ -216,8 +216,8 @@ export class UtilsService {
     );
   }
 
-  sendResetPasswordLink(email: string): Observable<void> {
-    let em: {email: string} = {email: email};
+  sendResetPasswordLink(email: string, clientUri: string): Observable<void> {
+    let em: {email: string, clientUri: string} = {email: email, clientUri: clientUri};
     return this.http.post<void>(this._baseUrl.getLink('cloud', 'sendResetPasswordLink'), JSON.stringify(em), this.httpJSONOptions).pipe(
       tap(),
       catchError((err:HttpErrorResponse) => throwError(err))

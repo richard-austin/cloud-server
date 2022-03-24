@@ -23,6 +23,7 @@ import javax.mail.internet.InternetAddress
 import javax.mail.internet.MimeBodyPart
 import javax.mail.internet.MimeMessage
 import javax.mail.internet.MimeMultipart
+import javax.servlet.http.HttpServletRequest
 import java.util.concurrent.ConcurrentHashMap
 
 
@@ -170,14 +171,13 @@ class UserAdminService {
         ObjectCommandResponse result = new ObjectCommandResponse()
         try {
             String uniqueId = generateRandomString()
-
             passwordResetParameterMap.put(uniqueId, cmd.email)
             ResetPasswordParameterTimerTask task = new ResetPasswordParameterTimerTask(uniqueId, passwordResetParameterMap, timerMap)
             Timer timer = new Timer(uniqueId)
             timer.schedule(task, resetPasswordParameterTimeout)
             timerMap.put(uniqueId, timer)
 
-            sendEmail("richard.david.austin@gmail.com", uniqueId)
+            sendEmail(cmd.getEmail(), uniqueId, cmd.getClientUri())
         }
         catch(Exception ex)
         {
@@ -218,40 +218,45 @@ class UserAdminService {
         return generatedString
     }
 
-    private def sendEmail(String email, String idStr)
+    private def sendEmail(String email, String idStr, String clientUri)
     {
-        Properties prop = new Properties()
-        prop.put("mail.smtp.auth", true)
-        prop.put("mail.smtp.starttls.enable", "true")
-        prop.put("mail.smtp.ssl.protocols", "TLSv1.2")
-        prop.put("mail.smtp.host", "smtp.virginmedia.com")
-        prop.put("mail.smtp.port", "587")
-        prop.put("mail.smtp.ssl.trust", "smtp.virginmedia.com")
+        User user = User.findByEmail(email)
+        if(user != null) {
+            Properties prop = new Properties()
+            prop.put("mail.smtp.auth", true)
+            prop.put("mail.smtp.starttls.enable", "true")
+            prop.put("mail.smtp.ssl.protocols", "TLSv1.2")
+            prop.put("mail.smtp.host", "smtp.virginmedia.com")
+            prop.put("mail.smtp.port", "587")
+            prop.put("mail.smtp.ssl.trust", "smtp.virginmedia.com")
 
-        Session session = Session.getDefaultInstance(prop, new Authenticator() {
-            @Override
-            protected PasswordAuthentication getPasswordAuthentication() {
-                return new PasswordAuthentication("rdaustin@virginmedia.com", "DC10plus")
-            }
-        })
+            Session session = Session.getDefaultInstance(prop, new Authenticator() {
+                @Override
+                protected PasswordAuthentication getPasswordAuthentication() {
+                    return new PasswordAuthentication("rdaustin@virginmedia.com", "DC10plus")
+                }
+            })
 
-        Message message = new MimeMessage(session)
-        message.setFrom(new InternetAddress("cloud@gmail.com"))
-        message.setRecipients(
-                Message.RecipientType.TO, InternetAddress.parse(email))
-        message.setSubject("Reset Password")
+            Message message = new MimeMessage(session)
+            message.setFrom(new InternetAddress("noreply@cctvcloud.com"))
+            message.setRecipients(
+                    Message.RecipientType.TO, InternetAddress.parse(email))
+            message.setSubject("Reset Password")
 
-        String msg = "<h2>Reset Password</h2>"+
-        "Please click <a href=\"http://localhost:4200/#/resetpassword/${idStr}\">here</a> to reset your password."
+            String msg = "Dear ${user.username}." +
+                    "<h2>Reset Password</h2>" +
+                    "A Cloud Service password reset link was requested. If this was not you, please ignore this email.<br>"+
+                    "Please click <a href=\"" + clientUri + "/#/resetpassword/${idStr}\">here</a> to open your browser and reset your password."
 
-        MimeBodyPart mimeBodyPart = new MimeBodyPart()
-        mimeBodyPart.setContent(msg, "text/html; charset=utf-8")
+            MimeBodyPart mimeBodyPart = new MimeBodyPart()
+            mimeBodyPart.setContent(msg, "text/html; charset=utf-8")
 
-        Multipart multipart = new MimeMultipart()
-        multipart.addBodyPart(mimeBodyPart)
+            Multipart multipart = new MimeMultipart()
+            multipart.addBodyPart(mimeBodyPart)
 
-        message.setContent(multipart)
+            message.setContent(multipart)
 
-        Transport.send(message)
+            Transport.send(message)
+        }
     }
 }

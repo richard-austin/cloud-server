@@ -44,11 +44,12 @@ export class ForgottenPasswordComponent implements OnInit {
   sendLink() {
     this.errorMessage = this.successMessage = '';
     let email: string = this.getFormControl('email').value;
-    this.utilsService.sendResetPasswordLink(email).subscribe(() => {
+    let uri: string = window.location.protocol+'//'+window.location.hostname+':'+window.location.port;
+    this.utilsService.sendResetPasswordLink(email, uri).subscribe(() => {
       this.successMessage = "Please check your email for a reset password link";
     },
       reason => {
-          this.errorMessage = reason.message;
+          this.errorMessage = reason.error;
       })
   }
 
