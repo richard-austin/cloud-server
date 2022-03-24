@@ -126,6 +126,12 @@ export class UtilsService {
         },
         (reason) => {
           this._loggedIn =this._isAdmin = false;
+          // Check to see if there is a Cloud session and log off if there is
+          this.getUserAuthorities().subscribe((val) => {
+            if(val.find(v => v.authority === 'ROLE_CLIENT') !== undefined)
+              window.location.href = '/logoff';
+          })
+          //window.location.href="/logoff";  // Ensure Cloud session logged out (may just be NVR offline)
           this.sendMessage(new LoggedOutMessage())
         }),
       catchError((err: HttpErrorResponse) => throwError(err))
