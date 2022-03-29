@@ -46,6 +46,12 @@ import { RegisterAccountComponent } from './register-account/register-account.co
 import { ProductIdInputComponent } from './register-account/product-id-input/product-id-input.component';
 import { AccountAdminComponent } from './accountAdmin/account-admin.component';
 import { FilterPipe } from './accountAdmin/filter.pipe';
+import { ForgottenPasswordComponent } from './login/forgotten-password/forgotten-password.component';
+import {OnlyAdminUsersService} from "./guards/only-admin-users.service";
+import {OnlyClientUsersService} from "./guards/only-client-users.service";
+import {OnlyAnonUsersService} from "./guards/only-anon-users.service";
+import { ResetPasswordComponent } from './reset-password/reset-password.component';
+import {OnlyLoggedInService} from "./guards/only-logged-in.service";
 
 @NgModule({
   declarations: [
@@ -72,7 +78,9 @@ import { FilterPipe } from './accountAdmin/filter.pipe';
     RegisterAccountComponent,
     ProductIdInputComponent,
     AccountAdminComponent,
-    FilterPipe
+    FilterPipe,
+    ForgottenPasswordComponent,
+    ResetPasswordComponent
   ],
     imports: [
         BrowserModule,
@@ -95,14 +103,14 @@ import { FilterPipe } from './accountAdmin/filter.pipe';
         FormsModule,
         // Optionally you can set time for `idle`, `timeout` and `ping` in seconds.
         // Default values: `idle` is 600 (10 minutes), `timeout` is 300 (5 minutes)
-        // and `ping` is 6q0 (1 minutes).
+        // and `ping` is 60 (1 minutes).
         UserIdleModule.forRoot({idle: 600, timeout: 60, ping: 60}),
         LayoutModule,
         MatTableModule,
         MatSortModule,
         MatTooltipModule
     ],
-  providers: [HttpClient, BaseUrl],
+  providers: [HttpClient, BaseUrl, OnlyAdminUsersService, OnlyClientUsersService, OnlyAnonUsersService, OnlyLoggedInService],
   bootstrap: [AppComponent],
   entryComponents: [IdleTimeoutModalComponent]
 })

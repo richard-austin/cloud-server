@@ -57,6 +57,7 @@ export class Account {
   accountCreated!: boolean;
   accountEnabled!: boolean;
   userName!: string;
+  email!: string;
   nvrConnected!: boolean;
   usersConnected!: number;
 }
@@ -94,9 +95,6 @@ export class UtilsService {
   }
 
   constructor(private http: HttpClient, private _baseUrl: BaseUrl) {
-    // timer(1000).subscribe(
-    //   () => this.getTemperature()  // This will set the logged in or out status depending on the result of calling getTemperature
-    // );
   }
 
   login(username: string, password: string): Observable<{ role: string }> {
@@ -123,11 +121,17 @@ export class UtilsService {
   getTemperature(): Observable<Temperature> {
     return this.http.post<Temperature>(this._baseUrl.getLink("cloud", "getTemperature"), '', this.httpJSONOptions).pipe(
       tap((result) => {
-          this._loggedIn = !result.isAdmin;
+          this._loggedIn = true;
           this._isAdmin = result.isAdmin;
         },
         (reason) => {
           this._loggedIn =this._isAdmin = false;
+          // Check to see if there is a Cloud session and log off if there is
+          this.getUserAuthorities().subscribe((val) => {
+            if(val.find(v => v.authority === 'ROLE_CLIENT') !== undefined)
+              window.location.href = '/logoff';
+          })
+          //window.location.href="/logoff";  // Ensure Cloud session logged out (may just be NVR offline)
           this.sendMessage(new LoggedOutMessage())
         }),
       catchError((err: HttpErrorResponse) => throwError(err))
@@ -209,7 +213,23 @@ export class UtilsService {
     return this.http.post<void>(this._baseUrl.getLink('cloud', 'adminChangeEmail'), JSON.stringify(cpw), this.httpJSONOptions).pipe(
       tap(),
       catchError((err:HttpErrorResponse) => throwError(err))
-    )
+    );
+  }
+
+  sendResetPasswordLink(email: string, clientUri: string): Observable<void> {
+    let em: {email: string, clientUri: string} = {email: email, clientUri: clientUri};
+    return this.http.post<void>(this._baseUrl.getLink('cloud', 'sendResetPasswordLink'), JSON.stringify(em), this.httpJSONOptions).pipe(
+      tap(),
+      catchError((err:HttpErrorResponse) => throwError(err))
+    );
+  }
+
+  getUserAuthorities() : Observable<{authority: string}[]>
+  {
+    return this.http.post<{authority: string}[]>(this._baseUrl.getLink('cloud', 'getUserAuthorities'), '', this.httpJSONOptions).pipe(
+      tap(),
+      catchError((err:HttpErrorResponse) => throwError(err))
+    );
   }
 
   sendMessage(message: Message) {
@@ -219,4 +239,5 @@ export class UtilsService {
   getMessages(): Observable<Message> {
     return this._messaging.asObservable();
   }
+
 }

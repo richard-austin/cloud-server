@@ -85,6 +85,7 @@ dependencies {
     implementation 'org.grails.plugins:quartz:2.0.13' // Needed to compile *Job classes
     implementation 'com.bertramlabs.plugins:i18n-asset-pipeline-grails:3.3.6'
     implementation 'org.springframework.boot:spring-boot-starter-websocket:2.6.3'
+    implementation 'javax.mail:mail:1.4.7'
 }
 
 task prepareKotlinBuildScriptModel {

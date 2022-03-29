@@ -47,8 +47,8 @@ export class LoginComponent implements OnInit, AfterViewInit {
       window.location.href = "#/";
   }
 
-  confirmOnReturn($event: KeyboardEvent) {
-      if($event.key == 'Enter')
+  confirmOnReturn($event: InputEvent) {
+      if($event.inputType == 'insertLineBreak' && !this.anyInvalid())
         this.login();
   }
 

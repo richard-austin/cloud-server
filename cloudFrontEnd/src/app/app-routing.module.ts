@@ -12,21 +12,29 @@ import {ConfigSetupComponent} from "./config-setup/config-setup.component";
 import {LoginComponent} from "./login/login.component";
 import {RegisterAccountComponent} from "./register-account/register-account.component";
 import { AccountAdminComponent } from './accountAdmin/account-admin.component';
+import {ForgottenPasswordComponent} from "./login/forgotten-password/forgotten-password.component";
+import {OnlyAdminUsersService} from "./guards/only-admin-users.service";
+import { OnlyClientUsersService } from './guards/only-client-users.service';
+import {OnlyAnonUsersService} from "./guards/only-anon-users.service";
+import {OnlyLoggedInService} from "./guards/only-logged-in.service";
+import {ResetPasswordComponent} from "./reset-password/reset-password.component";
 
 const routes: Routes = [
-  {path: 'live', component: LiveContainerComponent},
-  {path: 'recording', component: RecordingControlComponent},
-  {path: 'multicam', component: MultiCamViewComponent},
-  {path: 'changepassword', component: ChangePasswordComponent},
-  {path: 'about/:isLocal', component: AboutComponent},
-  {path: 'about', component: AboutComponent},
-  {path: 'setip', component: SetIpComponent},
-  {path: 'cameraparams', component: CameraParamsComponent},
-  {path: 'configsetup', component: ConfigSetupComponent},
-  {path: 'login', component: LoginComponent},
-  {path: 'register', component: RegisterAccountComponent},
-  {path: 'accountadmin', component: AccountAdminComponent},
-  {path: 'dc', component: DrawdownCalcContainerComponent}
+  {path: 'live', component: LiveContainerComponent, canActivate: [OnlyClientUsersService]},
+  {path: 'recording', component: RecordingControlComponent, canActivate: [OnlyClientUsersService]},
+  {path: 'multicam', component: MultiCamViewComponent, canActivate: [OnlyClientUsersService]},
+  {path: 'changepassword', component: ChangePasswordComponent, canActivate: [OnlyLoggedInService]},  // Change password while logged in
+  {path: 'about/:isLocal', component: AboutComponent, canActivate: [OnlyAdminUsersService]},
+  {path: 'about', component: AboutComponent, canActivate: [OnlyClientUsersService]},
+  {path: 'setip', component: SetIpComponent, canActivate: [OnlyClientUsersService]},
+  {path: 'cameraparams', component: CameraParamsComponent, canActivate: [OnlyClientUsersService]},
+  {path: 'configsetup', component: ConfigSetupComponent, canActivate: [OnlyClientUsersService]},
+  {path: 'login', component: LoginComponent, canActivate: [OnlyAnonUsersService]},
+  {path: 'register', component: RegisterAccountComponent, canActivate: [OnlyAnonUsersService]},
+  {path: 'accountadmin', component: AccountAdminComponent, canActivate: [OnlyAdminUsersService]},
+  {path: 'dc', component: DrawdownCalcContainerComponent, canActivate: [OnlyClientUsersService]},
+  {path: 'forgotpassword', component: ForgottenPasswordComponent, canActivate: [OnlyAnonUsersService]}, //Request an email link to reset password
+  {path: 'resetpassword/:uniqueId', component: ResetPasswordComponent, canActivate: [OnlyAnonUsersService]}  // Reset the password after following email link
 ];
 
 @NgModule({

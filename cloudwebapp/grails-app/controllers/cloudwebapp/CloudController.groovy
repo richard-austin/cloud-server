@@ -3,19 +3,15 @@ package cloudwebapp
 import cloudservice.commands.AdminChangeEmailCommand
 import cloudservice.commands.AdminChangePasswordCommand
 import cloudservice.commands.RegisterUserCommand
+import cloudservice.commands.ChangePasswordCommand
 import cloudservice.commands.ResetPasswordCommand
+import cloudservice.commands.SendResetPasswordLinkCommand
 import cloudservice.commands.SetAccountEnabledStatusCommand
 import cloudservice.enums.PassFail
 import cloudservice.interfaceobjects.ObjectCommandResponse
 import grails.converters.JSON
 import grails.plugin.springsecurity.annotation.Secured
 import grails.validation.ValidationErrors
-import grails.web.controllers.ControllerMethod
-import org.springframework.messaging.handler.annotation.MessageMapping
-import org.springframework.messaging.handler.annotation.SendTo
-import org.springframework.security.access.prepost.PreAuthorize
-
-import java.security.Principal
 
 class CloudController {
     CloudService cloudService
@@ -61,7 +57,7 @@ class CloudController {
     }
 
     @Secured(['ROLE_CLIENT', 'ROLE_ADMIN'])
-    def changePassword(ResetPasswordCommand cmd) {
+    def changePassword(ChangePasswordCommand cmd) {
         ObjectCommandResponse result
 
         if (cmd.hasErrors()) {
@@ -69,12 +65,31 @@ class CloudController {
             logService.cloud.error "changePassword: Validation error: " + errorsMap.toString()
             render(status: 400, text: errorsMap as JSON)
         } else {
-            result = userAdminService.resetPassword(cmd)
+            result = userAdminService.changePassword(cmd)
             if (result.status != PassFail.PASS) {
                 logService.cloud.error "changePassword: error: ${result.error}"
                 render(status: 500, text: result.error)
             } else {
                 logService.cloud.info("changePassword: success")
+                render ""
+            }
+        }
+    }
+
+    def resetPassword(ResetPasswordCommand cmd) {
+        ObjectCommandResponse result
+
+        if (cmd.hasErrors()) {
+            def errorsMap = validationErrorService.commandErrors(cmd.errors as ValidationErrors, 'changePassword')
+            logService.cloud.error "resetPassword: Validation error: " + errorsMap.toString()
+            render(status: 400, text: errorsMap as JSON)
+        } else {
+            result = userAdminService.resetPassword(cmd)
+            if (result.status != PassFail.PASS) {
+                logService.cloud.error "resetPassword: error: ${result.error}"
+                render(status: 500, text: result.error)
+            } else {
+                logService.cloud.info("resetPassword: success")
                 render ""
             }
         }
@@ -157,6 +172,40 @@ class CloudController {
                 logService.cloud.info("adminChangeEmail: success")
                 render ""
             }
+        }
+    }
+
+    def sendResetPasswordLink(SendResetPasswordLinkCommand cmd)
+    {
+        ObjectCommandResponse result
+        if(cmd.hasErrors()) {
+            def errorsMap = validationErrorService.commandErrors(cmd.errors as ValidationErrors, 'sendResetPasswordLink')
+            logService.cloud.error "sendResetPasswordLink: Validation error: " + errorsMap.toString()
+            render(status: 400, text: errorsMap as JSON)
+        }
+        else
+        {
+            result = userAdminService.sendResetPasswordLink(cmd)
+            if (result.status != PassFail.PASS) {
+                logService.cloud.error "sendResetPasswordLink: error: ${result.error}"
+                render(status: 500, text: result.error)
+            } else {
+                logService.cloud.info("sendResetPasswordLink: success")
+                render ""
+            }
+        }
+    }
+
+    def getUserAuthorities()
+    {
+        ObjectCommandResponse result
+        result = userAdminService.getUserAuthorities()
+        if (result.status != PassFail.PASS) {
+            logService.cloud.error "getUserAuthorities: error: ${result.error}"
+            render(status: 500, text: result.error)
+        } else {
+            logService.cloud.info("getUserAuthorities: success")
+            render result.responseObject as JSON
         }
     }
 }

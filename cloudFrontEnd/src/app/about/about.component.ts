@@ -16,7 +16,7 @@ export class AboutComponent implements OnInit {
 
   constructor(private utils: UtilsService, private _baseUrl: BaseUrl, private route:ActivatedRoute) {
     route.url.subscribe((u:UrlSegment[]) => {
-      this.isLocal=route.snapshot.params.isLocal!==undefined?this.isLocal=route.snapshot.params.isLocal:false;
+      this.isLocal=route.snapshot.params.isLocal!==undefined?route.snapshot.params.isLocal:false;
     })
   }
 

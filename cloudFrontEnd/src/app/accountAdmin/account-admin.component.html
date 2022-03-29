@@ -176,17 +176,19 @@
                     <mat-card>
                       <mat-card-title>Change Email Address</mat-card-title>
                       <mat-card-content>
-                        <mat-form-field>
+                        <mat-form-field class="email-input">
                           <input matInput type="text" [formControl]="getFormControl(changeEmailForm, 'email')"
+                                 maxlength="70"
                                  matTooltip="Enter new email address for user {{acc.userName}}"
                                  matTooltipClass="tooltip"
                                  placeholder="New Email Address">
                           <mat-hint>New Email Address For User {{acc.userName}}</mat-hint>
                         </mat-form-field>
                       </mat-card-content>
-                      <mat-form-field>
+                      <mat-form-field class="email-input">
                         <input matInput type="text"
                                [formControl]="getFormControl(changeEmailForm, 'confirmEmail')"
+                               maxlength="70"
                                matTooltip="Confirm new email address"
                                matTooltipClass="tooltip"
                                placeholder="Confirm New Email Address">
