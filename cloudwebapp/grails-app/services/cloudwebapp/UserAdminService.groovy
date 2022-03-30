@@ -1,9 +1,12 @@
 package cloudwebapp
 
+import cloudservice.Role
 import cloudservice.User
+import cloudservice.UserRole
 import cloudservice.commands.AdminChangeEmailCommand
 import cloudservice.commands.AdminChangePasswordCommand
 import cloudservice.commands.ChangePasswordCommand
+import cloudservice.commands.DeleteAccountCommand
 import cloudservice.commands.ResetPasswordCommand
 import cloudservice.commands.SendResetPasswordLinkCommand
 import cloudservice.commands.SetAccountEnabledStatusCommand
@@ -11,6 +14,8 @@ import cloudservice.enums.PassFail
 import cloudservice.interfaceobjects.ObjectCommandResponse
 import grails.gorm.transactions.Transactional
 import grails.plugin.springsecurity.SpringSecurityService
+import org.grails.web.json.JSONObject
+import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.security.core.context.SecurityContextHolder
 
 import javax.mail.Authenticator
@@ -23,7 +28,6 @@ import javax.mail.internet.InternetAddress
 import javax.mail.internet.MimeBodyPart
 import javax.mail.internet.MimeMessage
 import javax.mail.internet.MimeMultipart
-import javax.servlet.http.HttpServletRequest
 import java.util.concurrent.ConcurrentHashMap
 
 
@@ -32,6 +36,11 @@ class UserAdminService {
     SpringSecurityService springSecurityService
     LogService logService
     UserService userService
+    SimpMessagingTemplate brokerMessagingTemplate
+    final String update = new JSONObject()
+            .put("message", "update")
+            .toString()
+
 
     final private resetPasswordParameterTimeout = 20 * 60 * 1000 // 20 minutes
 
@@ -161,6 +170,24 @@ class UserAdminService {
         catch(Exception ex)
         {
             logService.cloud.error("${ex.getClass().getName()} in adminChangeEmail: ${ex.getCause()} ${ex.getMessage()}")
+            result.status = PassFail.FAIL
+            result.error = ex.getMessage()
+        }
+        return result
+    }
+
+    ObjectCommandResponse adminDeleteAccount(DeleteAccountCommand cmd) {
+        ObjectCommandResponse result = new ObjectCommandResponse()
+        try {
+            User user = User.findByUsername(cmd.username)
+            UserRole userRole = UserRole.findByUser(user)
+            userRole.delete(flush: true)
+            user.delete(flush: true)
+            brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", update)
+        }
+        catch(Exception ex)
+        {
+            logService.cloud.error("${ex.getClass().getName()} in adminDeleteAccount: ${ex.getCause()} ${ex.getMessage()}")
             result.status = PassFail.FAIL
             result.error = ex.getMessage()
         }

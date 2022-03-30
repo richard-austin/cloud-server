@@ -199,6 +199,14 @@ export class UtilsService {
     )
   }
 
+  deleteAccount(account: Account) : Observable<void> {
+    let acc:{username: string} = {username: account.userName}
+    return this.http.post<void>(this._baseUrl.getLink('cloud', 'adminDeleteAccount'), JSON.stringify(acc), this.httpJSONOptions).pipe(
+      tap(),
+      catchError((err:HttpErrorResponse) => throwError(err))
+    )
+  }
+
   adminChangePassword(account:Account, password: string, confirmPassword: string)
   {
     let cpw:{username:string, password: string, confirmPassword:string} = {username: account.userName, password: password, confirmPassword: confirmPassword};
@@ -239,5 +247,4 @@ export class UtilsService {
   getMessages(): Observable<Message> {
     return this._messaging.asObservable();
   }
-
 }

@@ -25,7 +25,7 @@ declare let Stomp: any;
 export class AccountAdminComponent implements OnInit {
   downloading: boolean = false;
   accounts: Account[] = [];
-  displayedColumns: string[] = ['changePassword', 'changeEmail', 'disableAccount', 'productId', 'accountCreated', 'userName', 'nvrConnected', 'usersConnected'];
+  displayedColumns: string[] = ['changePassword', 'changeEmail', 'disableAccount', 'deleteAccount', 'productId', 'accountCreated', 'userName', 'nvrConnected', 'usersConnected'];
   changePasswordColumns: string[] = ['password'];
   @ViewChild('filter') filterEl!: ElementRef<HTMLInputElement>
   @ViewChild(ReportingComponent) errorReporting!: ReportingComponent;
@@ -45,6 +45,7 @@ export class AccountAdminComponent implements OnInit {
   private confirmEmail: string = "";
   showChangePassword: boolean = false;
   showChangeEmail: boolean = false;
+  showConfirmDeleteAccount: boolean = false;
 
   constructor(private utilsService: UtilsService) {
     this.initializeWebSocketConnection();
@@ -134,7 +135,7 @@ export class AccountAdminComponent implements OnInit {
 
   showChangePasswordForm(account: Account) {
     this.showChangePassword = true;
-    this.showChangeEmail = false;
+    this.showChangeEmail = this.showConfirmDeleteAccount = false;
 
     this.password = this.confirmPassword = "";
     let pw: AbstractControl = this.getFormControl(this.changePasswordForm, 'password');
@@ -149,7 +150,8 @@ export class AccountAdminComponent implements OnInit {
 
   showChangeEmailForm(account: Account) {
     this.showChangeEmail = true;
-    this.showChangePassword = false;
+    this.showChangePassword = this.showConfirmDeleteAccount = false;
+
     this.email = account.email;
 
     let em: AbstractControl = this.getFormControl(this.changeEmailForm, 'email');
@@ -195,6 +197,26 @@ export class AccountAdminComponent implements OnInit {
       },
       reason => {
         account.accountEnabled = !$event.checked;  // Roll back local copy if it failed.
+        this.errorReporting.errorMessage = reason;
+      })
+  }
+
+
+  confirmDelete(account: Account) {
+    this.showConfirmDeleteAccount = true;
+    this.showChangePassword = this.showChangeEmail = false;
+
+    if (this.expandedElement === undefined)
+      this.expandedElement = account;
+    else
+      this.expandedElement = undefined;
+  }
+
+  deleteAccount(acc: Account) {
+    this.utilsService.deleteAccount(acc).subscribe(() => {
+        this.successMessage = "Account " + acc.userName + " has been deleted";
+      },
+      reason => {
         this.errorReporting.errorMessage = reason;
       })
   }

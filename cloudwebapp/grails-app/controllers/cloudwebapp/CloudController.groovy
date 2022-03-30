@@ -2,6 +2,7 @@ package cloudwebapp
 
 import cloudservice.commands.AdminChangeEmailCommand
 import cloudservice.commands.AdminChangePasswordCommand
+import cloudservice.commands.DeleteAccountCommand
 import cloudservice.commands.RegisterUserCommand
 import cloudservice.commands.ChangePasswordCommand
 import cloudservice.commands.ResetPasswordCommand
@@ -170,6 +171,27 @@ class CloudController {
                 render(status: 500, text: result.error)
             } else {
                 logService.cloud.info("adminChangeEmail: success")
+                render ""
+            }
+        }
+    }
+
+    @Secured(['ROLE_ADMIN'])
+    def adminDeleteAccount(DeleteAccountCommand cmd)
+    {
+        ObjectCommandResponse result
+        if(cmd.hasErrors()) {
+            def errorsMap = validationErrorService.commandErrors(cmd.errors as ValidationErrors, 'adminDeleteAccount')
+            logService.cloud.error "adminDeleteAccount: Validation error: " + errorsMap.toString()
+            render(status: 400, text: errorsMap as JSON)
+        }
+        else {
+            result = userAdminService.adminDeleteAccount(cmd)
+            if (result.status != PassFail.PASS) {
+                logService.cloud.error "adminDeleteAccount: error: ${result.error}"
+                render(status: 500, text: result.error)
+            } else {
+                logService.cloud.info("adminDeleteAccount: success")
                 render ""
             }
         }

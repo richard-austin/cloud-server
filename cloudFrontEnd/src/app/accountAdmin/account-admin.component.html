@@ -75,6 +75,19 @@
         </td>
       </ng-container>
 
+      <ng-container matColumnDef="deleteAccount">
+        <th mat-header-cell *matHeaderCellDef>Delete Account</th>
+        <td class="delete-button" mat-cell *matCellDef="let account">
+          <button mat-icon-button matTooltip="Delete this account"
+                  matTooltipClass="tooltip"
+                  color="warn"
+                  [disabled]="!account.accountCreated"
+                  (click)="confirmDelete(account)">
+            <mat-icon>delete_forever</mat-icon>
+          </button>
+        </td>
+      </ng-container>
+
       <ng-container matColumnDef="productId">
         <th mat-header-cell *matHeaderCellDef>ProductId</th>
         <td mat-cell class="product-id" *matCellDef="let account; let i = dataIndex">
@@ -163,7 +176,7 @@
                   </ng-container>
                 </td>
               </ng-container>
-<!--              <tr mat-header-row *matHeaderRowDef="changePasswordColumns"></tr>-->
+              <!--              <tr mat-header-row *matHeaderRowDef="changePasswordColumns"></tr>-->
               <tr mat-row *matRowDef="let row; columns: changePasswordColumns;"></tr>
             </table>
 
@@ -196,7 +209,7 @@
                       </mat-form-field>
                     </mat-card>
                     <br>
-                    <span class="cam-creds-confirm-group">
+                    <span>
                       <button color="default" mat-flat-button (click)="showChangeEmailForm(acc)"
                               matTooltip="Close the change email address form"
                               matTooltipClass="tooltip">
@@ -219,6 +232,39 @@
               <!--              <tr mat-header-row *matHeaderRowDef="changePasswordColumns"></tr>-->
               <tr mat-row *matRowDef="let row; columns: changePasswordColumns;"></tr>
             </table>
+
+            <table *ngIf="showConfirmDeleteAccount" [dataSource]="[account]" mat-table class="mat-elevation-z10">
+              <ng-container matColumnDef="password">
+                <th mat-header-cell *matHeaderCellDef>password</th>
+                <td mat-cell *matCellDef="let acc">
+                  <ng-container>
+                    <mat-card>
+                      <mat-card-title>Delete this account, Are you sure?</mat-card-title>
+                      <mat-card-content>
+                    <span>
+                      <button color="default" mat-flat-button (click)="confirmDelete(acc)"
+                              matTooltip="Close the delete account form, and leave the account active"
+                              matTooltipClass="tooltip">
+                        Cancel
+                      </button>
+                              <span>&nbsp;&nbsp;</span>
+                      <button color="warning" mat-flat-button
+                              (click)="deleteAccount(acc)"
+                              matTooltip="Delete the {{acc.username}} account"
+                              matTooltipClass="tooltip">
+                        Delete Account
+                      </button>
+                    </span>
+                      </mat-card-content>
+                    </mat-card>
+                    <br>
+                  </ng-container>
+                </td>
+              </ng-container>
+              <!--              <tr mat-header-row *matHeaderRowDef="changePasswordColumns"></tr>-->
+              <tr mat-row *matRowDef="let row; columns: changePasswordColumns;"></tr>
+            </table>
+
           </div>
         </td>
       </ng-container>
