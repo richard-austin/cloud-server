@@ -33,8 +33,9 @@
                   (change)="noAccountOnly($event)">Only No Account
     </mat-checkbox>
 
-    <table mat-table class="mat-elevation-z8"
-           [dataSource]="accounts | sort:'userName' | filter:filterText:bOnlyNVROffline.toString():bNoAccountOnly.toString()"
+    <table matSort mat-table class="mat-elevation-z8"
+           (matSortChange)="changeSorting($event)"
+           [dataSource]="sortedAccounts | filter:filterText:bOnlyNVROffline.toString():bNoAccountOnly.toString()"
            multiTemplateDataRows>
 
       <ng-container matColumnDef="changePassword">
@@ -89,7 +90,9 @@
       </ng-container>
 
       <ng-container matColumnDef="productId">
-        <th mat-header-cell *matHeaderCellDef>ProductId</th>
+        <th mat-sort-header="productId" *matHeaderCellDef
+            matTooltip="Sort by productId"
+            matTooltipClass="tooltip">ProductId</th>
         <td mat-cell class="product-id" *matCellDef="let account; let i = dataIndex">
           {{account.productId}}
         </td>
@@ -108,7 +111,9 @@
       </ng-container>
 
       <ng-container matColumnDef="userName">
-        <th mat-header-cell *matHeaderCellDef>Username</th>
+        <th mat-sort-header="userName" *matHeaderCellDef
+            matTooltip="Sort by userId"
+            matTooltipClass="tooltip">Username</th>
         <td mat-cell *matCellDef="let account; let i = dataIndex">
           {{account.userName}}
         </td>
