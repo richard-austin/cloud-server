@@ -108,6 +108,7 @@ export class AccountAdminComponent implements OnInit {
           let msgObj = JSON.parse(message.body);
           if (msgObj.message === "update") {
             that.getAccounts();
+            that.expandedElement = undefined;
             console.log(message.body);
           }
         }

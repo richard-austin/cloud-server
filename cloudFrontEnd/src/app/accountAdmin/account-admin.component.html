@@ -34,7 +34,7 @@
     </mat-checkbox>
 
     <table mat-table class="mat-elevation-z8"
-           [dataSource]="accounts | filter:filterText:bOnlyNVROffline.toString():bNoAccountOnly.toString()"
+           [dataSource]="accounts | sort:'userName' | filter:filterText:bOnlyNVROffline.toString():bNoAccountOnly.toString()"
            multiTemplateDataRows>
 
       <ng-container matColumnDef="changePassword">
