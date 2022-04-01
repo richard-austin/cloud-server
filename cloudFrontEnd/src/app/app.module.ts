@@ -52,6 +52,7 @@ import {OnlyClientUsersService} from "./guards/only-client-users.service";
 import {OnlyAnonUsersService} from "./guards/only-anon-users.service";
 import { ResetPasswordComponent } from './reset-password/reset-password.component';
 import {OnlyLoggedInService} from "./guards/only-logged-in.service";
+import { SortPipe } from './accountAdmin/sort.pipe';
 
 @NgModule({
   declarations: [
@@ -81,6 +82,7 @@ import {OnlyLoggedInService} from "./guards/only-logged-in.service";
     FilterPipe,
     ForgottenPasswordComponent,
     ResetPasswordComponent,
+    SortPipe,
   ],
     imports: [
         BrowserModule,
@@ -110,7 +112,7 @@ import {OnlyLoggedInService} from "./guards/only-logged-in.service";
         MatSortModule,
         MatTooltipModule
     ],
-  providers: [HttpClient, BaseUrl, OnlyAdminUsersService, OnlyClientUsersService, OnlyAnonUsersService, OnlyLoggedInService],
+  providers: [HttpClient, BaseUrl, OnlyAdminUsersService, OnlyClientUsersService, OnlyAnonUsersService, OnlyLoggedInService, SortPipe],
   bootstrap: [AppComponent],
   entryComponents: [IdleTimeoutModalComponent]
 })

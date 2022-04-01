@@ -166,6 +166,7 @@ class UserAdminService {
             User user = User.findByUsername(cmd.username)
             user.setEmail(cmd.email)
             user.save()
+            brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", update)
         }
         catch(Exception ex)
         {

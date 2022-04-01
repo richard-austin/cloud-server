@@ -35,9 +35,8 @@
 
     <table matSort mat-table class="mat-elevation-z8"
            (matSortChange)="changeSorting($event)"
-           [dataSource]="sortedAccounts | filter:filterText:bOnlyNVROffline.toString():bNoAccountOnly.toString()"
+           [dataSource]="accounts | sort:sortActive:sortDirection | filter:filterText:bOnlyNVROffline.toString():bNoAccountOnly.toString()"
            multiTemplateDataRows>
-
       <ng-container matColumnDef="changePassword">
         <th mat-header-cell *matHeaderCellDef>Change Password</th>
         <td class="buttons" mat-cell *matCellDef="let account">
@@ -92,7 +91,8 @@
       <ng-container matColumnDef="productId">
         <th mat-sort-header="productId" *matHeaderCellDef
             matTooltip="Sort by productId"
-            matTooltipClass="tooltip">ProductId</th>
+            matTooltipClass="tooltip">ProductId
+        </th>
         <td mat-cell class="product-id" *matCellDef="let account; let i = dataIndex">
           {{account.productId}}
         </td>
@@ -113,7 +113,8 @@
       <ng-container matColumnDef="userName">
         <th mat-sort-header="userName" *matHeaderCellDef
             matTooltip="Sort by userId"
-            matTooltipClass="tooltip">Username</th>
+            matTooltipClass="tooltip">Username
+        </th>
         <td mat-cell *matCellDef="let account; let i = dataIndex">
           {{account.userName}}
         </td>
@@ -135,11 +136,11 @@
         <td mat-cell *matCellDef="let account; let accIndex=dataIndex" [attr.colspan]="displayedColumns.length">
           <div class="edit-element-detail mat-elevation-z10"
                [@detailExpand]="account == expandedElement ? 'expanded' : 'collapsed'">
-            <table *ngIf="showChangePassword" [dataSource]="[account]" mat-table class="mat-elevation-z10">
+            <table [dataSource]="[account]" mat-table class="mat-elevation-z10">
               <ng-container matColumnDef="password">
                 <th mat-header-cell *matHeaderCellDef>password</th>
                 <td mat-cell *matCellDef="let acc">
-                  <ng-container>
+                  <ng-container *ngIf="showChangePassword">
                     <mat-card>
                       <mat-card-title>Change Password</mat-card-title>
                       <mat-card-content>
@@ -179,18 +180,7 @@
                     <br>
                     <br>
                   </ng-container>
-                </td>
-              </ng-container>
-              <!--              <tr mat-header-row *matHeaderRowDef="changePasswordColumns"></tr>-->
-              <tr mat-row *matRowDef="let row; columns: changePasswordColumns;"></tr>
-            </table>
-
-
-            <table *ngIf="showChangeEmail" [dataSource]="[account]" mat-table class="mat-elevation-z10">
-              <ng-container matColumnDef="password">
-                <th mat-header-cell *matHeaderCellDef>password</th>
-                <td mat-cell *matCellDef="let acc">
-                  <ng-container>
+                  <ng-container *ngIf="showChangeEmail">
                     <mat-card>
                       <mat-card-title>Change Email Address</mat-card-title>
                       <mat-card-content>
@@ -232,17 +222,8 @@
                     <br>
                     <br>
                   </ng-container>
-                </td>
-              </ng-container>
-              <!--              <tr mat-header-row *matHeaderRowDef="changePasswordColumns"></tr>-->
-              <tr mat-row *matRowDef="let row; columns: changePasswordColumns;"></tr>
-            </table>
 
-            <table *ngIf="showConfirmDeleteAccount" [dataSource]="[account]" mat-table class="mat-elevation-z10">
-              <ng-container matColumnDef="password">
-                <th mat-header-cell *matHeaderCellDef>password</th>
-                <td mat-cell *matCellDef="let acc">
-                  <ng-container>
+                  <ng-container *ngIf="showConfirmDeleteAccount">
                     <mat-card>
                       <mat-card-title>Delete this account, Are you sure?</mat-card-title>
                       <mat-card-content>
@@ -269,7 +250,6 @@
               <!--              <tr mat-header-row *matHeaderRowDef="changePasswordColumns"></tr>-->
               <tr mat-row *matRowDef="let row; columns: changePasswordColumns;"></tr>
             </table>
-
           </div>
         </td>
       </ng-container>

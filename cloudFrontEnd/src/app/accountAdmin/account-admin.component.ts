@@ -26,7 +26,6 @@ declare let Stomp: any;
 export class AccountAdminComponent implements OnInit {
   downloading: boolean = false;
   accounts: Account[] = [];
-  sortedAccounts: Account[] = [];
   displayedColumns: string[] = ['changePassword', 'changeEmail', 'disableAccount', 'deleteAccount', 'productId', 'accountCreated', 'userName', 'nvrConnected', 'usersConnected'];
   changePasswordColumns: string[] = ['password'];
   @ViewChild('filter') filterEl!: ElementRef<HTMLInputElement>
@@ -48,8 +47,8 @@ export class AccountAdminComponent implements OnInit {
   showChangePassword: boolean = false;
   showChangeEmail: boolean = false;
   showConfirmDeleteAccount: boolean = false;
-  sortActive: string ="";
-  sortDirection: string = "";
+  sortActive: string ="productId";
+  sortDirection: string = "desc";
 
   constructor(private utilsService: UtilsService) {
     this.initializeWebSocketConnection();
@@ -123,7 +122,6 @@ export class AccountAdminComponent implements OnInit {
   getAccounts(): void {
     this.utilsService.getAccounts().subscribe((result) => {
         this.accounts = result;
-        this.sortedAccounts = result.slice();
       },
       reason => {
         this.errorMessage = reason.error;
@@ -251,29 +249,31 @@ export class AccountAdminComponent implements OnInit {
     this.sortActive = sort.active;
     this.sortDirection = sort.direction;
 
-    const data = this.accounts.slice();
-    if (!sort.active || sort.direction === '') {
-      this.sortedAccounts = data;
-      return;
-    }
+  //
+  //   const data = this.accounts.slice();
+  //   if (!sort.active || sort.direction === '') {
+  //     this.sortedAccounts = data;
+  //     return;
+  //   }
+  //
+  //   // @ts-ignore
+  //   this.sortedAccounts = data.sort((a:Account,b:Account) => {
+  //     const isAsc = sort.direction === 'asc';
+  //     switch(sort.active)
+  //     {
+  //       case 'productId':
+  //         return AccountAdminComponent.compare(a.productId, b.productId, isAsc)
+  //       case 'userName':
+  //         return AccountAdminComponent.compare(a.userName, b.userName, isAsc)
+  //       default:
+  //         return 0;
+  //     }
+  //   });
+   }
 
-    // @ts-ignore
-    this.sortedAccounts = data.sort((a:Account,b:Account) => {
-      const isAsc = sort.direction === 'asc';
-      switch(sort.active)
-      {
-        case 'productId':
-          return AccountAdminComponent.compare(a.productId, b.productId, isAsc)
-        case 'userName':
-          return AccountAdminComponent.compare(a.userName, b.userName, isAsc)
-        default:
-          return 0;
-      }
-    });
-  }
-  private static compare(a: number | string, b: number | string, isAsc: boolean) {
-    return (a < b ? -1 : 1) * (isAsc ? 1 : -1);
-  }
+  // private static compare(a: number | string, b: number | string, isAsc: boolean) {
+  //   return (a < b ? -1 : 1) * (isAsc ? 1 : -1);
+  // }
 
   ngOnInit(): void {
     this.getAccounts();
