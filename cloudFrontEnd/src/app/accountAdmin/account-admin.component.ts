@@ -246,34 +246,13 @@ export class AccountAdminComponent implements OnInit {
   }
 
   changeSorting(sort: Sort) {
-    this.sortActive = sort.active;
-    this.sortDirection = sort.direction;
+     this.sortActive = sort.active;
+     this.sortDirection = sort.direction;
 
-  //
-  //   const data = this.accounts.slice();
-  //   if (!sort.active || sort.direction === '') {
-  //     this.sortedAccounts = data;
-  //     return;
-  //   }
-  //
-  //   // @ts-ignore
-  //   this.sortedAccounts = data.sort((a:Account,b:Account) => {
-  //     const isAsc = sort.direction === 'asc';
-  //     switch(sort.active)
-  //     {
-  //       case 'productId':
-  //         return AccountAdminComponent.compare(a.productId, b.productId, isAsc)
-  //       case 'userName':
-  //         return AccountAdminComponent.compare(a.userName, b.userName, isAsc)
-  //       default:
-  //         return 0;
-  //     }
-  //   });
-   }
-
-  // private static compare(a: number | string, b: number | string, isAsc: boolean) {
-  //   return (a < b ? -1 : 1) * (isAsc ? 1 : -1);
-  // }
+     // Ensure that change email etc. can be opened on first click after sort re order.
+    this.expandedElement = undefined;
+    this.showConfirmDeleteAccount = this.showChangePassword = this.showChangeEmail = false;
+  }
 
   ngOnInit(): void {
     this.getAccounts();
