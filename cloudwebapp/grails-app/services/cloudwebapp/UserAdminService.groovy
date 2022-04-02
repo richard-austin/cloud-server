@@ -127,6 +127,7 @@ class UserAdminService {
             {
                 user.setEnabled(cmd.accountEnabled)
                 userService.save(user)
+                brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", update)
             }
             else
             {
@@ -231,7 +232,7 @@ class UserAdminService {
         return result
     }
 
-    private String generateRandomString() {
+    private static String generateRandomString() {
         int leftLimit = 48 // numeral '0'
         int rightLimit = 122 // letter 'z'
         int targetStringLength = 212
@@ -246,7 +247,7 @@ class UserAdminService {
         return generatedString
     }
 
-    private def sendEmail(String email, String idStr, String clientUri)
+    private static def sendEmail(String email, String idStr, String clientUri)
     {
         User user = User.findByEmail(email)
         if(user != null) {
