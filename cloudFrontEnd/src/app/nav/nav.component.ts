@@ -209,12 +209,18 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
       }
       else if (message.messageType === messageType.loggedIn) {
         window.location.href = "#/"
-        this.idleTimeoutActive = this.callGetTemp = true;
+        this.idleTimeoutActive = true;
         if(!this.utilsService.isAdmin) {
           this.cameraStreams = this.cameraSvc.getCameraStreams();
           this.cameras = this.cameraSvc.getCameras()
+          this.callGetTemp = true;
+          this.callGetAuthorities = false;
           // Get the initial core temperature
           this.getTemperature();
+        }
+        else {
+          this.callGetAuthorities = true;
+          this.callGetTemp = false;
         }
       }
       else if (message.messageType == messageType.loggedOut )
