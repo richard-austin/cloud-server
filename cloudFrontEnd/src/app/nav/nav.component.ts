@@ -184,6 +184,8 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
           this.cameras = this.cameraSvc.getCameras();
           this.idleTimeoutActive = this.callGetTemp = true;
           this.callGetAuthorities = false;
+          this.getTemperature();  // Ensure we show the core temperature straight away on refresh
+                                  // (rather than wait till the first heartbeat)
           break;
         case 'ROLE_ADMIN':
           this.idleTimeoutActive = this.callGetAuthorities = true;

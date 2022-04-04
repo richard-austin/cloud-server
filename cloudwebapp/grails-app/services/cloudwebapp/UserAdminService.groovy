@@ -12,6 +12,8 @@ import cloudservice.commands.SendResetPasswordLinkCommand
 import cloudservice.commands.SetAccountEnabledStatusCommand
 import cloudservice.enums.PassFail
 import cloudservice.interfaceobjects.ObjectCommandResponse
+import grails.config.Config
+import grails.core.GrailsApplication
 import grails.gorm.transactions.Transactional
 import grails.plugin.springsecurity.SpringSecurityService
 import org.grails.web.json.JSONObject
@@ -35,6 +37,7 @@ import java.util.concurrent.ConcurrentHashMap
 class UserAdminService {
     SpringSecurityService springSecurityService
     LogService logService
+    GrailsApplication grailsApplication
     UserService userService
     SimpMessagingTemplate brokerMessagingTemplate
     final String update = new JSONObject()
@@ -247,27 +250,38 @@ class UserAdminService {
         return generatedString
     }
 
-    private static def sendEmail(String email, String idStr, String clientUri)
+    private def sendEmail(String email, String idStr, String clientUri)
     {
+        Config config = grailsApplication.getConfig()
+        def auth = config.getProperty("cloud.mail.smtp.auth")
+        def enable = config.getProperty("cloud.mail.smtp.starttls.enable")
+        def protocols = config.getProperty("cloud.mail.smtp.ssl.protocols")
+        def host = config.getProperty("cloud.mail.smtp.host")
+        def port = config.getProperty("cloud.mail.smtp.port")
+        def trust = config.getProperty("cloud.mail.smtp.ssl.trust")
+        def username = config.getProperty("cloud.mail.smtp.username")
+        def password = config.getProperty("cloud.mail.smtp.password")
+        def fromaddress = config.getProperty("cloud.mail.smtp.fromaddress")
+
         User user = User.findByEmail(email)
         if(user != null) {
             Properties prop = new Properties()
-            prop.put("mail.smtp.auth", true)
-            prop.put("mail.smtp.starttls.enable", "true")
-            prop.put("mail.smtp.ssl.protocols", "TLSv1.2")
-            prop.put("mail.smtp.host", "smtp.virginmedia.com")
-            prop.put("mail.smtp.port", "587")
-            prop.put("mail.smtp.ssl.trust", "smtp.virginmedia.com")
+            prop.put("mail.smtp.auth", auth.toBoolean())
+            prop.put("mail.smtp.starttls.enable", enable)
+            prop.put("mail.smtp.ssl.protocols", protocols)
+            prop.put("mail.smtp.host", host)
+            prop.put("mail.smtp.port", port.toInteger())
+            prop.put("mail.smtp.ssl.trust", trust)
 
             Session session = Session.getDefaultInstance(prop, new Authenticator() {
                 @Override
                 protected PasswordAuthentication getPasswordAuthentication() {
-                    return new PasswordAuthentication("rdaustin@virginmedia.com", "DC10plus")
+                    return new PasswordAuthentication(username, password)
                 }
             })
 
             Message message = new MimeMessage(session)
-            message.setFrom(new InternetAddress("noreply@cctvcloud.com"))
+            message.setFrom(new InternetAddress(fromaddress))
             message.setRecipients(
                     Message.RecipientType.TO, InternetAddress.parse(email))
             message.setSubject("Reset Password")
