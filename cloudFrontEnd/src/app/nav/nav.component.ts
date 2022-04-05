@@ -247,8 +247,10 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
 
     // Gets the core temperature every minute (Raspberry pi only), and keeps the session alive
     this.pingHandle = this.userIdle.ping$.subscribe(() => {
-      if(this.callGetTemp)
+      if(this.callGetTemp) {
         this.getTemperature();
+        this.getAuthorities();  // Call getAuthorities as well to keep the Cloud session alive
+      }
       else if(this.callGetAuthorities)
         this.getAuthorities();
     });
