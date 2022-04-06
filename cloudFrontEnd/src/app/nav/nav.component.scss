@@ -56,20 +56,15 @@ mat-card.confirm-logout {
       > div {
         display: inline;
       }
-      //}:nth-child(5)
-      //{
-      //  float: right;
-      //}:nth-child(4)
-      // {
-      //   float: right;
-      // }
     }
   }
 }
 
-div.float-right
+div.float-right-on-full-width
 {
+  @media handheld and (min-device-width: 1001px), screen and (min-width: 1001px) {
     float: right;
+  }
 }
 
 .collapse {
@@ -80,6 +75,17 @@ div.float-right
   }
   width: 100%;
   margin-right: 1rem;
+}
+
+.no-session-menus {
+  @media handheld and (min-device-width: 1001px), screen and (min-width: 1001px) {
+    float: right;
+  }
+  > button {
+    @media handheld and (max-device-width: 1000px), screen and (max-width: 1000px) {
+      display: flex;
+    }
+  }
 }
 
 .navbar-toggler {

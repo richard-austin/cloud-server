@@ -59,12 +59,12 @@
       </mat-menu>
     </div>
 
-    <div class="float-right" *ngIf="!utilsService.loggedIn">
+    <div class="no-session-menus" *ngIf="!utilsService.loggedIn">
       <button mat-button (click)="login();menuClosed()">Log in</button>
       <button mat-button (click)="registerAccount();menuClosed()">Create Account</button>
     </div>
 
-    <div class="float-right" *ngIf="utilsService.loggedIn">
+    <div class="float-right-on-full-width" *ngIf="utilsService.loggedIn">
       <button mat-button [matMenuTriggerFor]="menuGeneral">General</button>
       <mat-menu #menuGeneral="matMenu">
         <button *ngIf="!utilsService.isAdmin" mat-menu-item (click)="configSetup();menuClosed()">
