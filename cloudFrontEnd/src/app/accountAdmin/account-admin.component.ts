@@ -6,6 +6,7 @@ import {UtilsService, Account} from "../shared/utils.service";
 import {animate, state, style, transition, trigger} from "@angular/animations";
 import {AbstractControl, FormControl, FormGroup, ValidationErrors, ValidatorFn, Validators} from "@angular/forms";
 import {ReportingComponent} from "../reporting/reporting.component";
+import { Sort } from '@angular/material/sort';
 
 declare let SockJS: any;
 declare let Stomp: any;
@@ -25,7 +26,7 @@ declare let Stomp: any;
 export class AccountAdminComponent implements OnInit {
   downloading: boolean = false;
   accounts: Account[] = [];
-  displayedColumns: string[] = ['changePassword', 'changeEmail', 'disableAccount', 'productId', 'accountCreated', 'userName', 'nvrConnected', 'usersConnected'];
+  displayedColumns: string[] = ['changePassword', 'changeEmail', 'disableAccount', 'deleteAccount', 'productId', 'accountCreated', 'userName', 'nvrConnected', 'usersConnected'];
   changePasswordColumns: string[] = ['password'];
   @ViewChild('filter') filterEl!: ElementRef<HTMLInputElement>
   @ViewChild(ReportingComponent) errorReporting!: ReportingComponent;
@@ -45,6 +46,9 @@ export class AccountAdminComponent implements OnInit {
   private confirmEmail: string = "";
   showChangePassword: boolean = false;
   showChangeEmail: boolean = false;
+  showConfirmDeleteAccount: boolean = false;
+  sortActive: string ="productId";
+  sortDirection: string = "desc";
 
   constructor(private utilsService: UtilsService) {
     this.initializeWebSocketConnection();
@@ -107,6 +111,7 @@ export class AccountAdminComponent implements OnInit {
           let msgObj = JSON.parse(message.body);
           if (msgObj.message === "update") {
             that.getAccounts();
+            that.expandedElement = undefined;
             console.log(message.body);
           }
         }
@@ -134,7 +139,7 @@ export class AccountAdminComponent implements OnInit {
 
   showChangePasswordForm(account: Account) {
     this.showChangePassword = true;
-    this.showChangeEmail = false;
+    this.showChangeEmail = this.showConfirmDeleteAccount = false;
 
     this.password = this.confirmPassword = "";
     let pw: AbstractControl = this.getFormControl(this.changePasswordForm, 'password');
@@ -149,7 +154,8 @@ export class AccountAdminComponent implements OnInit {
 
   showChangeEmailForm(account: Account) {
     this.showChangeEmail = true;
-    this.showChangePassword = false;
+    this.showChangePassword = this.showConfirmDeleteAccount = false;
+
     this.email = account.email;
 
     let em: AbstractControl = this.getFormControl(this.changeEmailForm, 'email');
@@ -199,6 +205,26 @@ export class AccountAdminComponent implements OnInit {
       })
   }
 
+
+  confirmDelete(account: Account) {
+    this.showConfirmDeleteAccount = true;
+    this.showChangePassword = this.showChangeEmail = false;
+
+    if (this.expandedElement === undefined)
+      this.expandedElement = account;
+    else
+      this.expandedElement = undefined;
+  }
+
+  deleteAccount(acc: Account) {
+    this.utilsService.deleteAccount(acc).subscribe(() => {
+        this.successMessage = "Account " + acc.userName + " has been deleted";
+      },
+      reason => {
+        this.errorReporting.errorMessage = reason;
+      })
+  }
+
   onlyNVROffline($event: MatCheckboxChange) {
     this.bOnlyNVROffline = $event.checked
   }
@@ -219,6 +245,15 @@ export class AccountAdminComponent implements OnInit {
     return this.changeEmailForm.invalid;
   }
 
+  changeSorting(sort: Sort) {
+     this.sortActive = sort.active;
+     this.sortDirection = sort.direction;
+
+     // Ensure that change email etc. can be opened on first click after sort re order.
+    this.expandedElement = undefined;
+    this.showConfirmDeleteAccount = this.showChangePassword = this.showChangeEmail = false;
+  }
+
   ngOnInit(): void {
     this.getAccounts();
 
@@ -235,4 +270,5 @@ export class AccountAdminComponent implements OnInit {
     this.changePasswordForm.markAllAsTouched();
     this.changeEmailForm.markAllAsTouched();
   }
+
 }

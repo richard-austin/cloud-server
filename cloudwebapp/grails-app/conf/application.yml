@@ -1,179 +1,211 @@
 ---
 grails:
-    profile: web
-    codegen:
-        defaultPackage: cloudwebapp
-    gorm:
-        reactor:
-            # Whether to translate GORM events into Reactor events
-            # Disabled by default for performance reasons
-            events: false
+  profile: web
+  codegen:
+    defaultPackage: cloudwebapp
+  gorm:
+    reactor:
+      # Whether to translate GORM events into Reactor events
+      # Disabled by default for performance reasons
+      events: false
 info:
-    app:
-        name: '@info.app.name@'
-        version: '@info.app.version@'
-        grailsVersion: '@info.app.grailsVersion@'
+  app:
+    name: '@info.app.name@'
+    version: '@info.app.version@'
+    grailsVersion: '@info.app.grailsVersion@'
 spring:
-    jmx:
-        unique-names: true
-    main:
-        banner-mode: "off"
-    groovy:
-        template:
-            check-template-location: false
-    devtools:
-        restart:
-            additional-exclude:
-                - '*.gsp'
-                - '**/*.gsp'
-                - '*.gson'
-                - '**/*.gson'
-                - 'logback.groovy'
-                - '*.properties'
+  jmx:
+    unique-names: true
+  main:
+    banner-mode: "off"
+  groovy:
+    template:
+      check-template-location: false
+  devtools:
+    restart:
+      additional-exclude:
+        - '*.gsp'
+        - '**/*.gsp'
+        - '*.gson'
+        - '**/*.gson'
+        - 'logback.groovy'
+        - '*.properties'
 management:
-    endpoints:
-        enabled-by-default: false
+  endpoints:
+    enabled-by-default: false
 
 ---
 grails:
-    resources:
-        pattern: /**   # Needed to make static resources (Angular) accessible from public directory
-        #  Without this, static resources are available at <baseurl>/static/**
+  resources:
+    pattern: /**   # Needed to make static resources (Angular) accessible from public directory
+    #  Without this, static resources are available at <baseurl>/static/**
 
-    mime:
-        disable:
-            accept:
-                header:
-                    userAgents:
-                        - Gecko
-                        - WebKit
-                        - Presto
-                        - Trident
-        types:
-            all: '*/*'
-            atom: application/atom+xml
-            css: text/css
-            csv: text/csv
-            form: application/x-www-form-urlencoded
-            html:
-              - text/html
-              - application/xhtml+xml
-            js: text/javascript
-            json:
-              - application/json
-              - text/json
-            multipartForm: multipart/form-data
-            pdf: application/pdf
-            rss: application/rss+xml
-            text: text/plain
-            hal:
-              - application/hal+json
-              - application/hal+xml
-            xml:
-              - text/xml
-              - application/xml
-    urlmapping:
-        cache:
-            maxsize: 1000
-    controllers:
-        defaultScope: singleton
-    converters:
-        encoding: UTF-8
-    views:
-        default:
-            codec: html
-        gsp:
-            encoding: UTF-8
-            htmlcodec: xml
-            codecs:
-                expression: html
-                scriptlet: html
-                taglib: none
-                staticparts: none
+  mime:
+    disable:
+      accept:
+        header:
+          userAgents:
+            - Gecko
+            - WebKit
+            - Presto
+            - Trident
+    types:
+      all: '*/*'
+      atom: application/atom+xml
+      css: text/css
+      csv: text/csv
+      form: application/x-www-form-urlencoded
+      html:
+        - text/html
+        - application/xhtml+xml
+      js: text/javascript
+      json:
+        - application/json
+        - text/json
+      multipartForm: multipart/form-data
+      pdf: application/pdf
+      rss: application/rss+xml
+      text: text/plain
+      hal:
+        - application/hal+json
+        - application/hal+xml
+      xml:
+        - text/xml
+        - application/xml
+  urlmapping:
+    cache:
+      maxsize: 1000
+  controllers:
+    defaultScope: singleton
+  converters:
+    encoding: UTF-8
+  views:
+    default:
+      codec: html
+    gsp:
+      encoding: UTF-8
+      htmlcodec: xml
+      codecs:
+        expression: html
+        scriptlet: html
+        taglib: none
+        staticparts: none
 spring:
-    jmx:
-        unique-names: true
+  jmx:
+    unique-names: true
 ---
 hibernate:
-    cache:
-        queries: false
-        use_second_level_cache: false
-        use_query_cache: false
+  cache:
+    queries: false
+    use_second_level_cache: false
+    use_query_cache: false
 dataSource:
-    pooled: true
-    jmxExport: true
-    driverClassName: org.h2.Driver
-    username: sa
-    password: ''
+  pooled: true
+  jmxExport: true
+  driverClassName: org.h2.Driver
+  username: sa
+  password: ''
 
 environments:
-    development:
-        grails:
-            plugin:
-                springsecurity:
-                    active: true
-                    auth:
-                        loginFormUrl: /login/denied
+  development:
+    grails:
+      plugin:
+        springsecurity:
+          active: true
+          auth:
+            loginFormUrl: /login/denied
 
-            cors:
-                enabled: true
+      cors:
+        enabled: true
 
-        dataSource:
-            dbCreate: create-drop
-            url: jdbc:h2:mem:devDb;LOCK_TIMEOUT=10000;DB_CLOSE_ON_EXIT=FALSE
+    dataSource:
+      dbCreate: create-drop
+      url: jdbc:h2:mem:devDb;LOCK_TIMEOUT=10000;DB_CLOSE_ON_EXIT=FALSE
 
-        cloud:
-            username: cloud
-            password: "DrN3yuFAtSsK2w7AtTf66FFRVveBwtjU"
-            trustStorePath: ../xtrn-files-and-config/cacert.jks
-            keyStorePath: ../xtrn-files-and-config/cloud.jks
-            keyStorePassword: B0331e
-            privateKeyPath: ../xtrn-files-and-config/privateKey
-            trustStorePassword: B0331e
-            cloudProxyFacingPort: 8081
-            browserFacingPort: 8083
-        quartz:
-            autoStartup: true
+    cloud:
+      username: cloud
+      password: "DrN3yuFAtSsK2w7AtTf66FFRVveBwtjU"
+      trustStorePath: ../xtrn-files-and-config/cacert.jks
+      keyStorePath: ../xtrn-files-and-config/cloud.jks
+      keyStorePassword: B0331e
+      privateKeyPath: ../xtrn-files-and-config/privateKey
+      trustStorePassword: B0331e
+      cloudProxyFacingPort: 8081
+      browserFacingPort: 8083
 
-    test:
-        dataSource:
-            dbCreate: update
-            url: jdbc:h2:mem:testDb;LOCK_TIMEOUT=10000;DB_CLOSE_ON_EXIT=FALSE
-    production:
-        grails:
-            plugin:
-                springsecurity:
-                    active: true
+      mail:
+        smtp:
+          auth: true
+          username: rdaustin@virginmedia.com
+          password: DC10plus
+          starttls:
+            enable: true
+          ssl:
+            protocols: TLSv1.2
+            trust: smtp.virginmedia.com
+          host: smtp.virginmedia.com
+          port: 587
+          fromaddress: noreply@cctvcloud.com
 
-        cloud:
-            username: cloud
-            password: "DrN3yuFAtSsK2w7AtTf66FFRVveBwtjU"
-            trustStorePath: /etc/cloud/cacert.jks
-            keyStorePath: /etc/cloud/cloud.jks
-            keyStorePassword: B0331e
-            privateKeyPath: /etc/cloud/privateKey
-            trustStorePassword: B0331e
-            cloudProxyFacingPort: 8081
-            browserFacingPort: 8083
+      quartz:
+      autoStartup: false
 
-        dataSource:
-            dbCreate: update
-            url: jdbc:h2:/home/cloud/db/prodDb;LOCK_TIMEOUT=10000;DB_CLOSE_ON_EXIT=FALSE
-        properties:
-                jmxEnabled: true
-                initialSize: 5
-                maxActive: 50
-                minIdle: 5
-                maxIdle: 25
-                maxWait: 10000
-                maxAge: 600000
-                timeBetweenEvictionRunsMillis: 5000
-                minEvictableIdleTimeMillis: 60000
-                validationQuery: SELECT 1
-                validationQueryTimeout: 3
-                validationInterval: 15000
-                testOnBorrow: true
-                testWhileIdle: true
-                testOnReturn: false
-                jdbcInterceptors: ConnectionState
-                defaultTransactionIsolation: 2 # TRANSACTION_READ_COMMITTED
+  test:
+    dataSource:
+      dbCreate: update
+      url: jdbc:h2:mem:testDb;LOCK_TIMEOUT=10000;DB_CLOSE_ON_EXIT=FALSE
+  production:
+    grails:
+      plugin:
+        springsecurity:
+          active: true
+
+    cloud:
+      username: cloud
+      password: "DrN3yuFAtSsK2w7AtTf66FFRVveBwtjU"
+      trustStorePath: /etc/cloud/cacert.jks
+      keyStorePath: /etc/cloud/cloud.jks
+      keyStorePassword: B0331e
+      privateKeyPath: /etc/cloud/privateKey
+      trustStorePassword: B0331e
+      cloudProxyFacingPort: 8081
+      browserFacingPort: 8083
+      #            smtp server details for sending reset password links
+      mail:
+        smtp:
+          auth: true
+          username: rdaustin@virginmedia.com
+          password: DC10plus
+          starttls:
+            enable: true
+          ssl:
+            protocols: TLSv1.2
+            trust: smtp.virginmedia.com
+          host: smtp.virginmedia.com
+          port: 587
+          fromaddress: noreply@cctvcloud.com
+
+      quartz:
+      autoStartup: false
+
+    dataSource:
+      dbCreate: update
+      url: jdbc:h2:/home/cloud/db/prodDb;LOCK_TIMEOUT=10000;DB_CLOSE_ON_EXIT=FALSE
+    properties:
+      jmxEnabled: true
+      initialSize: 5
+      maxActive: 50
+      minIdle: 5
+      maxIdle: 25
+      maxWait: 10000
+      maxAge: 600000
+      timeBetweenEvictionRunsMillis: 5000
+      minEvictableIdleTimeMillis: 60000
+      validationQuery: SELECT 1
+      validationQueryTimeout: 3
+      validationInterval: 15000
+      testOnBorrow: true
+      testWhileIdle: true
+      testOnReturn: false
+      jdbcInterceptors: ConnectionState
+      defaultTransactionIsolation: 2 # TRANSACTION_READ_COMMITTED

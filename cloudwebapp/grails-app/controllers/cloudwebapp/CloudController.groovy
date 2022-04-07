@@ -2,6 +2,7 @@ package cloudwebapp
 
 import cloudservice.commands.AdminChangeEmailCommand
 import cloudservice.commands.AdminChangePasswordCommand
+import cloudservice.commands.DeleteAccountCommand
 import cloudservice.commands.RegisterUserCommand
 import cloudservice.commands.ChangePasswordCommand
 import cloudservice.commands.ResetPasswordCommand
@@ -18,19 +19,6 @@ class CloudController {
     LogService logService
     ValidationErrorService validationErrorService
     UserAdminService userAdminService
-    /**
-     * getTemperature: Get the core temperature (Raspberry pi only). This is called at intervals to keep the session alive
-     * @return: The temperature as a string. On non Raspberry pi systems an error is returned.
-     */
-    @Secured(['ROLE_CLIENT', 'ROLE_ADMIN'])
-    def getTemperature() {
-        ObjectCommandResponse response = cloudService.getTemperature(request)
-
-        if (response.status != PassFail.PASS)
-            render(status: 500, text: response.error)
-        else
-            render response.responseObject as JSON
-    }
 
     /**
      * register: Register a user account
@@ -170,6 +158,27 @@ class CloudController {
                 render(status: 500, text: result.error)
             } else {
                 logService.cloud.info("adminChangeEmail: success")
+                render ""
+            }
+        }
+    }
+
+    @Secured(['ROLE_ADMIN'])
+    def adminDeleteAccount(DeleteAccountCommand cmd)
+    {
+        ObjectCommandResponse result
+        if(cmd.hasErrors()) {
+            def errorsMap = validationErrorService.commandErrors(cmd.errors as ValidationErrors, 'adminDeleteAccount')
+            logService.cloud.error "adminDeleteAccount: Validation error: " + errorsMap.toString()
+            render(status: 400, text: errorsMap as JSON)
+        }
+        else {
+            result = userAdminService.adminDeleteAccount(cmd)
+            if (result.status != PassFail.PASS) {
+                logService.cloud.error "adminDeleteAccount: error: ${result.error}"
+                render(status: 500, text: result.error)
+            } else {
+                logService.cloud.info("adminDeleteAccount: success")
                 render ""
             }
         }

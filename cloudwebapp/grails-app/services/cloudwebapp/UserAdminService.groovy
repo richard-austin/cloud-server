@@ -1,16 +1,23 @@
 package cloudwebapp
 
+import cloudservice.Role
 import cloudservice.User
+import cloudservice.UserRole
 import cloudservice.commands.AdminChangeEmailCommand
 import cloudservice.commands.AdminChangePasswordCommand
 import cloudservice.commands.ChangePasswordCommand
+import cloudservice.commands.DeleteAccountCommand
 import cloudservice.commands.ResetPasswordCommand
 import cloudservice.commands.SendResetPasswordLinkCommand
 import cloudservice.commands.SetAccountEnabledStatusCommand
 import cloudservice.enums.PassFail
 import cloudservice.interfaceobjects.ObjectCommandResponse
+import grails.config.Config
+import grails.core.GrailsApplication
 import grails.gorm.transactions.Transactional
 import grails.plugin.springsecurity.SpringSecurityService
+import org.grails.web.json.JSONObject
+import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.security.core.context.SecurityContextHolder
 
 import javax.mail.Authenticator
@@ -23,7 +30,6 @@ import javax.mail.internet.InternetAddress
 import javax.mail.internet.MimeBodyPart
 import javax.mail.internet.MimeMessage
 import javax.mail.internet.MimeMultipart
-import javax.servlet.http.HttpServletRequest
 import java.util.concurrent.ConcurrentHashMap
 
 
@@ -31,7 +37,13 @@ import java.util.concurrent.ConcurrentHashMap
 class UserAdminService {
     SpringSecurityService springSecurityService
     LogService logService
+    GrailsApplication grailsApplication
     UserService userService
+    SimpMessagingTemplate brokerMessagingTemplate
+    final String update = new JSONObject()
+            .put("message", "update")
+            .toString()
+
 
     final private resetPasswordParameterTimeout = 20 * 60 * 1000 // 20 minutes
 
@@ -118,6 +130,7 @@ class UserAdminService {
             {
                 user.setEnabled(cmd.accountEnabled)
                 userService.save(user)
+                brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", update)
             }
             else
             {
@@ -157,10 +170,29 @@ class UserAdminService {
             User user = User.findByUsername(cmd.username)
             user.setEmail(cmd.email)
             user.save()
+            brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", update)
         }
         catch(Exception ex)
         {
             logService.cloud.error("${ex.getClass().getName()} in adminChangeEmail: ${ex.getCause()} ${ex.getMessage()}")
+            result.status = PassFail.FAIL
+            result.error = ex.getMessage()
+        }
+        return result
+    }
+
+    ObjectCommandResponse adminDeleteAccount(DeleteAccountCommand cmd) {
+        ObjectCommandResponse result = new ObjectCommandResponse()
+        try {
+            User user = User.findByUsername(cmd.username)
+            UserRole userRole = UserRole.findByUser(user)
+            userRole.delete(flush: true)
+            user.delete(flush: true)
+            brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", update)
+        }
+        catch(Exception ex)
+        {
+            logService.cloud.error("${ex.getClass().getName()} in adminDeleteAccount: ${ex.getCause()} ${ex.getMessage()}")
             result.status = PassFail.FAIL
             result.error = ex.getMessage()
         }
@@ -203,7 +235,7 @@ class UserAdminService {
         return result
     }
 
-    private String generateRandomString() {
+    private static String generateRandomString() {
         int leftLimit = 48 // numeral '0'
         int rightLimit = 122 // letter 'z'
         int targetStringLength = 212
@@ -220,25 +252,36 @@ class UserAdminService {
 
     private def sendEmail(String email, String idStr, String clientUri)
     {
+        Config config = grailsApplication.getConfig()
+        def auth = config.getProperty("cloud.mail.smtp.auth")
+        def enable = config.getProperty("cloud.mail.smtp.starttls.enable")
+        def protocols = config.getProperty("cloud.mail.smtp.ssl.protocols")
+        def host = config.getProperty("cloud.mail.smtp.host")
+        def port = config.getProperty("cloud.mail.smtp.port")
+        def trust = config.getProperty("cloud.mail.smtp.ssl.trust")
+        def username = config.getProperty("cloud.mail.smtp.username")
+        def password = config.getProperty("cloud.mail.smtp.password")
+        def fromaddress = config.getProperty("cloud.mail.smtp.fromaddress")
+
         User user = User.findByEmail(email)
         if(user != null) {
             Properties prop = new Properties()
-            prop.put("mail.smtp.auth", true)
-            prop.put("mail.smtp.starttls.enable", "true")
-            prop.put("mail.smtp.ssl.protocols", "TLSv1.2")
-            prop.put("mail.smtp.host", "smtp.virginmedia.com")
-            prop.put("mail.smtp.port", "587")
-            prop.put("mail.smtp.ssl.trust", "smtp.virginmedia.com")
+            prop.put("mail.smtp.auth", auth.toBoolean())
+            prop.put("mail.smtp.starttls.enable", enable)
+            prop.put("mail.smtp.ssl.protocols", protocols)
+            prop.put("mail.smtp.host", host)
+            prop.put("mail.smtp.port", port.toInteger())
+            prop.put("mail.smtp.ssl.trust", trust)
 
             Session session = Session.getDefaultInstance(prop, new Authenticator() {
                 @Override
                 protected PasswordAuthentication getPasswordAuthentication() {
-                    return new PasswordAuthentication("rdaustin@virginmedia.com", "DC10plus")
+                    return new PasswordAuthentication(username, password)
                 }
             })
 
             Message message = new MimeMessage(session)
-            message.setFrom(new InternetAddress("noreply@cctvcloud.com"))
+            message.setFrom(new InternetAddress(fromaddress))
             message.setRecipients(
                     Message.RecipientType.TO, InternetAddress.parse(email))
             message.setSubject("Reset Password")

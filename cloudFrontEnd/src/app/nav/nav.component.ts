@@ -32,6 +32,7 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
   idleTimeoutDialogRef!: MatDialogRef<IdleTimeoutModalComponent>;
   private idleTimeoutActive: boolean = false;  // Idle time out inactive when not logged in or showing live video
   private callGetTemp: boolean = false;  // Prevent calling getTemperature while not logged in
+  private callGetAuthorities: boolean = false;
   private messageSubscription!: Subscription;
 
   constructor(private cameraSvc: CameraService, public utilsService: UtilsService, private userIdle: UserIdleService, private dialog: MatDialog) {
@@ -122,6 +123,11 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
       });
   }
 
+  private getAuthorities():void
+  {
+    this.utilsService.checkSessionStatus().subscribe();
+  }
+
   setIp() {
     window.location.href = '#/setip';
   }
@@ -168,11 +174,29 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.utilsService.getTemperature().subscribe(() => {
-      // If getTemperature is successful, we are logged in to the NVR, so get camera info
-      this.cameraSvc.initialiseCameras();
-      this.cameraStreams = this.cameraSvc.getCameraStreams();
-      this.cameras = this.cameraSvc.getCameras();
+    this.utilsService.checkSessionStatus().pipe(
+    ).subscribe((auth) => {
+      switch (auth)
+      {
+        case 'ROLE_CLIENT':
+          this.cameraSvc.initialiseCameras();
+          this.cameraStreams = this.cameraSvc.getCameraStreams();
+          this.cameras = this.cameraSvc.getCameras();
+          this.idleTimeoutActive = this.callGetTemp = true;
+          this.callGetAuthorities = false;
+          this.getTemperature();  // Ensure we show the core temperature straight away on refresh
+                                  // (rather than wait till the first heartbeat)
+          break;
+        case 'ROLE_ADMIN':
+          this.idleTimeoutActive = this.callGetAuthorities = true;
+          this.callGetTemp = false;
+          break;
+        case 'ROLE_ANONYMOUS':
+          this.idleTimeoutActive = this.callGetTemp = this.callGetAuthorities = false;
+          break;
+        default:
+          this.idleTimeoutActive = this.callGetTemp = this.callGetAuthorities = false;
+      }
     });
 
     //Start watching for user inactivity.
@@ -187,17 +211,22 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
       }
       else if (message.messageType === messageType.loggedIn) {
         window.location.href = "#/"
-        this.idleTimeoutActive = this.callGetTemp = true;
+        this.idleTimeoutActive = true;
         if(!this.utilsService.isAdmin) {
           this.cameraStreams = this.cameraSvc.getCameraStreams();
           this.cameras = this.cameraSvc.getCameras()
+          this.callGetTemp = true;
+          this.callGetAuthorities = false;
+          // Get the initial core temperature
+          this.getTemperature();
         }
-
-        // Get the initial core temperature
-        this.getTemperature();
+        else {
+          this.callGetAuthorities = true;
+          this.callGetTemp = false;
+        }
       }
       else if (message.messageType == messageType.loggedOut )
-        this.idleTimeoutActive = this.callGetTemp = false;
+        this.idleTimeoutActive = this.callGetAuthorities = this.callGetTemp = false;
     });
 
     // Start watching when user idle is starting.
@@ -218,8 +247,12 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
 
     // Gets the core temperature every minute (Raspberry pi only), and keeps the session alive
     this.pingHandle = this.userIdle.ping$.subscribe(() => {
-      if(this.callGetTemp)
+      if(this.callGetTemp) {
         this.getTemperature();
+        this.getAuthorities();  // Call getAuthorities as well to keep the Cloud session alive
+      }
+      else if(this.callGetAuthorities)
+        this.getAuthorities();
     });
 
     this.cameraSvc.getConfigUpdates().subscribe(() => {

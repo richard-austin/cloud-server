@@ -20,7 +20,7 @@ chmod 640 /etc/tomcat9/tomcat-users.xml
 chown root:tomcat /etc/tomcat9/tomcat-users.xml
 chmod 640 /etc/tomcat9/server.xml
 chown root:tomcat /etc/tomcat9/server.xml
-chown root:grp-cloud /etc/cloud/cacert.jks /etc/cloud/client.jks
+chown root:grp-cloud /etc/cloud/cacert.jks /etc/cloud/client.jks /etc/cloud/privateKey
 chmod 440 /etc/cloud/cacert.jks /etc/cloud/client.jks /etc/cloud/privateKey
 
 #A new group, grp-cloud, is added, then the users tomcat and usr-cloud added to that group.
