@@ -132,6 +132,10 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
     window.location.href = '#/setip';
   }
 
+  registerLocalNVRAccount() {
+    window.location.href = '#/registerlocalnvraccount';
+  }
+
   drawdownCalc() {
     window.location.href = '#/dc';
   }
