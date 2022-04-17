@@ -1,4 +1,5 @@
-<mat-card *ngIf="error || success" [ngClass]="{'alert-danger': error, 'alert-success': success}" class="reporting mat-elevation-z8">
+<mat-card *ngIf="!embedded &&(error || success)" [ngClass]="{'alert-danger': error, 'alert-success': success}"
+          class="reporting mat-elevation-z8">
   <div *ngIf="success">
     Success: {{success}}
   </div>
@@ -16,3 +17,21 @@
   </div>
   <button mat-flat-button class="dismiss-button" color="default" (click)="dismiss()">Dismiss</button>
 </mat-card>
+
+<div *ngIf="embedded" [ngClass]="{'alert-danger': error, 'alert-success': success}" class="message-display" (click)="dismiss()">
+  <div *ngIf="success">
+    Success: {{success}}
+  </div>
+  <div *ngIf="error?.status ==400">
+    <div>Validation Error: {{error?.status}}</div>
+    <div *ngFor="let validationError of validationErrors">
+      {{validationError}}
+    </div>
+  </div>
+  <div *ngIf="!success && error?.status != 400">
+    <div *ngIf="error && error.status != 0">Error status: {{error?.status}}</div>
+    <br>
+    <div *ngIf="showMessageInError">{{error?.error}}</div>
+    <div *ngIf="!showMessageInError">See logs for more information</div>
+  </div>
+</div>

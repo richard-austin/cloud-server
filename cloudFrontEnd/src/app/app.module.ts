@@ -53,6 +53,7 @@ import {OnlyAnonUsersService} from "./guards/only-anon-users.service";
 import { ResetPasswordComponent } from './reset-password/reset-password.component';
 import {OnlyLoggedInService} from "./guards/only-logged-in.service";
 import { SortPipe } from './accountAdmin/sort.pipe';
+import { RegisterLocalNvrAccountComponent } from './register-local-nvr-account/register-local-nvr-account.component';
 
 @NgModule({
   declarations: [
@@ -83,6 +84,7 @@ import { SortPipe } from './accountAdmin/sort.pipe';
     ForgottenPasswordComponent,
     ResetPasswordComponent,
     SortPipe,
+    RegisterLocalNvrAccountComponent,
   ],
     imports: [
         BrowserModule,

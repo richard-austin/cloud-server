@@ -1,4 +1,4 @@
-import {Component, OnInit} from '@angular/core';
+import {Component, Input, OnInit} from '@angular/core';
 import {HttpErrorResponse} from "@angular/common/http";
 
 @Component({
@@ -11,7 +11,7 @@ export class ReportingComponent implements OnInit {
   success: string | undefined;
   validationErrors!:string[];
   showMessageInError:boolean = true;
-
+  @Input() embedded: boolean = false;
   constructor()
   {
   }

@@ -18,6 +18,7 @@ import { OnlyClientUsersService } from './guards/only-client-users.service';
 import {OnlyAnonUsersService} from "./guards/only-anon-users.service";
 import {OnlyLoggedInService} from "./guards/only-logged-in.service";
 import {ResetPasswordComponent} from "./reset-password/reset-password.component";
+import {RegisterLocalNvrAccountComponent} from "./register-local-nvr-account/register-local-nvr-account.component";
 
 const routes: Routes = [
   {path: 'live', component: LiveContainerComponent, canActivate: [OnlyClientUsersService]},
@@ -34,7 +35,8 @@ const routes: Routes = [
   {path: 'accountadmin', component: AccountAdminComponent, canActivate: [OnlyAdminUsersService]},
   {path: 'dc', component: DrawdownCalcContainerComponent, canActivate: [OnlyClientUsersService]},
   {path: 'forgotpassword', component: ForgottenPasswordComponent, canActivate: [OnlyAnonUsersService]}, //Request an email link to reset password
-  {path: 'resetpassword/:uniqueId', component: ResetPasswordComponent, canActivate: [OnlyAnonUsersService]}  // Reset the password after following email link
+  {path: 'resetpassword/:uniqueId', component: ResetPasswordComponent, canActivate: [OnlyAnonUsersService]},  // Reset the password after following email link
+  {path: 'registerlocalnvraccount', component: RegisterLocalNvrAccountComponent, canActivate: [OnlyClientUsersService]}
 ];
 
 @NgModule({

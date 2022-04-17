@@ -179,6 +179,20 @@ export class UtilsService {
     );
   }
 
+  registerLocalNVRAccount(username: string, password: string, confirmPassword: string, email: string, confirmEmail: string) {
+    let details: { username: string, password: string, confirmPassword: string, email: string, confirmEmail: string } =
+      {
+        username: username,
+        password: password,
+        confirmPassword: confirmPassword,
+        email: email,
+        confirmEmail: confirmEmail
+      };
+    return this.http.post<any>(this._baseUrl.getLink("user", "createAccount"), details, this.httpJSONOptions).pipe(
+      catchError((err: HttpErrorResponse) => throwError(err))
+    );
+  }
+
   getVersion(isLocal: boolean): Observable<Version> {
     return this.http.post<Version>(this._baseUrl.getLink(isLocal ? "cloud" : "utils", "getVersion"), '', this.httpJSONOptions).pipe(
       tap(),
