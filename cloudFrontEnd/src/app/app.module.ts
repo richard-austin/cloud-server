@@ -54,6 +54,7 @@ import { ResetPasswordComponent } from './reset-password/reset-password.componen
 import {OnlyLoggedInService} from "./guards/only-logged-in.service";
 import { SortPipe } from './accountAdmin/sort.pipe';
 import { RegisterLocalNvrAccountComponent } from './register-local-nvr-account/register-local-nvr-account.component';
+import { RemoveLocalNvrAccountComponent } from './remove-local-nvr-account/remove-local-nvr-account.component';
 
 @NgModule({
   declarations: [
@@ -85,6 +86,7 @@ import { RegisterLocalNvrAccountComponent } from './register-local-nvr-account/r
     ResetPasswordComponent,
     SortPipe,
     RegisterLocalNvrAccountComponent,
+    RemoveLocalNvrAccountComponent,
   ],
     imports: [
         BrowserModule,

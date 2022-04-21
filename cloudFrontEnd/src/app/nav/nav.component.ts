@@ -123,7 +123,7 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
       });
   }
 
-  private getAuthorities():void
+private getAuthorities():void
   {
     this.utilsService.checkSessionStatus().subscribe();
   }
@@ -134,6 +134,10 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
 
   registerLocalNVRAccount() {
     window.location.href = '#/registerlocalnvraccount';
+  }
+
+  removeLocalNVRAccount() {
+    window.location.href = '#/removelocalnvraccount';
   }
 
   drawdownCalc() {
@@ -221,6 +225,7 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
           this.cameras = this.cameraSvc.getCameras()
           this.callGetTemp = true;
           this.callGetAuthorities = false;
+
           // Get the initial core temperature
           this.getTemperature();
         }
@@ -253,7 +258,6 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
     this.pingHandle = this.userIdle.ping$.subscribe(() => {
       if(this.callGetTemp) {
         this.getTemperature();
-        this.getAuthorities();  // Call getAuthorities as well to keep the Cloud session alive
       }
       else if(this.callGetAuthorities)
         this.getAuthorities();

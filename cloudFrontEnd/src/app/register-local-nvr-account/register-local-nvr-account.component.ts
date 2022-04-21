@@ -19,6 +19,7 @@ export class RegisterLocalNvrAccountComponent implements OnInit {
   // successMessage: string = '';
   @ViewChild('username') usernameInput!: ElementRef<HTMLInputElement>;
   @ViewChild(ReportingComponent) reporting!: ReportingComponent;
+
   constructor(private utilsService: UtilsService) {
   }
 
@@ -81,7 +82,8 @@ export class RegisterLocalNvrAccountComponent implements OnInit {
     this.username = this.getFormControl('username').value;
 
     this.utilsService.registerLocalNVRAccount(this.username, this.password, this.confirmPassword, this.email, this.confirmEmail).subscribe(() => {
-        this.reporting.successMessage = "Account "+this.username+" created successfully";
+        this.utilsService.getHasLocalAccount();
+        this.reporting.successMessage = "Account " + this.username + " created successfully";
       },
       (reason) => {
         this.reporting.errorMessage = reason;

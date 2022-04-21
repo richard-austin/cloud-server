@@ -1,0 +1,23 @@
+<mat-card class="remove-account-form">
+  <mat-card-subtitle>Delete Local Web account, Are you sure?</mat-card-subtitle>
+
+  <mat-card-content>
+    <span>
+      <button color="default" mat-flat-button (click)="cancel()"
+              matTooltip="Close the delete account form, and leave the account active"
+              matTooltipClass="tooltip">
+        Cancel
+      </button>
+              <span>&nbsp;&nbsp;</span>
+      <button [disabled]="!utilsService.hasLocalAccount" color="warning" mat-flat-button
+              (click)="deleteAccount()"
+              matTooltip="Delete the local NVR web account"
+              matTooltipClass="tooltip">
+        Delete Account
+      </button>
+    </span>
+  </mat-card-content>
+  <app-reporting [embedded]="true"></app-reporting>
+</mat-card>
+
+
