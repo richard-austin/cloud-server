@@ -84,6 +84,7 @@ export class UtilsService {
   private _messaging: Subject<any> = new Subject<any>();
   private _loggedIn: boolean = false;
   private _isAdmin: boolean = false;
+  private _hasLocalAccount: boolean = false;
   public readonly passwordRegex: RegExp = new RegExp("^[A-Za-z0-9][A-Za-z0-9(){\[1*£$\\]}=@~?^]{7,31}$");
 
   get loggedIn(): boolean {
@@ -92,6 +93,11 @@ export class UtilsService {
 
   get isAdmin() {
     return this._isAdmin;
+  }
+
+  get hasLocalAccount() : boolean
+  {
+    return this._hasLocalAccount;
   }
 
   constructor(private http: HttpClient, private _baseUrl: BaseUrl) {
@@ -104,8 +110,10 @@ export class UtilsService {
           if (result.role === 'ROLE_ADMIN') {
             this._isAdmin = this._loggedIn = true;
           }
-          else
+          else {
             this._loggedIn = true;
+            this.getHasLocalAccount();
+          }
         },
         () => {
           this._isAdmin = this._loggedIn = false;
@@ -115,8 +123,8 @@ export class UtilsService {
   }
 
   logoff(): void {
+    this._hasLocalAccount = this._loggedIn = false;
     window.location.href = 'logoff';
-    this._loggedIn = false;
   }
 
   checkSessionStatus(): Observable<string> {
@@ -129,6 +137,7 @@ export class UtilsService {
           case 'ROLE_CLIENT':
             this._isAdmin = false;
             this._loggedIn = true;
+            this.getHasLocalAccount();
             break;
           case 'ROLE_ADMIN':
             this._isAdmin = true;
@@ -189,6 +198,13 @@ export class UtilsService {
         confirmEmail: confirmEmail
       };
     return this.http.post<any>(this._baseUrl.getLink("user", "createAccount"), details, this.httpJSONOptions).pipe(
+      catchError((err: HttpErrorResponse) => throwError(err))
+    );
+  }
+
+  removeLocalNVRAccount(): Observable<{username: string}>
+  {
+    return this.http.post<{username: string}>(this._baseUrl.getLink("user", "removeAccount"), '', this.httpJSONOptions).pipe(
       catchError((err: HttpErrorResponse) => throwError(err))
     );
   }
@@ -278,6 +294,11 @@ export class UtilsService {
     );
   }
 
+  /**
+   * sendResetPasswordLink:
+   * @param email
+   * @param clientUri
+   */
   sendResetPasswordLink(email: string, clientUri: string): Observable<void> {
     let em: { email: string, clientUri: string } = {email: email, clientUri: clientUri};
     return this.http.post<void>(this._baseUrl.getLink('cloud', 'sendResetPasswordLink'), JSON.stringify(em), this.httpJSONOptions).pipe(
@@ -286,11 +307,23 @@ export class UtilsService {
     );
   }
 
+
   getUserAuthorities(): Observable<{ authority: string }[]> {
     return this.http.post<{ authority: string }[]>(this._baseUrl.getLink('cloud', 'getUserAuthorities'), '', this.httpJSONOptions).pipe(
       tap(),
       catchError((err: HttpErrorResponse) => throwError(err))
     );
+  }
+
+  getHasLocalAccount() : void
+  {
+    this._hasLocalAccount = false;
+    this.http.post<boolean>(this._baseUrl.getLink('user', 'hasLocalAccount'), '', this.httpJSONOptions).pipe(
+      tap((result) => {
+        this._hasLocalAccount = result;
+      }),
+      catchError((err: HttpErrorResponse) => throwError(err))
+    ).subscribe()
   }
 
   sendMessage(message: Message) {

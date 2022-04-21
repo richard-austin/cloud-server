@@ -18,7 +18,7 @@
   <button mat-flat-button class="dismiss-button" color="default" (click)="dismiss()">Dismiss</button>
 </mat-card>
 
-<div *ngIf="embedded" [ngClass]="{'alert-danger': error, 'alert-success': success}" class="message-display" (click)="dismiss()">
+<div *ngIf="embedded && (error || success)" [ngClass]="{'alert-danger': error, 'alert-success': success}" class="message-display" (click)="dismiss()">
   <div *ngIf="success">
     Success: {{success}}
   </div>

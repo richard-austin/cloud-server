@@ -80,7 +80,8 @@
         <button *ngIf="!utilsService.isAdmin" mat-menu-item (click)="setIp();menuClosed()">
           Save Current Public IP
         </button>
-        <button *ngIf="!utilsService.isAdmin" mat-menu-item (click)="registerLocalNVRAccount(); menuClosed()">Register Local NVR Account</button>
+        <button *ngIf="!utilsService.isAdmin && !utilsService.hasLocalAccount" mat-menu-item (click)="registerLocalNVRAccount(); menuClosed()">Register Local NVR Account</button>
+        <button *ngIf="!utilsService.isAdmin && utilsService.hasLocalAccount" mat-menu-item (click)="removeLocalNVRAccount(); menuClosed()">Remove Local NVR Account</button>
         <button *ngIf="!utilsService.isAdmin" mat-menu-item (click)="drawdownCalc();menuClosed()">
           Pension Drawdown Calculator
         </button>
