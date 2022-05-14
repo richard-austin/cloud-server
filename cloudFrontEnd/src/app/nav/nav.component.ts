@@ -67,6 +67,10 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
     window.location.href = '#/changepassword';
   }
 
+  getActiveIPAddresses() {
+    window.location.href = '#/getactiveipaddresses';
+  }
+
   multiCamView() {
     window.location.href = '#/multicam';
   }

@@ -76,6 +76,9 @@
         <button mat-menu-item (click)="changePassword();menuClosed()">
           Change Password
         </button>
+        <button *ngIf="!utilsService.isAdmin" mat-menu-item (click)="getActiveIPAddresses(); menuClosed()">
+          Get Active Local IP Address(es)
+        </button>
         <div *ngIf="!utilsService.isAdmin" class="dropdown-divider"></div>
         <button *ngIf="!utilsService.isAdmin" mat-menu-item (click)="setIp();menuClosed()">
           Save Current Public IP

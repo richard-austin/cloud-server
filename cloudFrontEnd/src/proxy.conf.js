@@ -9,6 +9,7 @@ const PROXY_CONFIG = [
       "/utils",
       "/recording",
       "/live",
+      "/wifiUtils",
       "/dc"
     ],
     ws: true,

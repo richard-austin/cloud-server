@@ -150,7 +150,7 @@ export class UtilsService {
             this._isAdmin = this._loggedIn = false;
         }
       })
-    )
+    );
   }
 
   getTemperature(): Observable<Temperature> {
