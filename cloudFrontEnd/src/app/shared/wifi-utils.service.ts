@@ -4,6 +4,7 @@ import {catchError, map} from 'rxjs/operators';
 import {HttpClient, HttpErrorResponse, HttpHeaders} from '@angular/common/http';
 import {BaseUrl} from './BaseUrl/BaseUrl';
 import {IPDetails} from './IPDetails';
+import { WifiDetails } from './BaseUrl/wifi-details';
 
 @Injectable({
   providedIn: 'root'
@@ -22,6 +23,12 @@ export class WifiUtilsService {
   getActiveIPAddresses(): Observable<IPDetails[]> {
     return this.http.post<any>(this._baseUrl.getLink('wifiUtils', 'getActiveIPAddresses'), '', this.httpJSONOptions).pipe(
       map((ocr) => (ocr.responseObject as IPDetails[])),
+      catchError((err: HttpErrorResponse) => throwError(err))
+    );
+  }
+
+  getLocalWifiDetails(): Observable<WifiDetails[]> {
+    return this.http.post<WifiDetails[]>(this._baseUrl.getLink('wifiUtils', 'scanWifi'), '', this.httpJSONOptions).pipe(
       catchError((err: HttpErrorResponse) => throwError(err))
     );
   }

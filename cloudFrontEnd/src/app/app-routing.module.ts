@@ -21,6 +21,7 @@ import {ResetPasswordComponent} from "./reset-password/reset-password.component"
 import {RegisterLocalNvrAccountComponent} from "./register-local-nvr-account/register-local-nvr-account.component";
 import {RemoveLocalNvrAccountComponent} from "./remove-local-nvr-account/remove-local-nvr-account.component";
 import {GetActiveIPAddressesComponent} from './get-active-ipaddresses/get-active-ipaddresses.component';
+import {GetLocalWifiDetailsComponent} from './get-local-wifi-details/get-local-wifi-details.component';
 
 const routes: Routes = [
   {path: 'live', component: LiveContainerComponent, canActivate: [OnlyClientUsersService]},
@@ -40,7 +41,8 @@ const routes: Routes = [
   {path: 'resetpassword/:uniqueId', component: ResetPasswordComponent, canActivate: [OnlyAnonUsersService]},  // Reset the password after following email link
   {path: 'registerlocalnvraccount', component: RegisterLocalNvrAccountComponent, canActivate: [OnlyClientUsersService]},
   {path: 'removelocalnvraccount', component: RemoveLocalNvrAccountComponent, canActivate: [OnlyClientUsersService]},
-  {path: 'getactiveipaddresses', component: GetActiveIPAddressesComponent, canActivate: [OnlyClientUsersService]}
+  {path: 'getactiveipaddresses', component: GetActiveIPAddressesComponent, canActivate: [OnlyClientUsersService]},
+  {path: 'getlocalwifidetails', component: GetLocalWifiDetailsComponent, canActivate: [OnlyClientUsersService]}
 ];
 
 @NgModule({

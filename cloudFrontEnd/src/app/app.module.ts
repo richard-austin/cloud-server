@@ -56,6 +56,7 @@ import { SortPipe } from './accountAdmin/sort.pipe';
 import { RegisterLocalNvrAccountComponent } from './register-local-nvr-account/register-local-nvr-account.component';
 import { RemoveLocalNvrAccountComponent } from './remove-local-nvr-account/remove-local-nvr-account.component';
 import { GetActiveIPAddressesComponent } from './get-active-ipaddresses/get-active-ipaddresses.component';
+import { GetLocalWifiDetailsComponent } from './get-local-wifi-details/get-local-wifi-details.component';
 
 @NgModule({
   declarations: [
@@ -89,6 +90,7 @@ import { GetActiveIPAddressesComponent } from './get-active-ipaddresses/get-acti
     RegisterLocalNvrAccountComponent,
     RemoveLocalNvrAccountComponent,
     GetActiveIPAddressesComponent,
+    GetLocalWifiDetailsComponent,
   ],
     imports: [
         BrowserModule,
