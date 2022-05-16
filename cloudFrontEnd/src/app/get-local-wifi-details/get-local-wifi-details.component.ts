@@ -2,29 +2,43 @@ import {Component, OnInit, ViewChild} from '@angular/core';
 import { WifiDetails } from '../shared/BaseUrl/wifi-details';
 import { WifiUtilsService } from '../shared/wifi-utils.service';
 import {ReportingComponent} from '../reporting/reporting.component';
+import {timer} from 'rxjs';
+import { Subscription } from 'rxjs';
+import { OnDestroy } from '@angular/core';
 
 @Component({
   selector: 'app-get-local-wifi-details',
   templateUrl: './get-local-wifi-details.component.html',
   styleUrls: ['./get-local-wifi-details.component.scss']
 })
-export class GetLocalWifiDetailsComponent implements OnInit {
-  @ViewChild(ReportingComponent) reporting!:ReportingComponent;
+export class GetLocalWifiDetailsComponent implements OnInit, OnDestroy {
+  @ViewChild(ReportingComponent) reporting!: ReportingComponent;
 
   wifiDetails!: WifiDetails[];
   displayedColumns: string[] = ["InUse", "Ssid", "Rate", "Signal", "Channel", "Security", "Mode", "Bssid"];
+  subscription!: Subscription;
 
-  constructor(private wifiUtilsService: WifiUtilsService) { }
+  constructor(private wifiUtilsService: WifiUtilsService) {
+  }
 
-  ngOnInit(): void {
+  getLocalWifiDetails(): void {
     this.wifiUtilsService.getLocalWifiDetails().subscribe((result) => {
-      this.wifiDetails = result;
-      this.wifiDetails = this.wifiDetails.sort((dets1, dets2) => {
-        return dets1.in_use ? -1 : parseInt(dets1.signal) < parseInt(dets2.signal) ? 1 : -1;
-      })
-    },
+        this.wifiDetails = result;
+        this.wifiDetails = this.wifiDetails.sort((dets1, dets2) => {
+          return dets1.in_use ? -1 : parseInt(dets1.signal) < parseInt(dets2.signal) ? 1 : -1;
+        })
+      },
       reason =>
         this.reporting.errorMessage = reason
     )
+  }
+
+
+  ngOnInit(): void {
+    this.subscription = timer(0, 10000).subscribe(() =>  this.getLocalWifiDetails());
+  }
+
+  ngOnDestroy(): void {
+    this.subscription.unsubscribe();
   }
 }

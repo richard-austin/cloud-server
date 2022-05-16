@@ -1,0 +1,9 @@
+<div>
+  <mat-card>
+    <mat-card-title>Wifi Settings</mat-card-title>
+    <mat-card-content>
+      <app-reporting [embedded]="true"></app-reporting>
+      <div *ngIf="!wifiEnabled">Wifi Is Off</div>
+    </mat-card-content>
+  </mat-card>
+</div>

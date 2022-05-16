@@ -57,6 +57,7 @@ import { RegisterLocalNvrAccountComponent } from './register-local-nvr-account/r
 import { RemoveLocalNvrAccountComponent } from './remove-local-nvr-account/remove-local-nvr-account.component';
 import { GetActiveIPAddressesComponent } from './get-active-ipaddresses/get-active-ipaddresses.component';
 import { GetLocalWifiDetailsComponent } from './get-local-wifi-details/get-local-wifi-details.component';
+import { WifiSettingsComponent } from './wifi-settings/wifi-settings.component';
 
 @NgModule({
   declarations: [
@@ -91,6 +92,7 @@ import { GetLocalWifiDetailsComponent } from './get-local-wifi-details/get-local
     RemoveLocalNvrAccountComponent,
     GetActiveIPAddressesComponent,
     GetLocalWifiDetailsComponent,
+    WifiSettingsComponent,
   ],
     imports: [
         BrowserModule,

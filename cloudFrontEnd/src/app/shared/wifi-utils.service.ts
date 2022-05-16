@@ -17,7 +17,21 @@ export class WifiUtilsService {
     })
   };
 
-  constructor(private http: HttpClient, private _baseUrl: BaseUrl) {
+  readonly httpTextOptions = {
+    headers: new HttpHeaders({
+      'Content-Type': 'text/plain',
+      'Authorization': 'my-auth-token',
+    }),
+    responseType: 'text'
+  };
+
+  readonly httpTextHeaders =  new HttpHeaders({
+  'Content-Type': 'text/plain',
+  'Authorization': 'my-auth-token',
+});
+
+
+constructor(private http: HttpClient, private _baseUrl: BaseUrl) {
   }
 
   getActiveIPAddresses(): Observable<IPDetails[]> {
@@ -29,6 +43,14 @@ export class WifiUtilsService {
 
   getLocalWifiDetails(): Observable<WifiDetails[]> {
     return this.http.post<WifiDetails[]>(this._baseUrl.getLink('wifiUtils', 'scanWifi'), '', this.httpJSONOptions).pipe(
+      catchError((err: HttpErrorResponse) => throwError(err))
+    );
+  }
+
+  checkWifiStatus():Observable<string>
+  {
+    // @ts-ignore  Otherwise httpTextOptions gives problems with IntelliJ parsing.
+    return this.http.post<string>(this._baseUrl.getLink('wifiUtils', 'checkWifiStatus'), '', this.httpTextOptions).pipe(
       catchError((err: HttpErrorResponse) => throwError(err))
     );
   }

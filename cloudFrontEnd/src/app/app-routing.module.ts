@@ -22,6 +22,7 @@ import {RegisterLocalNvrAccountComponent} from "./register-local-nvr-account/reg
 import {RemoveLocalNvrAccountComponent} from "./remove-local-nvr-account/remove-local-nvr-account.component";
 import {GetActiveIPAddressesComponent} from './get-active-ipaddresses/get-active-ipaddresses.component';
 import {GetLocalWifiDetailsComponent} from './get-local-wifi-details/get-local-wifi-details.component';
+import {WifiSettingsComponent} from './wifi-settings/wifi-settings.component';
 
 const routes: Routes = [
   {path: 'live', component: LiveContainerComponent, canActivate: [OnlyClientUsersService]},
@@ -42,7 +43,8 @@ const routes: Routes = [
   {path: 'registerlocalnvraccount', component: RegisterLocalNvrAccountComponent, canActivate: [OnlyClientUsersService]},
   {path: 'removelocalnvraccount', component: RemoveLocalNvrAccountComponent, canActivate: [OnlyClientUsersService]},
   {path: 'getactiveipaddresses', component: GetActiveIPAddressesComponent, canActivate: [OnlyClientUsersService]},
-  {path: 'getlocalwifidetails', component: GetLocalWifiDetailsComponent, canActivate: [OnlyClientUsersService]}
+  {path: 'getlocalwifidetails', component: GetLocalWifiDetailsComponent, canActivate: [OnlyClientUsersService]},
+  {path: 'wifisettings', component: WifiSettingsComponent, canActivate: [OnlyClientUsersService]}
 ];
 
 @NgModule({
