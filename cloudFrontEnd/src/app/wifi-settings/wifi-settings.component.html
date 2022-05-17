@@ -3,7 +3,15 @@
     <mat-card-title>Wifi Settings</mat-card-title>
     <mat-card-content>
       <app-reporting [embedded]="true"></app-reporting>
-      <div *ngIf="!wifiEnabled">Wifi Is Off</div>
+      <div *ngIf="!wifiEnabled">Wifi Is Disabled</div>
+      <mat-checkbox [color]="'primary'" [checked]="wifiEnabled"
+                    [disabled]="false"
+                    (change)="setWifiStatus($event)">
+        {{wifiEnabled ? 'Disable' : 'Enable'}} WiFi
+      </mat-checkbox>
+      <div *ngIf="wifiEnabled">
+        {{wifiEnabled ? currentWifiConnection.accessPoint : "&ltWiFi Off&gt"}}
+       </div>
     </mat-card-content>
   </mat-card>
 </div>

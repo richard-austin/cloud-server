@@ -4,7 +4,9 @@ import {catchError, map} from 'rxjs/operators';
 import {HttpClient, HttpErrorResponse, HttpHeaders} from '@angular/common/http';
 import {BaseUrl} from './BaseUrl/BaseUrl';
 import {IPDetails} from './IPDetails';
-import { WifiDetails } from './BaseUrl/wifi-details';
+import {WifiDetails} from './BaseUrl/wifi-details';
+import { CurrentWifiConnection } from './current-wifi-connection';
+import { WifiStatus } from './wifi-status';
 
 @Injectable({
   providedIn: 'root'
@@ -17,21 +19,21 @@ export class WifiUtilsService {
     })
   };
 
-  readonly httpTextOptions = {
-    headers: new HttpHeaders({
-      'Content-Type': 'text/plain',
-      'Authorization': 'my-auth-token',
-    }),
-    responseType: 'text'
-  };
+  // readonly httpTextOptions = {
+  //   headers: new HttpHeaders({
+  //     'Content-Type': 'text/plain',
+  //     'Authorization': 'my-auth-token',
+  //   }),
+  //   responseType: 'text'
+  // };
+  //
+  readonly httpTextHeaders = new HttpHeaders({
+    'Content-Type': 'text/plain',
+    'Authorization': 'my-auth-token',
+  });
 
-  readonly httpTextHeaders =  new HttpHeaders({
-  'Content-Type': 'text/plain',
-  'Authorization': 'my-auth-token',
-});
 
-
-constructor(private http: HttpClient, private _baseUrl: BaseUrl) {
+  constructor(private http: HttpClient, private _baseUrl: BaseUrl) {
   }
 
   getActiveIPAddresses(): Observable<IPDetails[]> {
@@ -47,10 +49,23 @@ constructor(private http: HttpClient, private _baseUrl: BaseUrl) {
     );
   }
 
-  checkWifiStatus():Observable<string>
+  checkWifiStatus(): Observable<WifiStatus> {
+     return this.http.post<WifiStatus>(this._baseUrl.getLink('wifiUtils', 'checkWifiStatus'), '', this.httpJSONOptions).pipe(
+      catchError((err: HttpErrorResponse) => throwError(err))
+    );
+  }
+
+  setWifiStatus(status: string): Observable<WifiStatus>
   {
-    // @ts-ignore  Otherwise httpTextOptions gives problems with IntelliJ parsing.
-    return this.http.post<string>(this._baseUrl.getLink('wifiUtils', 'checkWifiStatus'), '', this.httpTextOptions).pipe(
+    let param:{status: string} = {status: status};
+    return this.http.post<WifiStatus>(this._baseUrl.getLink('wifiUtils', 'setWifiStatus'), JSON.stringify(param), this.httpJSONOptions).pipe(
+      catchError((err: HttpErrorResponse) => throwError(err))
+    );
+  }
+
+  getCurrentWifiConnection() : Observable<CurrentWifiConnection>
+  {
+    return this.http.post<CurrentWifiConnection>(this._baseUrl.getLink('wifiUtils', 'getCurrentWifiConnection'), '', this.httpJSONOptions).pipe(
       catchError((err: HttpErrorResponse) => throwError(err))
     );
   }
