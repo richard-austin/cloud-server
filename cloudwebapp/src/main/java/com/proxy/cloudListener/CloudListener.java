@@ -110,6 +110,7 @@ public class CloudListener implements SslContextProvider {
                         try {
                             // It will wait for a connection on the local port
                             SSLSocket cloudProxy = (SSLSocket) s.accept();
+                            logger.info("Accepted connection from NVR at "+cloudProxy.getRemoteSocketAddress().toString());
                             cloudProxy.setSoTimeout(0);
                             cloudProxy.setSoLinger(true, 5);
                             String prodId = getProductId(cloudProxy);

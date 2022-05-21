@@ -26,7 +26,7 @@ public class Cloud {
     private ExecutorService browserReadExecutor = null;
     private ExecutorService sendToCloudProxyExecutor = null;
     private ScheduledExecutorService startCloudProxyInputProcessExecutor = null;
-//    private ExecutorService acceptConnectionsFromBrowserExecutor = null;
+    private ScheduledExecutorService cloudProxyHeartbeatExecutor = null;
 
     private String NVRSESSIONID = "";
 
@@ -44,8 +44,7 @@ public class Cloud {
     private final boolean protocolAgnostic = true;  // ProtocolAgnostic means that login to NVR won't be done automatically by the Cloud
     private final CloudInstanceMap instances;
 
-    public Cloud(SSLSocket cloudProxy, String productId, CloudInstanceMap instances)
-    {
+    public Cloud(SSLSocket cloudProxy, String productId, CloudInstanceMap instances) {
         this.cloudProxy = cloudProxy;
         this.productId = productId;
         this.instances = instances;
@@ -55,16 +54,15 @@ public class Cloud {
      * start: Start the threads in the Cloud instance
      */
     public void start() {
-        if(!running) {
+        if (!running) {
             running = true;
             browserWriteExecutor = Executors.newSingleThreadExecutor();
             browserReadExecutor = Executors.newCachedThreadPool();
             sendToCloudProxyExecutor = Executors.newSingleThreadExecutor();
             startCloudProxyInputProcessExecutor = Executors.newSingleThreadScheduledExecutor();
- //           acceptConnectionsFromBrowserExecutor = Executors.newSingleThreadExecutor();
-            running = true;
+            cloudProxyHeartbeatExecutor = Executors.newSingleThreadScheduledExecutor();
+             running = true;
             startCloudProxyInputProcess();
- //           acceptConnectionsFromBrowserExecutor.execute(() -> acceptConnectionsFromBrowser(browserFacingPort));
         }
     }
 
@@ -83,13 +81,14 @@ public class Cloud {
             sendToCloudProxyExecutor.shutdownNow();
             if (startCloudProxyInputProcessExecutor != null)
                 startCloudProxyInputProcessExecutor.shutdownNow();
+            if (cloudProxyHeartbeatExecutor != null)
+                cloudProxyHeartbeatExecutor.shutdownNow();
 
-//            acceptConnectionsFromBrowserExecutor.shutdownNow();
             lastBitOfPreviousMessage = null;
             lastBitOfPreviousHttpMessage.clear();
-            clearSocketMap();
+            clearTokenSocketMap();
         } catch (Exception ex) {
-            logger.error(ex.getClass().getName()+" in stop: " + ex.getMessage());
+            logger.error(ex.getClass().getName() + " in stop: " + ex.getMessage());
         }
     }
 
@@ -120,7 +119,7 @@ public class Cloud {
             try {
                 OutputStream os = cloudProxy.getOutputStream();
                 do {
-                 //   System.out.println(new String(buf.array(), headerLength, buf.limit()));
+                    //   System.out.println(new String(buf.array(), headerLength, buf.limit()));
                     write(os, buf);
                     os.flush();
                 }
@@ -140,10 +139,10 @@ public class Cloud {
                 String payload = "username=" + cloudProperties.getUSERNAME() + "&password=" + cloudProperties.getPASSWORD();
 
                 String output = "POST /login/authenticate HTTP/1.1\r\n" +
-                        "Host: "+socket.getInetAddress().getHostAddress()+"\r\n" +
+                        "Host: " + socket.getInetAddress().getHostAddress() + "\r\n" +
                         "DNT: 1\r\n" +
                         "Upgrade-Insecure-Requests: 1\r\n" +
-                        "X-Auth-Token: 7yk=zJu+@77x@MTJG2HD*YLJgvBthkW!\r\n"+
+                        "X-Auth-Token: 7yk=zJu+@77x@MTJG2HD*YLJgvBthkW!\r\n" +
                         "Content-type: application/x-www-form-urlencoded\r\n" +
                         "Content-Length: " + payload.length() + "\r\n\r\n" +
                         payload + "\r\n";
@@ -175,7 +174,7 @@ public class Cloud {
 
             } catch (Exception ex) {
 
-                System.out.println(ex.getClass().getName()+" in authenticate: " + ex.getClass().getName() + ": " + ex.getMessage() + "\n\n");
+                System.out.println(ex.getClass().getName() + " in authenticate: " + ex.getClass().getName() + ": " + ex.getMessage() + "\n\n");
                 ex.printStackTrace();
             }
         } else
@@ -217,7 +216,7 @@ public class Cloud {
                     logger.info(new String(buf.array(), headerLength, buf.limit() - headerLength));
 
             } catch (Exception ioex) {
-                logger.error(ioex.getClass().getName()+" in logoff: " + ioex.getMessage());
+                logger.error(ioex.getClass().getName() + " in logoff: " + ioex.getMessage());
                 retVal = false;
             }
         }
@@ -258,6 +257,7 @@ public class Cloud {
         if (getToken(buf) == -1 && getDataLength(buf) == ignored.length()) {
             instances.resetNVRTimeout(getProductId());  // Reset the timeout which would remove this Cloud instance from the map
             String strVal = new String(Arrays.copyOfRange(buf.array(), headerLength, buf.limit()), StandardCharsets.UTF_8);
+            sendRequestToCloudProxy(buf);   // Bounce the heartbeat back to the CloudProxy to show we are still connected
             return ignored.equals(strVal);
         }
         return false;
@@ -326,7 +326,7 @@ public class Cloud {
         tokens.forEach(tokenSocketMap::remove);
     }
 
-    private synchronized void clearSocketMap() {
+    private synchronized void clearTokenSocketMap() {
         Set<Integer> tokens = new HashSet<>(tokenSocketMap.keySet());
         tokens.forEach((tok) -> {
             try {
@@ -339,13 +339,12 @@ public class Cloud {
 
     void showExceptionDetails(Throwable t, String functionName) {
         logger.error(t.getClass().getName() + " exception in " + functionName + ": " + t.getMessage() + "\n" + t.fillInStackTrace());
-        for (StackTraceElement stackTraceElement : t.getStackTrace()) {
-            System.err.println(stackTraceElement.toString());
-        }
+//        for (StackTraceElement stackTraceElement : t.getStackTrace()) {
+//            System.err.println(stackTraceElement.toString());
+//        }
     }
 
-    public String getProductId()
-    {
+    public String getProductId() {
         return productId;
     }
 
@@ -592,7 +591,7 @@ public class Cloud {
             } catch (InterruptedException ex) {
                 logger.warn("Interrupted wait in stealMessage: " + ex.getMessage());
             } catch (Exception ex) {
-                logger.trace(ex.getClass().getName()+" in stealMessage: " + ex.getMessage());
+                logger.trace(ex.getClass().getName() + " in stealMessage: " + ex.getMessage());
             }
         }
         stolenBuffers.remove(token);
@@ -626,7 +625,7 @@ public class Cloud {
                     setDataLength(nonHttp, combinedBuf.limit());
                     nonHttp.flip();
                     sendRequestToCloudProxy(nonHttp);
-                 } catch (Exception e) {
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
                 break;
@@ -669,7 +668,7 @@ public class Cloud {
         stop();
         this.cloudProxy = cloudProxy;
         start();
-     }
+    }
 
     public void reset() {
         logger.info("Reset called");
@@ -685,7 +684,7 @@ public class Cloud {
         }
         lastBitOfPreviousMessage = null;
         lastBitOfPreviousHttpMessage.clear();
-        clearSocketMap();
+        clearTokenSocketMap();
     }
 
     private int getMessageLengthFromPosition(ByteBuffer buf) {
