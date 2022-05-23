@@ -12,6 +12,7 @@ import {MatCheckboxChange} from '@angular/material/checkbox';
 export class WifiSettingsComponent implements OnInit {
   wifiEnabled: boolean = false;
   currentWifiConnection!: CurrentWifiConnection;
+  ethernetConnectionStatus!: string;
 
   @ViewChild(ReportingComponent) reporting!: ReportingComponent;
 
@@ -35,7 +36,23 @@ export class WifiSettingsComponent implements OnInit {
       });
   }
 
+  resetConnection() {
+     this.wifiUtilsService.restartCloudProxy().subscribe((result) => {
+       window.location.href = '/logoff';
+     },
+       reason => {
+         this.reporting.errorMessage = reason;
+       })
+  }
+
   ngOnInit(): void {
+    this.wifiUtilsService.checkConnectedThroughEthernet().subscribe((result) => {
+        this.ethernetConnectionStatus = result.status;
+      },
+      reason => {
+        this.reporting.errorMessage = reason;
+      });
+
     this.wifiUtilsService.checkWifiStatus().subscribe((result) => {
         this.showWifi();
         this.wifiEnabled = result.status === 'on';

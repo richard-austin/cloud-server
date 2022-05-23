@@ -7,6 +7,8 @@ import {IPDetails} from './IPDetails';
 import {WifiDetails} from './BaseUrl/wifi-details';
 import { CurrentWifiConnection } from './current-wifi-connection';
 import { WifiStatus } from './wifi-status';
+import { EthernetConnectionStatus } from './ethernet-connection-status';
+import {CloudProxyRestartMessage} from './cloud-proxy-restart-message';
 
 @Injectable({
   providedIn: 'root'
@@ -55,6 +57,13 @@ export class WifiUtilsService {
     );
   }
 
+  checkConnectedThroughEthernet(): Observable<EthernetConnectionStatus>
+  {
+    return this.http.post<WifiStatus>(this._baseUrl.getLink('wifiUtils', 'checkConnectedThroughEthernet'), '', this.httpJSONOptions).pipe(
+      catchError((err: HttpErrorResponse) => throwError(err))
+    );
+  }
+
   setWifiStatus(status: string): Observable<WifiStatus>
   {
     let param:{status: string} = {status: status};
@@ -66,6 +75,13 @@ export class WifiUtilsService {
   getCurrentWifiConnection() : Observable<CurrentWifiConnection>
   {
     return this.http.post<CurrentWifiConnection>(this._baseUrl.getLink('wifiUtils', 'getCurrentWifiConnection'), '', this.httpJSONOptions).pipe(
+      catchError((err: HttpErrorResponse) => throwError(err))
+    );
+  }
+
+  restartCloudProxy() : Observable<CloudProxyRestartMessage>
+  {
+    return this.http.post<CloudProxyRestartMessage>(this._baseUrl.getLink('cloudProxy', 'restart'), '', this.httpJSONOptions).pipe(
       catchError((err: HttpErrorResponse) => throwError(err))
     );
   }
