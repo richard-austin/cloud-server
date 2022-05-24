@@ -4,7 +4,8 @@
     <mat-card-content>
       <div class="alert-warning" *ngIf="ethernetConnectionStatus == 'NOT_CONNECTED_VIA_ETHERNET'">
         You have an Ethernet connection, but your NVR is connected to the Cloud service through Wi-Fi.
-        To make changes to the Wi-Fi settings, this connection must be through Ethernet. To switch the connection to Ethernet,
+        To make changes to the Wi-Fi settings, this connection must be through Ethernet. To switch the connection to
+        Ethernet,
         click the Reset Connection button, then log in again.
       </div>
 
@@ -15,17 +16,32 @@
         click the Reset Connection button, then log in again.
       </div>
       <div class="reset-connection-button">
-        <button *ngIf="ethernetConnectionStatus != 'CONNECTED_VIA_ETHERNET'" color="warning" mat-flat-button (click)="resetConnection()">Reset Connection</button>
+        <button *ngIf="ethernetConnectionStatus != 'CONNECTED_VIA_ETHERNET'" color="warning" mat-flat-button
+                (click)="resetConnection()">Reset Connection
+        </button>
       </div>
       <app-reporting [embedded]="true"></app-reporting>
-      <div *ngIf="!wifiEnabled">Wifi Is Disabled</div>
       <mat-checkbox [color]="'primary'" [checked]="wifiEnabled"
+                    matTooltip="Wi-Fi is currently {{wifiEnabled ? 'enabled' : 'disabled'}}, click to {{wifiEnabled ? 'disable' : 'enable'}}"
+                    matTooltipClass="tooltip"
                     [disabled]="ethernetConnectionStatus != 'CONNECTED_VIA_ETHERNET'"
                     (change)="setWifiStatus($event)">
         {{wifiEnabled ? 'Disable' : 'Enable'}} WiFi
       </mat-checkbox>
-      <div *ngIf="wifiEnabled">
-        {{wifiEnabled ? currentWifiConnection.accessPoint : "&ltWiFi Off&gt"}}
+      <div>
+        <mat-form-field appearance="fill">
+          <mat-label *ngIf="!loading">
+            {{wifiEnabled ? 'Select Wi-Fi Access Point' : 'Wi-Fi Is Off'}}
+          </mat-label>
+          <mat-label *ngIf="loading">
+            <mat-spinner [diameter]="25">Loading..</mat-spinner>
+          </mat-label>
+          <mat-select [disabled]="ethernetConnectionStatus != 'CONNECTED_VIA_ETHERNET' || !wifiEnabled" #selector>
+            <mat-option *ngFor="let wifi of wifiList" [value]="wifi.ssid">
+              {{wifi.ssid}}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
       </div>
     </mat-card-content>
   </mat-card>
