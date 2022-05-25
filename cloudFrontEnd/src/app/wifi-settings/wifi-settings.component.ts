@@ -7,6 +7,8 @@ import {WifiDetails} from '../shared/BaseUrl/wifi-details';
 import {OnDestroy} from '@angular/core';
 import {MatSelect} from '@angular/material/select/select';
 import {timer} from 'rxjs';
+import {WifiConnectResult} from '../shared/wifi-connect-result';
+import {HttpErrorResponse} from '@angular/common/http';
 
 @Component({
   selector: 'app-wifi-settings',
@@ -20,8 +22,10 @@ export class WifiSettingsComponent implements OnInit, OnDestroy {
   wifiList!: WifiDetails[];
   ethernetConnectionStatus!: string;
   loading: boolean = true;
+  needPassword: boolean = false;
 
   @ViewChild(ReportingComponent) reporting!: ReportingComponent;
+
 
   constructor(private wifiUtilsService: WifiUtilsService) {
   }
@@ -78,6 +82,21 @@ export class WifiSettingsComponent implements OnInit, OnDestroy {
       },
       reason => {
         this.reporting.errorMessage = reason;
+      });
+  }
+
+
+  connect() {
+    this.wifiUtilsService.setUpWifi(this.selector.value).subscribe((result) => {
+      this.reporting.successMessage = result.response;
+    },
+      (reason) => {
+        let err: WifiConnectResult = reason.error;
+        if(err.errorCode === 7) {
+          this.needPassword = true;
+        }
+        else
+          this.reporting.errorMessage = new HttpErrorResponse({statusText: err.message});
       });
   }
 

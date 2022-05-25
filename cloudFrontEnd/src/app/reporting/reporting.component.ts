@@ -45,7 +45,6 @@ export class ReportingComponent implements OnInit {
   }
 
   private clearMessage() {
-    // @ts-ignore
     this.error = undefined;
     this.success = undefined;
   }

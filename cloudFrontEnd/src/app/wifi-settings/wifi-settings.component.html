@@ -42,6 +42,12 @@
             </mat-option>
           </mat-select>
         </mat-form-field>
+        <div>
+          <button [disabled]="!wifiEnabled || currentWifiConnection.accessPoint == selector.value"
+                  mat-flat-button
+                  color="warn"
+          (click)="connect()">Connect</button>
+        </div>
       </div>
     </mat-card-content>
   </mat-card>

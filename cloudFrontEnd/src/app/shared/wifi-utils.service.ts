@@ -72,6 +72,16 @@ export class WifiUtilsService {
     );
   }
 
+  setUpWifi(ssid: string, password?: string) : Observable<{response: string}>{
+    let param:{ssid: string, password: string | undefined} = {ssid: ssid, password: undefined};
+    if(password !== undefined && password !== "")
+      param.password = password;
+
+    return this.http.post<{response:string}>(this._baseUrl.getLink('wifiUtils', 'setUpWifi'), JSON.stringify(param), this.httpJSONOptions).pipe(
+      catchError((err: HttpErrorResponse) => throwError(err))
+    );
+  }
+
   getCurrentWifiConnection() : Observable<CurrentWifiConnection>
   {
     return this.http.post<CurrentWifiConnection>(this._baseUrl.getLink('wifiUtils', 'getCurrentWifiConnection'), '', this.httpJSONOptions).pipe(
