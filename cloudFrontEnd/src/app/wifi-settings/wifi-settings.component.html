@@ -16,11 +16,12 @@
         click the Reset Connection button, then log in again.
       </div>
       <div class="reset-connection-button">
-        <button *ngIf="ethernetConnectionStatus != 'CONNECTED_VIA_ETHERNET'" color="warning" mat-flat-button
+        <button *ngIf="ethernetConnectionStatus != 'CONNECTED_VIA_ETHERNET' && ethernetConnectionStatus != ''"
+                color="warning" mat-flat-button
                 (click)="resetConnection()">Reset Connection
         </button>
       </div>
-      <app-reporting [embedded]="true"></app-reporting>
+      <app-reporting class="app-reporting" [embedded]="true"></app-reporting>
       <mat-checkbox [color]="'primary'" [checked]="wifiEnabled"
                     matTooltip="Wi-Fi is currently {{wifiEnabled ? 'enabled' : 'disabled'}}, click to {{wifiEnabled ? 'disable' : 'enable'}}"
                     matTooltipClass="tooltip"
@@ -36,17 +37,29 @@
           <mat-label *ngIf="loading">
             <mat-spinner [diameter]="25">Loading..</mat-spinner>
           </mat-label>
-          <mat-select [disabled]="ethernetConnectionStatus != 'CONNECTED_VIA_ETHERNET' || !wifiEnabled" #selector>
+          <mat-select [disabled]="ethernetConnectionStatus != 'CONNECTED_VIA_ETHERNET' || !wifiEnabled"
+                      (selectionChange)="onSelectorChange()"
+                      #selector>
             <mat-option *ngFor="let wifi of wifiList" [value]="wifi.ssid">
               {{wifi.ssid}}
             </mat-option>
           </mat-select>
         </mat-form-field>
+        <div *ngIf="needPassword">
+          <mat-form-field appearance="standard">
+            <input matInput type="password" [formControl]="getFormControl(enterPasswordForm, 'password')"
+                   matTooltip="Enter password for {{selector.value}}"
+                   matTooltipClass="tooltip"
+                   placeholder="Password for {{selector.value}}">
+            <mat-hint>New password for {{selector.value}}</mat-hint>
+          </mat-form-field>
+        </div>
         <div>
           <button [disabled]="!wifiEnabled || currentWifiConnection.accessPoint == selector.value"
                   mat-flat-button
                   color="warn"
-          (click)="connect()">Connect</button>
+                  (click)="connect()">Connect
+          </button>
         </div>
       </div>
     </mat-card-content>

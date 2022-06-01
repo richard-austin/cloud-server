@@ -28,3 +28,12 @@ div.reset-connection-button {
   margin-top: -3rem;
   margin-bottom: 3rem;
 }
+
+.app-reporting {
+  > div {
+    > div {
+      margin-bottom: 30rem;
+      margin-top: 2rem;
+    }
+  }
+}
