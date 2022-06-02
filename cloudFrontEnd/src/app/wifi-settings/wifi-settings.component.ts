@@ -24,6 +24,7 @@ export class WifiSettingsComponent implements OnInit, OnDestroy {
   ethernetConnectionStatus: string = "";
   loading: boolean = true;
   needPassword: boolean = false;
+  connecting: boolean = false;
 
   @ViewChild(ReportingComponent) reporting!: ReportingComponent;
   enterPasswordForm!: FormGroup;
@@ -93,13 +94,15 @@ export class WifiSettingsComponent implements OnInit, OnDestroy {
       this.password = this.getFormControl(this.enterPasswordForm, 'password').value;
     else
       this.password = undefined;
-
+    this.connecting = true;
     this.needPassword = false;
     this.wifiUtilsService.setUpWifi(this.selector.value, this.password).subscribe((result) => {
       this.reporting.successMessage = result.response;
         this.currentWifiConnection.accessPoint = this.selector.value;
+        this.connecting = false;
     },
       (reason) => {
+        this.connecting = false;
         let err: WifiConnectResult = reason.error;
         if(err.errorCode === 7) {
           this.needPassword = true;
@@ -109,7 +112,7 @@ export class WifiSettingsComponent implements OnInit, OnDestroy {
           this.reporting.warningMessage = err.message;
         }
         else
-          this.reporting.errorMessage = new HttpErrorResponse({statusText: err.message});
+          this.reporting.errorMessage = new HttpErrorResponse({error: err.message});
     });
   }
 
@@ -154,7 +157,6 @@ export class WifiSettingsComponent implements OnInit, OnDestroy {
     this.enterPasswordForm = new FormGroup({
       password: new FormControl(this.password, [Validators.required, Validators.maxLength(35)]),
      }, {updateOn: "change"});
-
   }
 
   ngOnDestroy(): void {

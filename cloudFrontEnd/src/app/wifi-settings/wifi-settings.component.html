@@ -2,14 +2,14 @@
   <mat-card>
     <mat-card-title>Wifi Settings</mat-card-title>
     <mat-card-content>
-      <div class="alert-warning" *ngIf="ethernetConnectionStatus == 'NOT_CONNECTED_VIA_ETHERNET'">
+      <div class="alert-warning-embedded" *ngIf="ethernetConnectionStatus == 'NOT_CONNECTED_VIA_ETHERNET'">
         You have an Ethernet connection, but your NVR is connected to the Cloud service through Wi-Fi.
         To make changes to the Wi-Fi settings, this connection must be through Ethernet. To switch the connection to
         Ethernet,
         click the Reset Connection button, then log in again.
       </div>
 
-      <div class="alert-warning" *ngIf="ethernetConnectionStatus == 'NO_ETHERNET'">
+      <div class="alert-warning-embedded" *ngIf="ethernetConnectionStatus == 'NO_ETHERNET'">
         You have no Ethernet connection available,
         To make changes to the Wi-Fi settings, the NVR must be connected to the Cloud Service through Ethernet.
         To switch the connection to Ethernet, connect an Ethernet cable between your router and the NVR then
@@ -21,13 +21,13 @@
                 (click)="resetConnection()">Reset Connection
         </button>
       </div>
-      <app-reporting class="app-reporting" [embedded]="true"></app-reporting>
+      <app-reporting [embedded]="true"></app-reporting>
       <mat-checkbox [color]="'primary'" [checked]="wifiEnabled"
                     matTooltip="Wi-Fi is currently {{wifiEnabled ? 'enabled' : 'disabled'}}, click to {{wifiEnabled ? 'disable' : 'enable'}}"
                     matTooltipClass="tooltip"
                     [disabled]="ethernetConnectionStatus != 'CONNECTED_VIA_ETHERNET'"
                     (change)="setWifiStatus($event)">
-        {{wifiEnabled ? 'Disable' : 'Enable'}} WiFi
+        {{wifiEnabled ? 'Disable' : 'Enable'}} Wi-Fi
       </mat-checkbox>
       <div>
         <mat-form-field appearance="fill">
@@ -35,7 +35,10 @@
             {{wifiEnabled ? 'Select Wi-Fi Access Point' : 'Wi-Fi Is Off'}}
           </mat-label>
           <mat-label *ngIf="loading">
-            <mat-spinner [diameter]="25">Loading..</mat-spinner>
+            <span class="connecting-spinner">
+              <mat-spinner [diameter]="25"></mat-spinner>
+              Loading..
+            </span>
           </mat-label>
           <mat-select [disabled]="ethernetConnectionStatus != 'CONNECTED_VIA_ETHERNET' || !wifiEnabled"
                       (selectionChange)="onSelectorChange()"
@@ -45,22 +48,25 @@
             </mat-option>
           </mat-select>
         </mat-form-field>
-        <div *ngIf="needPassword">
-          <mat-form-field appearance="standard">
-            <input matInput type="password" [formControl]="getFormControl(enterPasswordForm, 'password')"
-                   matTooltip="Enter password for {{selector.value}}"
-                   matTooltipClass="tooltip"
-                   placeholder="Password for {{selector.value}}">
-            <mat-hint>New password for {{selector.value}}</mat-hint>
-          </mat-form-field>
-        </div>
-        <div>
-          <button [disabled]="!wifiEnabled || currentWifiConnection.accessPoint == selector.value"
-                  mat-flat-button
-                  color="warn"
-                  (click)="connect()">Connect
-          </button>
-        </div>
+      </div>
+      <div *ngIf="needPassword">
+        <mat-form-field class="password-field" appearance="fill">
+          <input matInput type="password" [formControl]="getFormControl(enterPasswordForm, 'password')"
+                 matTooltip="Enter password for {{selector.value}}"
+                 matTooltipClass="tooltip"
+                 placeholder="Password for {{selector.value}}">
+          <mat-hint>New password for {{selector.value}}</mat-hint>
+        </mat-form-field>
+      </div>
+      <div class="connecting-spinner">
+        <button [disabled]="!wifiEnabled || currentWifiConnection.accessPoint == selector.value || connecting"
+                mat-flat-button
+                color="warn"
+                (click)="connect()">Connect
+        </button>
+        <ng-container *ngIf="connecting">
+            <mat-spinner [diameter]="25">Connecting to {{selector.value}}</mat-spinner>
+        </ng-container>
       </div>
     </mat-card-content>
   </mat-card>

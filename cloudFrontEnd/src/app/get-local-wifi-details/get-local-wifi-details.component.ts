@@ -17,6 +17,7 @@ export class GetLocalWifiDetailsComponent implements OnInit, OnDestroy {
   wifiDetails!: WifiDetails[];
   displayedColumns: string[] = ["InUse", "Ssid", "Rate", "Signal", "Channel", "Security", "Mode", "Bssid"];
   subscription!: Subscription;
+  private wifiEnabled: boolean = true;
 
   constructor(private wifiUtilsService: WifiUtilsService) {
   }
@@ -35,10 +36,21 @@ export class GetLocalWifiDetailsComponent implements OnInit, OnDestroy {
 
 
   ngOnInit(): void {
-    this.subscription = timer(0, 10000).subscribe(() =>  this.getLocalWifiDetails());
-  }
+    this.wifiUtilsService.checkWifiStatus().subscribe((result) => {
+
+        this.wifiEnabled = result.status === 'on';
+        if(this.wifiEnabled)
+          this.subscription = timer(0, 10000).subscribe(() =>  this.getLocalWifiDetails());
+        else
+          this.reporting.warningMessage = "Wi-Fi is disabled. You should go to Wi-Fi Admin->Wi-Fi Settings to enable it."
+       },
+      reason => {
+        this.reporting.errorMessage = reason;
+      });
+   }
 
   ngOnDestroy(): void {
-    this.subscription.unsubscribe();
-  }
+    if(this.subscription !== undefined)
+      this.subscription.unsubscribe();
+   }
 }

@@ -11,7 +11,7 @@
     margin-right: auto;
     > mat-card-content {
       >div {
-        width: 30rem;
+        width: 20rem;
       }
     }
   }
@@ -25,15 +25,27 @@ div.button-container{
 }
 
 div.reset-connection-button {
-  margin-top: -3rem;
-  margin-bottom: 3rem;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
 }
 
-.app-reporting {
-  > div {
-    > div {
-      margin-bottom: 30rem;
-      margin-top: 2rem;
-    }
+mat-form-field.password-field
+{
+    margin-bottom: 2rem;
+}
+
+span.connecting-spinner {
+  display: flex;
+  > mat-spinner {
+    margin-right: 1rem;
+  }
+}
+
+div.connecting-spinner {
+  display: flex;
+  > mat-spinner {
+    position: relative;
+    top: 0.3rem;
+    left: 0.5rem;
   }
 }
