@@ -17,6 +17,7 @@
       </div>
       <div class="reset-connection-button connecting-spinner">
         <button *ngIf="ethernetConnectionStatus != 'CONNECTED_VIA_ETHERNET' && ethernetConnectionStatus != ''"
+                [disabled]="resetting"
                 color="warning" mat-flat-button
                 (click)="resetConnection()">Reset Connection
         </button>

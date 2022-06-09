@@ -203,7 +203,9 @@ public class CloudListener implements SslContextProvider {
                 else
                 {
                     Cloud inst = instances.get(NVRSESSIONID);
-                    inst.readFromBrowser(channel, buf, token, bytesRead == -1);
+                    if(inst != null)
+                        // Call readFromBrowser on the Cloud instance if there is one for this session ID
+                        inst.readFromBrowser(channel, buf, token, bytesRead == -1);
                 }
             } catch (IOException ignored) {
                 //removeSocket(token);

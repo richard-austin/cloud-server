@@ -6,7 +6,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.SocketException;
 import java.nio.ByteBuffer;
-import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -62,7 +61,7 @@ public class Cloud {
             sendToCloudProxyExecutor = Executors.newSingleThreadExecutor();
             cloudProxyInputProcessExecutor = Executors.newSingleThreadScheduledExecutor();
             cloudProxyHeartbeatExecutor = Executors.newSingleThreadScheduledExecutor();
-             running = true;
+            running = true;
             startCloudProxyInputProcess();
         }
     }
@@ -73,17 +72,14 @@ public class Cloud {
             browserWriteExecutor.shutdownNow();
             browserReadExecutor.shutdownNow();
             sendToCloudProxyExecutor.shutdownNow();
-//            // Stop the thread
-//            if(cloudProxyProcessFuture != null)
-//                cloudProxyProcessFuture.cancel(true);
 
             if (cloudProxyInputProcessExecutor != null)
                 cloudProxyInputProcessExecutor.shutdownNow();
 
-            if (cloudProxy != null) {
-                cloudProxy.shutdownOutput();
-                cloudProxy.close();
-            }
+//            if (cloudProxy != null) {
+//                cloudProxy.shutdownOutput();
+//                //cloudProxy.close();
+//            }
 
             if (cloudProxyHeartbeatExecutor != null)
                 cloudProxyHeartbeatExecutor.shutdownNow();
@@ -111,19 +107,17 @@ public class Cloud {
                 }
             }
             // We don't reset here as we want to retain the NVR session for when the NVR reconnects
-            catch(SocketException ex)
-            {
+            catch (SocketException ex) {
                 showExceptionDetails(ex, "startCloudProxyInputProcess");
-                if(cloudProxy != null && !cloudProxy.isClosed()) {
+                if (cloudProxy != null && !cloudProxy.isClosed()) {
                     try {
                         cloudProxy.shutdownInput();
                         cloudProxy.shutdownOutput();
                         cloudProxy.close();
                     } catch (Exception ignored) {
                     }
-            }
-             }
-            catch (Exception exx) {
+                }
+            } catch (Exception exx) {
                 showExceptionDetails(exx, "startCloudProxyInputProcess");
             }
         });
@@ -261,7 +255,7 @@ public class Cloud {
                 removeSocket(token);
             } catch (Exception ex) {
                 showExceptionDetails(ex, "readFromBrowser");
-               // reset();
+                // reset();
             }
         });
     }
@@ -688,7 +682,7 @@ public class Cloud {
     public void reset() {
         logger.info("Reset called");
         if (cloudProxyInputProcessExecutor != null)
-            cloudProxyInputProcessExecutor.shutdown();
+            cloudProxyInputProcessExecutor.shutdownNow();
 
         cloudProxyInputProcessExecutor = Executors.newSingleThreadScheduledExecutor();
         if (cloudProxy != null && cloudProxy.isBound()) {
