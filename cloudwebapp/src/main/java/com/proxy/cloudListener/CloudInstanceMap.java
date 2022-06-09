@@ -29,7 +29,7 @@ public class CloudInstanceMap {
     private final Logger logger = (Logger) LoggerFactory.getLogger("CLOUD");
     private final String productIdRegex = "^(?:[A-Z0-9]{4}-){3}[A-Z0-9]{4}$";
     private final long browserSessionTimeout = 2 * 60 * 1000; // Remove browser (nvrSessionId) references after 1/2 hour of non use.
-    private final long nvrSessionTimeout = 30 * 1000;  // Remove NVR session references after 30 seconds without a heartbeat.
+    private final long nvrSessionTimeout = 300 * 1000;  // Remove NVR session references after 300 seconds without a heartbeat.
     Map<String, Cloud> map;
     // List of keys by Cloud instance value, used for remove by value
     Map<Cloud, List<String>> keyList;

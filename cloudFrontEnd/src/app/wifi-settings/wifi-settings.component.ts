@@ -10,6 +10,7 @@ import {timer} from 'rxjs';
 import {WifiConnectResult} from '../shared/wifi-connect-result';
 import {HttpErrorResponse} from '@angular/common/http';
 import {FormControl, FormGroup, Validators} from '@angular/forms';
+import {Router} from '@angular/router';
 
 @Component({
   selector: 'app-wifi-settings',
@@ -21,7 +22,7 @@ export class WifiSettingsComponent implements OnInit, OnDestroy {
   wifiEnabled: boolean = false;
   currentWifiConnection: CurrentWifiConnection = new CurrentWifiConnection();
   wifiList!: WifiDetails[];
-  ethernetConnectionStatus: string = "";
+  ethernetConnectionStatus: string = '';
   loading: boolean = true;
   needPassword: boolean = false;
   connecting: boolean = false;
@@ -29,8 +30,9 @@ export class WifiSettingsComponent implements OnInit, OnDestroy {
   @ViewChild(ReportingComponent) reporting!: ReportingComponent;
   enterPasswordForm!: FormGroup;
   private password: string | undefined;
+  resetting: boolean = false;
 
-  constructor(private wifiUtilsService: WifiUtilsService) {
+  constructor(private wifiUtilsService: WifiUtilsService, private router: Router) {
   }
 
   showWifi() {
@@ -80,45 +82,51 @@ export class WifiSettingsComponent implements OnInit, OnDestroy {
   }
 
   resetConnection() {
+    this.resetting = true;
     this.wifiUtilsService.restartCloudProxy().subscribe((result) => {
-        window.location.href = '/logoff';
+        timer(7000).subscribe(() => {
+            this.ngOnInit();
+            this.resetting = false;
+          }
+        );
       },
       reason => {
+        this.resetting = false;
         this.reporting.errorMessage = reason;
       });
   }
 
 
   connect() {
-    if(this.needPassword)
+    if (this.needPassword) {
       this.password = this.getFormControl(this.enterPasswordForm, 'password').value;
-    else
+    } else {
       this.password = undefined;
+    }
     this.connecting = true;
     this.needPassword = false;
     this.wifiUtilsService.setUpWifi(this.selector.value, this.password).subscribe((result) => {
-      this.reporting.successMessage = result.response;
+        this.reporting.successMessage = result.response;
         this.currentWifiConnection.accessPoint = this.selector.value;
         this.connecting = false;
-    },
+      },
       (reason) => {
         this.connecting = false;
         let err: WifiConnectResult = reason.error;
-        if(err.errorCode === 7) {
+        if (err.errorCode === 7) {
           this.needPassword = true;
-          this.reporting.warningMessage = "Please enter the password for "+this.selector.value;
-        }
-        else if(err.errorCode == 11) {
+          this.reporting.warningMessage = 'Please enter the password for ' + this.selector.value;
+        } else if (err.errorCode == 11) {
           this.reporting.warningMessage = err.message;
-        }
-        else
+        } else {
           this.reporting.errorMessage = new HttpErrorResponse({error: err.message});
-    });
+        }
+      });
   }
 
   onSelectorChange() {
-      this.needPassword = false;
-      this.reporting.dismiss();
+    this.needPassword = false;
+    this.reporting.dismiss();
   }
 
   onlyUnique(value: WifiDetails, index: number, self: WifiDetails[]) {
@@ -145,10 +153,11 @@ export class WifiSettingsComponent implements OnInit, OnDestroy {
     this.wifiUtilsService.checkWifiStatus().subscribe((result) => {
 
         this.wifiEnabled = result.status === 'on';
-        if(this.wifiEnabled)
+        if (this.wifiEnabled) {
           this.getLocalWifiDetails();
-        else
+        } else {
           this.loading = false;
+        }
       },
       reason => {
         this.reporting.errorMessage = reason;
@@ -156,7 +165,7 @@ export class WifiSettingsComponent implements OnInit, OnDestroy {
 
     this.enterPasswordForm = new FormGroup({
       password: new FormControl(this.password, [Validators.required, Validators.maxLength(35)]),
-     }, {updateOn: "change"});
+    }, {updateOn: "change"});
   }
 
   ngOnDestroy(): void {

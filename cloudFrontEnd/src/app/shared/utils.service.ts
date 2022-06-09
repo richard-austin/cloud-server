@@ -156,18 +156,18 @@ export class UtilsService {
   getTemperature(): Observable<Temperature> {
     return this.http.post<Temperature>(this._baseUrl.getLink("utils", "getTemperature"), '', this.httpJSONOptions).pipe(
       tap((result) => {
-          this._loggedIn = true;
-          this._isAdmin = result.isAdmin;
-        },
-        () => {
-          this._loggedIn = this._isAdmin = false;
-          // Check to see if there is a Cloud session and log off if there is
-          this.getUserAuthorities().subscribe((val) => {
-            if (val.find(v => v.authority === 'ROLE_CLIENT') !== undefined)
-              window.location.href = '/logoff';
-          })
-          //window.location.href="/logoff";  // Ensure Cloud session logged out (may just be NVR offline)
-          this.sendMessage(new LoggedOutMessage())
+        //   this._loggedIn = true;
+        //   this._isAdmin = result.isAdmin;
+        // },
+        // () => {
+        //   this._loggedIn = this._isAdmin = false;
+        //   // Check to see if there is a Cloud session and log off if there is
+        //   this.getUserAuthorities().subscribe((val) => {
+        //     if (val.find(v => v.authority === 'ROLE_CLIENT') !== undefined)
+        //       window.location.href = '/logoff';
+        //   })
+        //   //window.location.href="/logoff";  // Ensure Cloud session logged out (may just be NVR offline)
+        //   this.sendMessage(new LoggedOutMessage())
         }),
       catchError((err: HttpErrorResponse) => throwError(err))
     );
