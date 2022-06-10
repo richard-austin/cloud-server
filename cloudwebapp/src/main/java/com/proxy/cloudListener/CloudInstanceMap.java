@@ -28,7 +28,10 @@ import java.util.stream.Collectors;
 public class CloudInstanceMap {
     private final Logger logger = (Logger) LoggerFactory.getLogger("CLOUD");
     private final String productIdRegex = "^(?:[A-Z0-9]{4}-){3}[A-Z0-9]{4}$";
-    private final long browserSessionTimeout = 2 * 60 * 1000; // Remove browser (nvrSessionId) references after 1/2 hour of non use.
+    // Remove browser (nvrSessionId) references after 120 seconds with no call coming in.
+    //  This is twice the time between getTemperature calls which will refresh the timer as they come in, as
+    //  will any other new request from the browser,
+    private final long browserSessionTimeout = 120 * 1000;
     private final long nvrSessionTimeout = 300 * 1000;  // Remove NVR session references after 300 seconds without a heartbeat.
     Map<String, Cloud> map;
     // List of keys by Cloud instance value, used for remove by value
@@ -190,7 +193,13 @@ public class CloudInstanceMap {
     }
 
     private void createBrowserSessionTimer(String nvrSessionId) {
-        if (!productIdRegex.matches(nvrSessionId)) {
+        if (!nvrSessionId.matches(productIdRegex)) {
+
+            // Disable the existing timer for this NVR session id
+            if(timers.containsKey(nvrSessionId))
+                timers.get(nvrSessionId).cancel();
+
+            // Create a new timer
             BrowserSessionTimerTask task = new BrowserSessionTimerTask(nvrSessionId, this);
             Timer timer = new Timer(nvrSessionId);
             timer.schedule(task, browserSessionTimeout);
