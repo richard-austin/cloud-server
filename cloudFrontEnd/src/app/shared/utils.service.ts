@@ -145,16 +145,18 @@ export class UtilsService {
             break;
           case 'ROLE_ANONYMOUS':
             this._isAdmin = this._loggedIn = false;
+            this.sendMessage(new LoggedOutMessage());  // Tell nav component we are logged out
             break;
           default:
             this._isAdmin = this._loggedIn = false;
+            this.sendMessage(new LoggedOutMessage());  // Tell nav component we are logged out
         }
       })
     );
   }
 
   getTemperature(): Observable<Temperature> {
-    return this.http.post<Temperature>(this._baseUrl.getLink("utils", "getTemperature"), '', this.httpJSONOptions).pipe(
+    return this.http.post<Temperature>(this._baseUrl.getLink("cloud", "getTemperature"), '', this.httpJSONOptions).pipe(
       tap((result) => {
         //   this._loggedIn = true;
         //   this._isAdmin = result.isAdmin;
