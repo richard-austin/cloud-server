@@ -1,7 +1,7 @@
 import {AfterViewInit, Component, ElementRef, OnInit, ViewChild} from '@angular/core';
 import {FormControl, FormGroup, Validators} from "@angular/forms";
 import {CameraService} from "../cameras/camera.service";
-import {LoggedinMessage, UtilsService} from "../shared/utils.service";
+import {LoggedInMessage, UtilsService} from "../shared/utils.service";
 
 @Component({
   selector: 'app-login',
@@ -28,7 +28,7 @@ export class LoginComponent implements OnInit, AfterViewInit {
         this.getFormControl('password').setValue("");
         this.username = this.password = "";
         this.cameraSvc.initialiseCameras();
-        this.utilsService.sendMessage(new LoggedinMessage(result.role));  // Tell nav component we are logged in
+        this.utilsService.sendMessage(new LoggedInMessage(result.role));  // Tell nav component we are logged in
       },
       (reason)=> {
       this.errorMessage = reason.error;

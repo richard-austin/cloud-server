@@ -38,7 +38,7 @@ export class IdleTimeoutStatusMessage extends Message {
   active: boolean = true;
 }
 
-export class LoggedinMessage extends Message {
+export class LoggedInMessage extends Message {
   role: string;
 
   constructor(role: string) {
@@ -132,26 +132,7 @@ export class UtilsService {
       map((auths) => {
         return auths[0].authority;
       }),
-      tap((auth) => {
-        switch (auth) {
-          case 'ROLE_CLIENT':
-            this._isAdmin = false;
-            this._loggedIn = true;
-            this.getHasLocalAccount();
-            break;
-          case 'ROLE_ADMIN':
-            this._isAdmin = true;
-            this._loggedIn = true;
-            break;
-          case 'ROLE_ANONYMOUS':
-            this._isAdmin = this._loggedIn = false;
-            this.sendMessage(new LoggedOutMessage());  // Tell nav component we are logged out
-            break;
-          default:
-            this._isAdmin = this._loggedIn = false;
-            this.sendMessage(new LoggedOutMessage());  // Tell nav component we are logged out
-        }
-      })
+      tap()
     );
   }
 
@@ -312,7 +293,27 @@ export class UtilsService {
 
   getUserAuthorities(): Observable<{ authority: string }[]> {
     return this.http.post<{ authority: string }[]>(this._baseUrl.getLink('cloud', 'getUserAuthorities'), '', this.httpJSONOptions).pipe(
-      tap(),
+      tap((auth) => {
+        let strAuth: string = auth[0].authority;
+        switch (strAuth) {
+          case 'ROLE_CLIENT':
+            this._isAdmin = false;
+            this._loggedIn = true;
+            this.getHasLocalAccount();
+            break;
+          case 'ROLE_ADMIN':
+            this._isAdmin = true;
+            this._loggedIn = true;
+            break;
+          case 'ROLE_ANONYMOUS':
+            this._isAdmin = this._loggedIn = false;
+            this.sendMessage(new LoggedOutMessage());  // Tell nav component we are logged out
+            break;
+          default:
+            this._isAdmin = this._loggedIn = false;
+            this.sendMessage(new LoggedOutMessage());  // Tell nav component we are logged out
+        }
+      }),
       catchError((err: HttpErrorResponse) => throwError(err))
     );
   }

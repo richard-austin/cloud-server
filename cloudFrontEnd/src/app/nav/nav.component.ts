@@ -4,7 +4,7 @@ import {Camera, CameraStream} from "../cameras/Camera";
 import {ReportingComponent} from "../reporting/reporting.component";
 import {HttpErrorResponse} from "@angular/common/http";
 import {Subscription} from "rxjs";
-import {IdleTimeoutStatusMessage, Message, messageType, UtilsService} from "../shared/utils.service";
+import {IdleTimeoutStatusMessage, Message, messageType, UtilsService} from '../shared/utils.service';
 import {MatDialog} from "@angular/material/dialog";
 import {IdleTimeoutModalComponent} from "../idle-timeout-modal/idle-timeout-modal.component";
 import {MatDialogRef} from "@angular/material/dialog/dialog-ref";
