@@ -38,6 +38,7 @@ class CloudSecurityEventListener implements LogoutHandler, AuthenticationSuccess
             String cookie = cloudService.cloudListener.authenticate(productId)
             if (cookie != "" && cookie != "NO_CONN") {
                 response.addHeader("Set-Cookie", "NVRSESSIONID=" + cookie + "; Path=/; HttpOnly")
+                response.addHeader("Set-Cookie", "PRODUCTID=" + productId + "; Path=/; HttpOnly")
                 response.getWriter().write('{"role": "ROLE_CLIENT"}')
                 loginSuccess(userName)
             } else {

@@ -190,19 +190,19 @@ public class CloudListener implements SslContextProvider {
                 final int bytesRead = channel.read(buf);
                 HttpMessage msg = new HttpMessage(buf);
                 List<String> cookies = msg.get("cookie");
-                String NVRSESSIONID="";
-                final String key = "NVRSESSIONID";
+                String PRODUCTID="";
+                final String key = "PRODUCTID";
                 for(String cookie: cookies)
                     if(cookie.contains(key)) {
                         final int idx = cookie.indexOf(key)+(key+"=").length();
-                        NVRSESSIONID = cookie.substring(idx, idx+32);
+                        PRODUCTID = cookie.substring(idx, idx+19);
                         break;
                     }
-                if(NVRSESSIONID.equals(""))
-                    recycle(buf);  // No session ID, just ignore this message
+                if(PRODUCTID.equals(""))
+                    recycle(buf);  // No product ID, just ignore this message
                 else
                 {
-                    Cloud inst = instances.get(NVRSESSIONID);
+                    Cloud inst = instances.get(PRODUCTID);
                     if(inst != null)
                         // Call readFromBrowser on the Cloud instance if there is one for this session ID
                         inst.readFromBrowser(channel, buf, token, bytesRead == -1);
