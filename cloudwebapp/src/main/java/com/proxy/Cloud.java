@@ -14,7 +14,11 @@ import java.util.concurrent.*;
 import ch.qos.logback.classic.Logger;
 import com.proxy.cloudListener.CloudInstanceMap;
 import com.proxy.cloudListener.CloudListener;
+import grails.util.Holders;
+import org.grails.web.json.JSONObject;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationContext;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import java.util.zip.CRC32;
 import java.util.zip.Checksum;
@@ -43,11 +47,24 @@ public class Cloud {
     private final CloudProperties cloudProperties = CloudProperties.getInstance();
     private final boolean protocolAgnostic = true;  // ProtocolAgnostic means that login to NVR won't be done automatically by the Cloud
     private final CloudInstanceMap instances;
+    // Remove browser (nvrSessionId) references after 120 seconds with no call coming in.
+    //  This is twice the time between getTemperature calls which will refresh the timer as they come in, as
+    //  will any other new request from the browser,
+    private final long browserSessionTimeout = 120 * 1000;
+
+    private Map<String, Timer> sessionCountTimers;
+    SimpMessagingTemplate brokerMessagingTemplate;
+    final String update = new JSONObject()
+            .put("message", "update")
+            .toString();
 
     public Cloud(SSLSocket cloudProxy, String productId, CloudInstanceMap instances) {
         this.cloudProxy = cloudProxy;
         this.productId = productId;
         this.instances = instances;
+        ApplicationContext ctx = Holders.getGrailsApplication().getMainContext();
+        brokerMessagingTemplate = (SimpMessagingTemplate) ctx.getBean("brokerMessagingTemplate");
+        sessionCountTimers = new ConcurrentHashMap<>();
     }
 
     /**
@@ -217,7 +234,7 @@ public class Cloud {
                         "Referer: http://localhost:8083/\r\n" +
                         "Accept-Encoding: gzip, deflate, br\r\n" +
                         "Accept-Language: en-GB,en-US;q=0.9,en;q=0.8\r\n" +
-                        "Cookie: " + cookie + "\r\n\r\n";
+                        "Cookie: NVRSESSIONID=" + cookie + "\r\n\r\n";
 
                 System.out.println(logoff);
                 ByteBuffer buf = doRequestResponse(logoff);
@@ -234,9 +251,12 @@ public class Cloud {
 
     private final Map<Integer, ByteBuffer> lastBitOfPreviousHttpMessage = new ConcurrentHashMap<>();
 
-    public final void readFromBrowser(SocketChannel channel, ByteBuffer initialBuf, final int token, boolean finished) {
+    public final void readFromBrowser(SocketChannel channel, ByteBuffer initialBuf, final int token, final String nvrSessionId, boolean finished) {
         browserReadExecutor.submit(() -> {
             try {
+                if(!nvrSessionId.equals(""))
+                    createSessionTimeout(nvrSessionId);  // Reset the instance count timeout for this session id
+
                 updateSocketMap(channel, token);
                 ByteBuffer buf = initialBuf;
                 // Send the initial message delivered from the CloudListener
@@ -709,5 +729,34 @@ public class Cloud {
         }
     }
 
+    public void incSessionCount(String nvrSessionId) {
+        if(!sessionCountTimers.containsKey(nvrSessionId)) {
+            createSessionTimeout(nvrSessionId);
+            brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", update);
+        }
+    }
+
+    public void decSessionCount(String nvrSessionId) {
+        if(sessionCountTimers.containsKey(nvrSessionId)) {
+            sessionCountTimers.get(nvrSessionId).cancel();
+            sessionCountTimers.get(nvrSessionId).purge();
+            sessionCountTimers.remove(nvrSessionId);
+            brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", update);
+        }
+    }
+
+    void createSessionTimeout(String nvrSessionId)
+    {
+        TimerTask task = new SessionCountTimerTask(nvrSessionId, this);
+
+        Timer timer = new Timer(nvrSessionId);
+        timer.schedule(task, browserSessionTimeout);
+        if(sessionCountTimers.containsKey(nvrSessionId))
+            sessionCountTimers.get(nvrSessionId).cancel();
+
+        sessionCountTimers.put(nvrSessionId, timer);
+    }
+
+    public int getSessionCount() {return sessionCountTimers.size();}
 }
 

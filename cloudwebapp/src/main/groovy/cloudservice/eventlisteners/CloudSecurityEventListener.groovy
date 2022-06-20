@@ -51,8 +51,12 @@ class CloudSecurityEventListener implements LogoutHandler, AuthenticationSuccess
                 response.setHeader("Set-Cookie", "CLOUDSESSIONID=XYZ; Path=/; HttpOnly")
             }
         }
-        else
+        else {
+            response.addHeader("Set-Cookie", "NVRSESSIONID=NONE; Path=/; HttpOnly")
+            response.addHeader("Set-Cookie", "PRODUCTID=NONE; Path=/; HttpOnly")
+
             response.getWriter().write('{"role": "ROLE_ADMIN"}')
+        }
     }
 
     @Transactional

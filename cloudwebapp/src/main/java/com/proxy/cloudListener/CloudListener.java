@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -45,16 +46,15 @@ public class CloudListener implements SslContextProvider {
     private SSLServerSocket _s = null;
     private ServerSocketChannel _sc = null;
 
-    public void start()
-    {
+    public void start() {
         int cloudProxyFacingPort;
         int browserFacingPort;
 
-        if(!allRunning) {
+        if (!allRunning) {
             browserFacingPort = cloudProperties.getBROWSER_FACING_PORT();
             cloudProxyFacingPort = cloudProperties.getCLOUD_PROXY_FACING_PORT();
 
-            acceptConnectionsFromCloudProxyExecutor= Executors.newSingleThreadExecutor();
+            acceptConnectionsFromCloudProxyExecutor = Executors.newSingleThreadExecutor();
             acceptConnectionsFromBrowserExecutor = Executors.newSingleThreadExecutor();
             browserReadExecutor = Executors.newCachedThreadPool();
             allRunning = true;
@@ -63,8 +63,7 @@ public class CloudListener implements SslContextProvider {
         }
     }
 
-    public void stop()
-    {
+    public void stop() {
         try {
             // Stop the CloudProxy and browser listener threads
             allRunning = false;
@@ -76,28 +75,26 @@ public class CloudListener implements SslContextProvider {
             if (_s != null)
                 _s.close();
 
-            if(_sc != null)
+            if (_sc != null)
                 _sc.close();
 
             //  Close all the Cloud instances
-            instances.forEach((cloud ,ignoreList) -> {
+            instances.forEach((ignore, cloud) -> {
                 cloud.stop();
             });
 
-        }
-        catch(Exception ex)
-        {
-            logger.error(ex.getClass().getName()+" when closing CloudProxy listening socket: "+ex.getMessage());
+        } catch (Exception ex) {
+            logger.error(ex.getClass().getName() + " when closing CloudProxy listening socket: " + ex.getMessage());
         }
     }
 
     /**
      * getSessions: Gets the number of currently active sessions against product ID
+     *
      * @return: Map of number of sessions by product ID
      */
-    public Map<String, Integer> getSessions()
-    {
-        return instances.getSessions();
+    public Map<String, Cloud> getInstances() {
+        return instances.map;
     }
 
     private void acceptConnectionsFromCloudProxy(final int cloudProxyFacingPort) {
@@ -110,11 +107,11 @@ public class CloudListener implements SslContextProvider {
                         try {
                             // It will wait for a connection on the local port
                             SSLSocket cloudProxy = (SSLSocket) s.accept();
-                            logger.info("Accepted connection from NVR at "+cloudProxy.getRemoteSocketAddress().toString());
+                            logger.info("Accepted connection from NVR at " + cloudProxy.getRemoteSocketAddress().toString());
                             cloudProxy.setSoTimeout(0);
                             cloudProxy.setSoLinger(true, 5);
                             String prodId = getProductId(cloudProxy);
-                            if(!Objects.equals(prodId, "")) {
+                            if (!Objects.equals(prodId, "")) {
                                 startNewInstance(cloudProxy, prodId);
                             }
 
@@ -129,7 +126,7 @@ public class CloudListener implements SslContextProvider {
                         }
                     }
                 } catch (Exception ioex) {
-                    logger.error(ioex.getClass().getName()+" in acceptConnectionsFromCloudProxy: " + ioex.getClass().getName() + ": " + ioex.getMessage());
+                    logger.error(ioex.getClass().getName() + " in acceptConnectionsFromCloudProxy: " + ioex.getClass().getName() + ": " + ioex.getMessage());
                 }
             }
         });
@@ -140,12 +137,11 @@ public class CloudListener implements SslContextProvider {
     }
 
     private void startNewInstance(SSLSocket cloudProxy, String prodId) {
-        if(!instances.containsKey(prodId)) {
+        if (!instances.containsKey(prodId)) {
             Cloud newInstance = new Cloud(cloudProxy, prodId, instances);
             newInstance.start();
             instances.put(prodId, newInstance);
-        }
-        else {
+        } else {
             Cloud cloud = instances.get(prodId);
             cloud.setCloudProxyConnection(cloudProxy);
         }
@@ -157,6 +153,7 @@ public class CloudListener implements SslContextProvider {
      * @param browserFacingPort: The port the browser connects to
      */
     private void acceptConnectionsFromBrowser(final int browserFacingPort) {
+
         acceptConnectionsFromBrowserExecutor.execute(() -> {
             while (allRunning) {
                 try {
@@ -171,15 +168,17 @@ public class CloudListener implements SslContextProvider {
                             final int token = get_nextToken();
                             readFromBrowser(browser, token);
                         } catch (Exception ex) {
-                            logger.error(ex.getClass().getName()+" in acceptConnectionsFromBrowser:  " + ex.getMessage());
+                            logger.error(ex.getClass().getName() + " in acceptConnectionsFromBrowser:  " + ex.getMessage());
                         }
                     }
                 } catch (IOException ioex) {
-                    logger.error(ioex.getClass().getName()+" in acceptConnectionsFromBrowser: " + ioex.getMessage());
+                    logger.error(ioex.getClass().getName() + " in acceptConnectionsFromBrowser: " + ioex.getMessage());
                 }
             }
         });
     }
+
+    private final String productIdRegex = "^(?:[A-Z0-9]{4}-){3}[A-Z0-9]{4}$";
 
     final void readFromBrowser(SocketChannel channel, final int token) {
         browserReadExecutor.submit(() -> {
@@ -190,27 +189,34 @@ public class CloudListener implements SslContextProvider {
                 final int bytesRead = channel.read(buf);
                 HttpMessage msg = new HttpMessage(buf);
                 List<String> cookies = msg.get("cookie");
-                String PRODUCTID="";
+                String PRODUCTID = "";
+                String NVRSESSIONID = "";
                 final String key = "PRODUCTID";
-                for(String cookie: cookies)
-                    if(cookie.contains(key)) {
-                        final int idx = cookie.indexOf(key)+(key+"=").length();
-                        PRODUCTID = cookie.substring(idx, idx+19);
-                        break;
+                final String sessionIdKey = "NVRSESSIONID";
+                for (String cookie : cookies) {
+                    if (cookie.contains(key)) {
+                        final int idx = cookie.indexOf(key) + (key + "=").length();
+                        final int idx2 = cookie.indexOf(';', idx);
+                        PRODUCTID = cookie.substring(idx, idx2);
                     }
-                if(PRODUCTID.equals(""))
-                    recycle(buf);  // No product ID, just ignore this message
-                else
-                {
-                    Cloud inst = instances.get(PRODUCTID);
-                    if(inst != null)
-                        // Call readFromBrowser on the Cloud instance if there is one for this session ID
-                        inst.readFromBrowser(channel, buf, token, bytesRead == -1);
+                    if (cookie.contains(sessionIdKey)) {
+                        final int idx = cookie.indexOf(sessionIdKey) + (sessionIdKey + "=").length();
+                        final int idx2 = cookie.indexOf(';', idx);
+                        NVRSESSIONID = cookie.substring(idx, idx2);
+                    }
                 }
+                if (PRODUCTID.matches(productIdRegex)) {
+                    Cloud inst = instances.get(PRODUCTID);
+                    if (inst != null)
+                        // Call readFromBrowser on the Cloud instance if there is one for this session ID
+                        inst.readFromBrowser(channel, buf, token, NVRSESSIONID, bytesRead == -1);
+                } else
+                    recycle(buf);  // No product ID, just ignore this message
+
             } catch (IOException ignored) {
                 //removeSocket(token);
             } catch (Exception ex) {
-                logger.error(ex.getClass().getName()+" in readFromBrowser: " + ex.getMessage());
+                logger.error(ex.getClass().getName() + " in readFromBrowser: " + ex.getMessage());
             }
         });
     }
@@ -222,13 +228,12 @@ public class CloudListener implements SslContextProvider {
             byte[] prodId = new byte[1024];
             int bytesRead = is.read(prodId);
 
-            if(bytesRead != -1)
-            {
+            if (bytesRead != -1) {
                 AsymmetricCryptography ac = new AsymmetricCryptography();
                 PrivateKey privateKey = ac.getPrivate(cloudProperties.getPRIVATE_KEY_PATH());
                 String encryptedId = new String(prodId);
                 String decryptedId = ac.decryptText(encryptedId, privateKey);
-                if(decryptedId.matches("^(?:[A-Z0-9]{4}-){3}[A-Z0-9]{4}$")) {
+                if (decryptedId.matches("^(?:[A-Z0-9]{4}-){3}[A-Z0-9]{4}$")) {
                     retVal = decryptedId;
 
                     // Send affirmative response to CloudProxy
@@ -237,21 +242,17 @@ public class CloudListener implements SslContextProvider {
                     os.flush();
                 }
             }
+        } catch (Exception ex) {
+            logger.error(ex.getClass().getName() + " in getProductId: " + ex.getMessage());
         }
-        catch(Exception ex)
-        {
-            logger.error(ex.getClass().getName()+" in getProductId: "+ex.getMessage());
-        }
-        if(retVal.equals("")) {
+        if (retVal.equals("")) {
             try {
                 // Send error response to CloudProxy
                 OutputStream os = cloudProxy.getOutputStream();
                 os.write("ERROR".getBytes(StandardCharsets.UTF_8));
                 os.flush();
-            }
-            catch(IOException ex)
-            {
-                logger.error(ex.getClass().getName()+" in getProductId when sending error response: "+ex.getMessage());
+            } catch (IOException ex) {
+                logger.error(ex.getClass().getName() + " in getProductId when sending error response: " + ex.getMessage());
             }
         }
 
@@ -260,15 +261,15 @@ public class CloudListener implements SslContextProvider {
 
     /**
      * authenticate: Authenticate via the appropriate Cloud instance
+     *
      * @param productId: The users product id
      * @return: The NVRSESSIONID
      */
     public String authenticate(String productId) {
-        if(instances.containsKey(productId)) {
+        if (instances.containsKey(productId)) {
             Cloud inst = instances.get(productId);
             String nvrSessionId = inst.authenticate();
-            if(!Objects.equals(nvrSessionId, "") && instances.get(nvrSessionId) == null)
-                instances.put(nvrSessionId, inst);
+            inst.incSessionCount(nvrSessionId);
 
             return nvrSessionId;
         }
@@ -276,26 +277,26 @@ public class CloudListener implements SslContextProvider {
         return "";
     }
 
-    public void logoff(String cookie)
-    {
+    public void logoff(String cookie) {
         try {
-            final int startIndex = cookie.indexOf("NVRSESSIONID");
+            int startIndex = cookie.indexOf("NVRSESSIONID");
             int endIndex = cookie.indexOf(";", startIndex);
             endIndex = endIndex == -1 ? cookie.length() : endIndex;
-            final String nvrSessionId = cookie.substring(startIndex + "NVRSESSIONID=".length(), endIndex);
-            final String cookieDef = cookie.substring(startIndex, endIndex);
-            final Cloud inst = instances.get(nvrSessionId);
-            inst.logoff(cookieDef);
-            instances.remove(nvrSessionId);
-        }
-        catch(Exception ex)
-        {
-            logger.error(ex.getClass().getName()+" in logoff: "+ex.getMessage());
-        }
-    }
+            startIndex += "NVRSESSIONID=".length();
+            final String nvrSessionId = cookie.substring(startIndex, endIndex);
 
-    public void removeKey(String productId) {
-        instances.remove(productId);
+            final int piStartIndex = cookie.indexOf("PRODUCTID");
+            int piEndIndex = cookie.indexOf(";", piStartIndex);
+            piEndIndex = piEndIndex == -1 ? cookie.length() : piEndIndex;
+            final String productid = cookie.substring(piStartIndex + "PRODUCTID=".length(), piEndIndex);
+
+
+            final Cloud inst = instances.get(productid);
+            inst.decSessionCount(nvrSessionId);
+            inst.logoff(nvrSessionId);
+        } catch (Exception ex) {
+            logger.error(ex.getClass().getName() + " in logoff: " + ex.getMessage());
+        }
     }
 
     /**

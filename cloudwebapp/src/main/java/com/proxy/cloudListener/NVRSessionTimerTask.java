@@ -17,6 +17,7 @@ public class NVRSessionTimerTask extends TimerTask {
     @Override
     public void run() {
          Cloud cloud = map.get(productId);
-         map.removeByValue(cloud);
+         cloud.stop();
+         map.remove(productId);
     }
 }

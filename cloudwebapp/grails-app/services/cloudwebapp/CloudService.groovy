@@ -3,10 +3,10 @@ package cloudwebapp
 import asset.pipeline.grails.AssetResourceLocator
 import cloudservice.User
 import cloudservice.commands.RegisterUserCommand
-import cloudservice.commands.SetAccountEnabledStatusCommand
 import cloudservice.enums.PassFail
 import cloudservice.interfaceobjects.ObjectCommandResponse
 import cloudservice.interfaceobjects.RestfulResponse
+import com.proxy.Cloud
 import com.proxy.cloudListener.CloudListener
 import grails.gorm.transactions.Transactional
 import grails.plugin.springsecurity.SpringSecurityService
@@ -164,8 +164,9 @@ class CloudService {
         ObjectCommandResponse response = new ObjectCommandResponse()
         try {
             String nvrSessionId = cloudListener.authenticate(cmd.productId)
-            cloudListener.removeKey(nvrSessionId)   // Remove the key from the instance map as it would show as a session on
-                                                    //  the admin accounts list until it timed out
+            // Decrement the instance count, or registering will show as a an active session on admin and we
+            // only want to show logged in client sessions.
+            cloudListener.getInstances()?.get(cmd.productId)?.decSessionCount(nvrSessionId)
 
             if (User.findByProductid(cmd.productId) != null)
                 throw new Exception("Product ID " + cmd.productId + " is already registered")
@@ -203,7 +204,7 @@ class CloudService {
 
             if (cloudListener != null) {
                 List<User> users = User.getAll()
-                Map<String, Integer> sessions = cloudListener.getSessions()
+                Map<String, Cloud> instances = cloudListener.getInstances()
 
                 users.forEach((User user) -> {
                     if(user.getProductid() != "0000-0000-0000-0000") {   // Don't include the admin account
@@ -211,16 +212,15 @@ class CloudService {
                         acc.accountCreated = true
                         acc.accountEnabled = user.getEnabled()
                         accounts.add(acc)
-                        if (sessions.containsKey(acc.productId)) {
+                        if (instances.containsKey(acc.productId)) {
                             acc.nvrConnected = true
-                            if (sessions.get(acc.productId) > 0)
-                                acc.usersConnected = sessions.get(acc.productId)
+                            acc.usersConnected = instances.get(user.getProductid()).getSessionCount()
                         }
                     }
                 })
 
                 // Add any connected NVR's where no account has been created
-                sessions.forEach((key, session) -> {
+                instances.forEach((key, cloud) -> {
                     if (!accounts.find((account) -> { account.getProductId() == key })) {
                         Account acc = new Account(key, '', '')
                         acc.accountCreated = false
