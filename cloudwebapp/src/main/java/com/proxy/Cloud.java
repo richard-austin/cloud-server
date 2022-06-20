@@ -122,18 +122,6 @@ public class Cloud {
                     }
                     recycle(buf);
                 }
-            }
-            // We don't reset here as we want to retain the NVR session for when the NVR reconnects
-            catch (SocketException ex) {
-                showExceptionDetails(ex, "startCloudProxyInputProcess");
-                if (cloudProxy != null && !cloudProxy.isClosed()) {
-                    try {
-                        cloudProxy.shutdownInput();
-                        cloudProxy.shutdownOutput();
-                        cloudProxy.close();
-                    } catch (Exception ignored) {
-                    }
-                }
             } catch (Exception exx) {
                 showExceptionDetails(exx, "startCloudProxyInputProcess");
             }
@@ -152,7 +140,6 @@ public class Cloud {
                 while (buf.position() < buf.limit());
             } catch (Exception ex) {
                 showExceptionDetails(ex, "sendRequestToCloudProxy");
-                reset();
             }
         });
     }
@@ -546,6 +533,7 @@ public class Cloud {
                             }
                         } catch (Exception ex) {
                             showExceptionDetails(ex, "splitMessages");
+                            lastBitOfPreviousMessage = null;
                         }
                     }
                 }
@@ -553,7 +541,7 @@ public class Cloud {
             recycle(combinedBuf);
         } catch (Exception ex) {
             showExceptionDetails(ex, "splitMessages");
-            reset();
+            lastBitOfPreviousMessage = null;
         }
     }
 
@@ -676,12 +664,12 @@ public class Cloud {
                     if (msg.getContentLength() > 0)
                         output.put(msg.getMessageBody());
                     int dataLength = output.position() - headerLength;
-
                     setDataLength(output, dataLength);
                     setBufferForSend(output);
                     sendRequestToCloudProxy(output);
                 } catch (Exception ex) {
                     System.out.println("ERROR: Exception in splitHttpMessages when writing to stream: " + ex.getClass().getName() + ex.getMessage());
+                    lastBitOfPreviousHttpMessage.clear();
                 }
             } else {
                 ByteBuffer remainingData = ByteBuffer.allocate(combinedBuf.limit() - combinedBuf.position());
@@ -699,22 +687,16 @@ public class Cloud {
         start();
     }
 
-    public void reset() {
-        logger.info("Reset called");
-        if (cloudProxyInputProcessExecutor != null)
-            cloudProxyInputProcessExecutor.shutdownNow();
-
-        cloudProxyInputProcessExecutor = Executors.newSingleThreadScheduledExecutor();
-        if (cloudProxy != null && cloudProxy.isBound()) {
-            try {
-                cloudProxy.close();
-            } catch (IOException ignored) {
-            }
-        }
-        lastBitOfPreviousMessage = null;
-        lastBitOfPreviousHttpMessage.clear();
-        clearTokenSocketMap();
-    }
+//    public void reset() {
+//        logger.info("Reset called");
+//        if (cloudProxyInputProcessExecutor != null)
+//            cloudProxyInputProcessExecutor.shutdownNow();
+//
+//        cloudProxyInputProcessExecutor = Executors.newSingleThreadScheduledExecutor();
+//        lastBitOfPreviousMessage = null;
+//        lastBitOfPreviousHttpMessage.clear();
+//        clearTokenSocketMap();
+//    }
 
     private int getMessageLengthFromPosition(ByteBuffer buf) {
         return buf.getInt(buf.position() + tokenLength) + headerLength;
