@@ -2,7 +2,7 @@ import {Component, OnInit, ViewChild} from '@angular/core';
 import {ReportingComponent} from '../reporting/reporting.component';
 import {WifiUtilsService} from '../shared/wifi-utils.service';
 import {CurrentWifiConnection} from '../shared/current-wifi-connection';
-import {MatCheckboxChange} from '@angular/material/checkbox';
+import {MatCheckbox, MatCheckboxChange} from '@angular/material/checkbox';
 import {WifiDetails} from '../shared/BaseUrl/wifi-details';
 import {OnDestroy} from '@angular/core';
 import {MatSelect} from '@angular/material/select/select';
@@ -10,7 +10,6 @@ import {timer} from 'rxjs';
 import {WifiConnectResult} from '../shared/wifi-connect-result';
 import {HttpErrorResponse} from '@angular/common/http';
 import {FormControl, FormGroup, Validators} from '@angular/forms';
-import {Router} from '@angular/router';
 
 @Component({
   selector: 'app-wifi-settings',
@@ -19,6 +18,7 @@ import {Router} from '@angular/router';
 })
 export class WifiSettingsComponent implements OnInit, OnDestroy {
   @ViewChild('selector') selector!: MatSelect;
+  @ViewChild('wifiStatusCheckbox') wifiStatusCheckbox!: MatCheckbox;
   wifiEnabled: boolean = false;
   currentWifiConnection: CurrentWifiConnection = new CurrentWifiConnection();
   wifiList!: WifiDetails[];
@@ -32,7 +32,7 @@ export class WifiSettingsComponent implements OnInit, OnDestroy {
   private password: string | undefined;
   resetting: boolean = false;
 
-  constructor(private wifiUtilsService: WifiUtilsService, private router: Router) {
+  constructor(private wifiUtilsService: WifiUtilsService) {
   }
 
   showWifi() {
@@ -61,29 +61,34 @@ export class WifiSettingsComponent implements OnInit, OnDestroy {
   setWifiStatus($event: MatCheckboxChange) {
     let status: string = $event.checked ? 'on' : 'off';
     this.loading = true;
-
-    this.wifiUtilsService.setWifiStatus(status).subscribe((result) => {
-        this.wifiEnabled = result.status === 'on';
-        if (this.wifiEnabled) {
-
-          // Allow time for the Wi-Fi connection to re-establish so iwconfig can detect it
-          timer(7000).subscribe(() => {
-            this.getLocalWifiDetails();
+    if (this.ethernetConnectionStatus === 'CONNECTED_VIA_ETHERNET') {
+      this.wifiUtilsService.setWifiStatus(status).subscribe((result) => {
+          this.wifiEnabled = result.status === 'on';
+          if (this.wifiEnabled) {
+            // Allow time for the Wi-Fi connection to re-establish so iwconfig can detect it
+            timer(7000).subscribe(() => {
+              this.getLocalWifiDetails();
+              this.loading = false;
+            });
+          } else {
+            this.wifiList = [];
             this.loading = false;
-          });
-        } else {
-          this.wifiList = [];
+          }
+        },
+        reason => {
+          this.wifiStatusCheckbox.checked = true;
           this.loading = false;
-        }
-      },
-      reason => {
-        this.reporting.errorMessage = reason;
-      });
+          this.reporting.errorMessage = reason;
+        });
+    } else {
+      this.wifiStatusCheckbox.checked = true;
+      this.loading = false;
+    }
   }
 
   resetConnection() {
     this.resetting = true;
-    this.wifiUtilsService.restartCloudProxy().subscribe((result) => {
+    this.wifiUtilsService.restartCloudProxy().subscribe(() => {
         timer(7000).subscribe(() => {
             this.ngOnInit();
             this.resetting = false;
@@ -165,7 +170,7 @@ export class WifiSettingsComponent implements OnInit, OnDestroy {
 
     this.enterPasswordForm = new FormGroup({
       password: new FormControl(this.password, [Validators.required, Validators.maxLength(35)]),
-    }, {updateOn: "change"});
+    }, {updateOn: 'change'});
   }
 
   ngOnDestroy(): void {

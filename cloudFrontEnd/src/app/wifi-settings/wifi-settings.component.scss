@@ -35,6 +35,8 @@ mat-form-field.password-field
 }
 
 span.connecting-spinner {
+  position: relative;;
+  top: 0.5rem;
   display: flex;
   > mat-spinner {
     margin-right: 0.5rem;
