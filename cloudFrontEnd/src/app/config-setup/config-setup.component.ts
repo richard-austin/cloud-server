@@ -301,7 +301,7 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit {
           if (stream.motion.enabled) {
             // stream.recording = new Recording();
             stream.recording.enabled = true;
-            stream.recording.uri = 'http://localhost:8084/recording/stream' + streamNum + '/';
+            stream.recording.uri = '/recording/stream' + streamNum + '/';
             stream.recording.location = 'stream' + streamNum;
             if (stream.motion.trigger_recording_on !== '') {
               let recStreamKey: string[] = stream.motion.trigger_recording_on.split('.');
@@ -311,7 +311,7 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit {
                 // Set up the recording
                 if (recStream !== undefined) {
                   recStream.recording.enabled = true;
-                  recStream.recording.uri = 'http://localhost:8084/recording/stream' + recStream.absolute_num + '/';
+                  recStream.recording.uri = '/recording/stream' + recStream.absolute_num + '/';
                   recStream.recording.location = 'stream' + recStream.absolute_num;
                 }
               }
