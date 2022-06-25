@@ -238,7 +238,7 @@ public class Cloud {
 
     private final Map<Integer, ByteBuffer> lastBitOfPreviousHttpMessage = new ConcurrentHashMap<>();
 
-    public final void readFromBrowser(SocketChannel channel, ByteBuffer initialBuf, final int token, final String nvrSessionId, boolean finished) {
+    public final void readFromBrowser(final SocketChannel channel, final ByteBuffer initialBuf, final int token, final String nvrSessionId, boolean finished) {
         browserReadExecutor.submit(() -> {
             try {
                 if (!nvrSessionId.equals(""))
@@ -255,10 +255,10 @@ public class Cloud {
                     splitHttpMessages(buf, token, lastBitOfPreviousHttpMessage);
                     buf = getBuffer();
                 }
-                channel.close();
                 setToken(buf, token);
                 setConnectionClosedFlag(buf);
                 sendRequestToCloudProxy(buf);
+                removeSocket(token);
             } catch (IOException ignored) {
                 removeSocket(token);
             } catch (Exception ex) {
