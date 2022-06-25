@@ -52,7 +52,7 @@ public class Cloud {
     //  will any other new request from the browser,
     private final long browserSessionTimeout = 120 * 1000;
 
-    private Map<String, Timer> sessionCountTimers;
+    final private Map<String, Timer> sessionCountTimers;
     SimpMessagingTemplate brokerMessagingTemplate;
     final String update = new JSONObject()
             .put("message", "update")
@@ -241,7 +241,7 @@ public class Cloud {
     public final void readFromBrowser(SocketChannel channel, ByteBuffer initialBuf, final int token, final String nvrSessionId, boolean finished) {
         browserReadExecutor.submit(() -> {
             try {
-                if(!nvrSessionId.equals(""))
+                if (!nvrSessionId.equals(""))
                     createSessionTimeout(nvrSessionId);  // Reset the instance count timeout for this session id
 
                 updateSocketMap(channel, token);
@@ -255,6 +255,7 @@ public class Cloud {
                     splitHttpMessages(buf, token, lastBitOfPreviousHttpMessage);
                     buf = getBuffer();
                 }
+                channel.close();
                 setToken(buf, token);
                 setConnectionClosedFlag(buf);
                 sendRequestToCloudProxy(buf);
@@ -291,6 +292,7 @@ public class Cloud {
                 SocketChannel frontEndChannel = tokenSocketMap.get(token);  //Select the correct connection to respond to
                 if (getConnectionClosedFlag(buf) != 0) {
                     removeSocket(token);  // Usually already gone
+                    // frontEndChannel.close();
                 } else if (frontEndChannel != null && frontEndChannel.isOpen()) {
                     buf.position(headerLength);
                     buf.limit(headerLength + length);
@@ -304,7 +306,7 @@ public class Cloud {
                         logger.warn("IOException in respondToBrowser: " + ioex.getMessage());
                         setConnectionClosedFlag(buf);
                         sendRequestToCloudProxy(buf);
-                        frontEndChannel.shutdownOutput().shutdownOutput().close();
+                        frontEndChannel.shutdownOutput().close();
                     }
                 }
             } catch (Exception ex) {
@@ -328,8 +330,11 @@ public class Cloud {
     }
 
     private void removeSocket(int token) {
-        logger.info("Removing socket for token " + token);
-        tokenSocketMap.remove(token);
+        try (var skt = tokenSocketMap.remove(token)) {
+            logger.info("Removing socket for token " + token);
+        } catch (IOException ex) {
+            showExceptionDetails(ex, "removeSocket");
+        }
     }
 
     private synchronized void updateSocketMap(SocketChannel browser, int token) {
@@ -712,14 +717,14 @@ public class Cloud {
     }
 
     public void incSessionCount(String nvrSessionId) {
-        if(!sessionCountTimers.containsKey(nvrSessionId)) {
+        if (!sessionCountTimers.containsKey(nvrSessionId)) {
             createSessionTimeout(nvrSessionId);
             brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", update);
         }
     }
 
     public void decSessionCount(String nvrSessionId) {
-        if(sessionCountTimers.containsKey(nvrSessionId)) {
+        if (sessionCountTimers.containsKey(nvrSessionId)) {
             sessionCountTimers.get(nvrSessionId).cancel();
             sessionCountTimers.get(nvrSessionId).purge();
             sessionCountTimers.remove(nvrSessionId);
@@ -727,18 +732,19 @@ public class Cloud {
         }
     }
 
-    void createSessionTimeout(String nvrSessionId)
-    {
+    void createSessionTimeout(String nvrSessionId) {
         TimerTask task = new SessionCountTimerTask(nvrSessionId, this);
 
         Timer timer = new Timer(nvrSessionId);
         timer.schedule(task, browserSessionTimeout);
-        if(sessionCountTimers.containsKey(nvrSessionId))
+        if (sessionCountTimers.containsKey(nvrSessionId))
             sessionCountTimers.get(nvrSessionId).cancel();
 
         sessionCountTimers.put(nvrSessionId, timer);
     }
 
-    public int getSessionCount() {return sessionCountTimers.size();}
+    public int getSessionCount() {
+        return sessionCountTimers.size();
+    }
 }
 
