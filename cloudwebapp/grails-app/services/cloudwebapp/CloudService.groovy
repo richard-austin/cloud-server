@@ -16,6 +16,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate
 
 import javax.servlet.http.HttpServletRequest
 import java.nio.charset.StandardCharsets
+import java.util.concurrent.ConcurrentHashMap
 
 class Temperature {
     Temperature(String temp) {
@@ -55,12 +56,15 @@ class CloudService {
     UserService userService
     UserRoleService userRoleService
     RoleService roleService
-    SpringSecurityService springSecurityService
     AssetResourceLocator assetResourceLocator
     SimpMessagingTemplate brokerMessagingTemplate
+
+
     final String update = new JSONObject()
             .put("message", "update")
             .toString()
+
+    Map<String, String>_authenticatedNVRs = new ConcurrentHashMap<>()
 
     def start() {
         if (cloudListener == null)
@@ -238,5 +242,28 @@ class CloudService {
         }
 
         return response
+    }
+
+    /**
+     * authenticatedNVRs: Map the newly acquired NVRSESSIONID against the product ID, to pass to the CloudSecurityEventListener
+     *                    onAuthenticationSuccess method, which will set the NVR session ID up as a cookie so an NVR
+     *                    session is established on the browser.
+     * @param productId
+     * @param nvrSessionId
+     */
+    void authenticatedNVRs(String productId, String nvrSessionId) {
+        _authenticatedNVRs.put(productId, nvrSessionId)
+    }
+
+    /**
+     * authenticatedNVRs: Returns the nvrSessionId for the given productID. Used by the CloudSecurityEventListener
+     *                    onAuthenticationSuccess method, which will set the NVR session ID up as a cookie so an NVR
+     *                    session is established on the browser
+     * @param productId
+     * @return
+     */
+    String authenticatedNVRs(String productId)
+    {
+        return _authenticatedNVRs.remove(productId)
     }
 }

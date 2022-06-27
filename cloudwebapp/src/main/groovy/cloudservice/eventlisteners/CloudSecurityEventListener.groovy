@@ -18,7 +18,7 @@ import javax.servlet.http.HttpServletResponse
 /**
  * CloudSecurityEventListener: Bean to log successful login events and logouts.
  */
-class CloudSecurityEventListener implements LogoutHandler, AuthenticationSuccessHandler{
+class CloudSecurityEventListener implements LogoutHandler, AuthenticationSuccessHandler {
     LogService logService
     CloudService cloudService
     SpringSecurityService springSecurityService
@@ -34,55 +34,41 @@ class CloudSecurityEventListener implements LogoutHandler, AuthenticationSuccess
         String userName = request.getParameter('username')
         final boolean isAdmin = getRole(userName).contains('ROLE_ADMIN')
 
-        if(!isAdmin) {
-            String cookie = cloudService.cloudListener.authenticate(productId)
-            if (cookie != "" && cookie != "NO_CONN") {
-                response.addHeader("Set-Cookie", "NVRSESSIONID=" + cookie + "; Path=/; HttpOnly")
-                response.addHeader("Set-Cookie", "PRODUCTID=" + productId + "; Path=/; HttpOnly")
-                response.getWriter().write('{"role": "ROLE_CLIENT"}')
-                loginSuccess(userName)
-            } else {
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED)
-                if (cookie == "")
-                    response.getWriter().write("Failed to login to NVR")
-                else
-                    response.getWriter().write("Not connected to NVR")
-                authentication.authenticated = false
-                response.setHeader("Set-Cookie", "CLOUDSESSIONID=XYZ; Path=/; HttpOnly")
-            }
-        }
-        else {
-            response.addHeader("Set-Cookie", "NVRSESSIONID=NONE; Path=/; HttpOnly")
-            response.addHeader("Set-Cookie", "PRODUCTID=NONE; Path=/; HttpOnly")
-
+        if (!isAdmin) {
+            String cookie = cloudService.authenticatedNVRs(productId)
+            response.addHeader("Set-Cookie", "NVRSESSIONID=" + cookie + "; Path=/; HttpOnly")
+            response.addHeader("Set-Cookie", "PRODUCTID=" + productId + "; Path=/; HttpOnly")
+            response.getWriter().write('{"role": "ROLE_CLIENT"}')
+            loginSuccess(userName)
+        } else {
             response.getWriter().write('{"role": "ROLE_ADMIN"}')
         }
     }
 
     @Transactional
-    private String getProductId(String userName)
-    {
+    private String getProductId(String userName) {
         try {
             User user = User.findByUsername(userName)
 
             return user.productid
         }
-        catch(Exception ex)
-        {
+        catch (Exception ex) {
             logService.cloud.error(ex.getClass().getName() + " exception in getProductId: " + ex.getMessage())
         }
+        return ""
     }
 
     @Transactional
-    private String[] getRole(String username)
-    {
+    private String[] getRole(String username) {
         try {
             String[] roles = springSecurityService.getPrincipal().getAuthorities()
             return roles
         }
-        catch(Exception ex) {
+        catch (Exception ex) {
             logService.cloud.error(ex.getClass().getName() + " exception in getRole: " + ex.getMessage())
         }
+
+        return ""
     }
 
     private void loginSuccess(String userName) {
@@ -97,8 +83,7 @@ class CloudSecurityEventListener implements LogoutHandler, AuthenticationSuccess
 /**
  * CloudAuthFailEventListener: Bean to log unsuccessful log in events
  */
-class CloudAuthFailEventListener implements AuthenticationFailureHandler,  LogoutHandler
-{
+class CloudAuthFailEventListener implements AuthenticationFailureHandler, LogoutHandler {
     LogService logService
     CloudService cloudService
 
@@ -112,7 +97,7 @@ class CloudAuthFailEventListener implements AuthenticationFailureHandler,  Logou
 
     @Override
     void logout(HttpServletRequest request, HttpServletResponse response, Authentication authentication) {
- //       response.setStatus(HttpServletResponse.SC_OK)
+        //       response.setStatus(HttpServletResponse.SC_OK)
         String userName = authentication?.principal?.username
         String cookie = request.getHeader("cookie")
         logAudit("USER-LOGOUT", "user='${userName}")
