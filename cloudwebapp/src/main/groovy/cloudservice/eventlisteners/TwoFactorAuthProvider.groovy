@@ -38,7 +38,7 @@ class TwoFactorAuthProvider extends DaoAuthenticationProvider {
                 logger.debug("Authentication failed: couldn't log onto NVR")
                 throw new BadCredentialsException(messages.getMessage(
                         "AbstractUserDetailsAuthenticationProvider.badCredentials",
-                        "Bad credentials"))
+                        "Unable to login to NVR"))
             } else
             // Save the NVRSESSIONID mapped against product ID to pass to the onAuthenticationSuccess handler
                 cloudService.authenticatedNVRs(productId, cookie)
