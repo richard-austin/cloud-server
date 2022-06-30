@@ -4,7 +4,6 @@ import cloudservice.User
 import cloudwebapp.CloudService
 import cloudwebapp.LogService
 import grails.gorm.transactions.Transactional
-import grails.plugin.springsecurity.SpringSecurityService
 import org.springframework.security.authentication.BadCredentialsException
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider
@@ -35,7 +34,7 @@ class TwoFactorAuthProvider extends DaoAuthenticationProvider {
             String cookie = cloudService.cloudListener.authenticate(productId)
 
             if (cookie == "" || cookie == "NO_CONN") {
-                logger.debug("Authentication failed: couldn't log onto NVR")
+                logService.cloud.debug("Authentication failed: couldn't log onto NVR")
                 throw new BadCredentialsException(messages.getMessage(
                         "AbstractUserDetailsAuthenticationProvider.badCredentials",
                         "Unable to login to NVR"))

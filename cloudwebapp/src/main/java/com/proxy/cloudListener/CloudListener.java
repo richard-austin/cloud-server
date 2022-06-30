@@ -26,6 +26,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 import static com.proxy.SslUtil.*;
 
@@ -79,9 +81,7 @@ public class CloudListener implements SslContextProvider {
                 _sc.close();
 
             //  Close all the Cloud instances
-            instances.forEach((ignore, cloud) -> {
-                cloud.stop();
-            });
+            instances.forEach((ignore, cloud) -> cloud.stop());
 
         } catch (Exception ex) {
             logger.error(ex.getClass().getName() + " when closing CloudProxy listening socket: " + ex.getMessage());
@@ -181,10 +181,15 @@ public class CloudListener implements SslContextProvider {
     private final String productIdRegex = "^(?:[A-Z0-9]{4}-){3}[A-Z0-9]{4}$";
 
     final void readFromBrowser(SocketChannel channel, final int token) {
+        final BiFunction<String, String, String> cookieFinder = (String cookie, String key) -> {
+            final int idx = cookie.indexOf(key) + (key + "=").length();
+            int idx2 = cookie.indexOf(';', idx);
+            if (idx2 == -1)
+                idx2 = cookie.length();
+            return cookie.substring(idx, idx2);
+        };
         browserReadExecutor.submit(() -> {
-
             ByteBuffer buf = getBuffer();
-
             try {
                 final int bytesRead = channel.read(buf);
                 HttpMessage msg = new HttpMessage(buf);
@@ -194,16 +199,10 @@ public class CloudListener implements SslContextProvider {
                 final String key = "PRODUCTID";
                 final String sessionIdKey = "NVRSESSIONID";
                 for (String cookie : cookies) {
-                    if (cookie.contains(key)) {
-                        final int idx = cookie.indexOf(key) + (key + "=").length();
-                        final int idx2 = cookie.indexOf(';', idx);
-                        PRODUCTID = cookie.substring(idx, idx2);
-                    }
-                    if (cookie.contains(sessionIdKey)) {
-                        final int idx = cookie.indexOf(sessionIdKey) + (sessionIdKey + "=").length();
-                        final int idx2 = cookie.indexOf(';', idx);
-                        NVRSESSIONID = cookie.substring(idx, idx2);
-                    }
+                    if (cookie.contains(key))
+                        PRODUCTID = cookieFinder.apply(cookie, key);
+                    if (cookie.contains(sessionIdKey))
+                        NVRSESSIONID = cookieFinder.apply(cookie, sessionIdKey);
                 }
                 if (PRODUCTID.matches(productIdRegex)) {
                     Cloud inst = instances.get(PRODUCTID);

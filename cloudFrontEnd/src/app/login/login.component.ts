@@ -12,9 +12,11 @@ export class LoginComponent implements OnInit, AfterViewInit {
 
   username: string = '';
   password: string = '';
+  rememberMe: boolean = false;
   loginForm!: FormGroup;
   errorMessage: string = '';
   @ViewChild('username') usernameInput!: ElementRef<HTMLInputElement>
+
 
   constructor(private cameraSvc: CameraService, public utilsService: UtilsService) { }
   login()
@@ -23,15 +25,17 @@ export class LoginComponent implements OnInit, AfterViewInit {
     this.username = this.getFormControl('username').value;
     this.password = this.getFormControl('password').value;
 
-    this.utilsService.login(this.username, this.password).subscribe((result) => {
+    this.utilsService.login(this.username, this.password, this.rememberMe).subscribe((result) => {
         this.getFormControl('username').setValue("");
         this.getFormControl('password').setValue("");
         this.username = this.password = "";
 
-        if(result.role === 'ROLE_CLIENT')
-          this.cameraSvc.initialiseCameras();
+        if(result[0] !== undefined) {
+          if (result[0].authority === 'ROLE_CLIENT')
+            this.cameraSvc.initialiseCameras();
 
-        this.utilsService.sendMessage(new LoggedInMessage(result.role));  // Tell nav component we are logged in
+          this.utilsService.sendMessage(new LoggedInMessage(result[0].authority));  // Tell nav component we are logged in
+        }
       },
       (reason)=> {
       this.errorMessage = reason.error;

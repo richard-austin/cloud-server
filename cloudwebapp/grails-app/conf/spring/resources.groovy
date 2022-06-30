@@ -2,10 +2,12 @@ package spring
 
 import cloudservice.UserPasswordEncoderListener
 import cloudservice.eventlisteners.CloudAuthFailEventListener
+import cloudservice.eventlisteners.CloudRememberMeAuthenticationProvider
 import cloudservice.eventlisteners.CloudSecurityEventListener
 import cloudservice.eventlisteners.WebSocketConfiguration
 import cloudservice.eventlisteners.TwoFactorAuthProvider
 import com.proxy.CloudProperties
+import grails.plugin.springsecurity.SpringSecurityUtils
 
 // Place your Spring DSL code here
 beans = {
@@ -40,8 +42,13 @@ beans = {
             logService = ref("logService")
             cloudService = ref("cloudService")
         }
-
-        webSocketConfiguration(WebSocketConfiguration)
-
+        def conf = SpringSecurityUtils.securityConfig
+        cloudRememberMeAuthenticationProvider(CloudRememberMeAuthenticationProvider, conf.rememberMe.key) {
+            logService = ref("logService")
+            cloudService = ref("cloudService")
+        }
     }
+
+    webSocketConfiguration(WebSocketConfiguration)
+
 }

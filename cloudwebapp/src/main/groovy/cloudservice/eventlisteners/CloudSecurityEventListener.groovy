@@ -30,18 +30,18 @@ class CloudSecurityEventListener implements LogoutHandler, AuthenticationSuccess
 
     @Override
     void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
-        String productId = getProductId(request.getParameter("username"))
-        String userName = request.getParameter('username')
+        final String userName = authentication.getPrincipal().getUsername()
+        String productId = getProductId(userName)
         final boolean isAdmin = getRole(userName).contains('ROLE_ADMIN')
 
         if (!isAdmin) {
             String cookie = cloudService.authenticatedNVRs(productId)
             response.addHeader("Set-Cookie", "NVRSESSIONID=" + cookie + "; Path=/; HttpOnly")
             response.addHeader("Set-Cookie", "PRODUCTID=" + productId + "; Path=/; HttpOnly")
-            response.getWriter().write('{"role": "ROLE_CLIENT"}')
+            response.getWriter().write('[{"authority": "ROLE_CLIENT"}]')
             loginSuccess(userName)
         } else {
-            response.getWriter().write('{"role": "ROLE_ADMIN"}')
+            response.getWriter().write('[{"authority": "ROLE_ADMIN"}]')
         }
     }
 

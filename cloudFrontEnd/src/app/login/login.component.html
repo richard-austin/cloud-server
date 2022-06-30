@@ -34,7 +34,15 @@
           </mat-error>
           <mat-error *ngIf="loginForm.controls['password'].hasError('required')">Password is required</mat-error>
         </mat-form-field>
-      </div>
+        <div class="remember-me-checkbox">
+          <mat-checkbox
+                        [color]="'primary'"
+                        matTooltip="Remember me enables automatic login on future sessions"
+                        matTooltipClass="tooltip"
+                        (change)="rememberMe=$event.checked">Remember Me
+          </mat-checkbox>
+        </div>
+       </div>
       <br>
       <div>
         Forgotten <a class="forgot-password" href="/#/forgotpassword">password</a> ?
