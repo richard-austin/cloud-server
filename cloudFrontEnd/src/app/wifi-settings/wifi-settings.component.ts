@@ -134,6 +134,18 @@ export class WifiSettingsComponent implements OnInit, OnDestroy {
     this.reporting.dismiss();
   }
 
+  cancelPasswordEntry() {
+    this.needPassword = false;
+    this.selector.value = this.currentWifiConnection.accessPoint;
+    this.reporting.dismiss();
+  }
+
+  /**
+   * onlyUnique: Show only one instance of each Wi-Fi access point name on the selector (maybe one for 2.4/5.0GHz etc)
+   * @param value
+   * @param index
+   * @param self
+   */
   onlyUnique(value: WifiDetails, index: number, self: WifiDetails[]) {
     let val: WifiDetails | undefined = self.find(a => a.ssid == value.ssid);
     if (val !== undefined && val.ssid !== '') {

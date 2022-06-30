@@ -9,14 +9,13 @@
       <div class="alert-warning-embedded" *ngIf="ethernetConnectionStatus == 'NO_ETHERNET'"
            [innerHTML]="'You have no Ethernet connection available, To disable Wi-Fi, the NVR must be connected through Ethernet. You can still select another Wi-Fi access point. <br><br>To switch the connection to Ethernet, connect an Ethernet cable between your router and the NVR then click the Reset Connection button, then wait until display shows the current Wi-Fi status again.'">
       </div>
-      <div class="reset-connection-button connecting-spinner">
+      <div class="reset-connection-button loading-spinner">
         <button *ngIf="ethernetConnectionStatus != 'CONNECTED_VIA_ETHERNET' && ethernetConnectionStatus != ''"
                 [disabled]="resetting"
                 color="warning" mat-flat-button
                 (click)="resetConnection()">Reset Connection
         </button>
         <ng-container *ngIf="resetting">
-
             <mat-spinner [diameter]="25"></mat-spinner>
             Restarting Cloud Proxy
         </ng-container>
@@ -36,7 +35,7 @@
             {{wifiEnabled ? 'Select Wi-Fi Access Point' : 'Wi-Fi Is Off'}}
           </mat-label>
           <mat-label *ngIf="loading">
-            <div class="connecting-spinner">
+            <div class="loading-spinner">
               <mat-spinner [diameter]="25"></mat-spinner>
               Loading..
             </div>
@@ -59,12 +58,13 @@
           <mat-hint>New password for {{selector.value}}</mat-hint>
         </mat-form-field>
       </div>
-      <div class="connecting-spinner">
+      <div class="connect-cancel">
         <button [disabled]="!wifiEnabled || currentWifiConnection.accessPoint == selector.value || connecting"
                 mat-flat-button
                 color="warn"
                 (click)="connect()">Connect
         </button>
+        <button *ngIf="needPassword" mat-flat-button color="primary" (click)="cancelPasswordEntry()">Cancel</button>
         <ng-container *ngIf="connecting">
           <span class="connecting-spinner">
             <mat-spinner [diameter]="25"></mat-spinner>

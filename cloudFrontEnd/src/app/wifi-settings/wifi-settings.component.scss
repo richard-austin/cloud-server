@@ -44,10 +44,17 @@ span.connecting-spinner {
   }
 }
 
-div.connecting-spinner {
+div.loading-spinner {
   display: flex;
   > mat-spinner {
     margin-right: 0.5rem;
     margin-left: 0.5rem;
+  }
+}
+
+div.connect-cancel {
+  display: flex;
+  > button:first-child {
+    margin-right: 0.5rem;
   }
 }
