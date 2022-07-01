@@ -54,7 +54,7 @@ html, body {
 @mixin alert {
  // position: relative;
   width: fit-content;
-  padding: 3rem;
+  padding: 1.5rem;
   margin-left: auto;
   margin-right: auto;
   margin-bottom: 4rem;
@@ -76,6 +76,12 @@ html, body {
 @mixin danger {
   color: $danger-colour;
   background-color: $danger-background;
+}
+
+@mixin alert-embedded {
+  @include alert;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
 }
 
 .success{
@@ -102,6 +108,21 @@ html, body {
 
 .alert-danger {
   @include alert;
+  @include danger;
+}
+
+.alert-success-embedded {
+  @include alert-embedded;
+  @include success;
+}
+
+.alert-warning-embedded {
+  @include alert-embedded;
+  @include warning;
+}
+
+.alert-danger-embedded {
+  @include alert-embedded;
   @include danger;
 }
 

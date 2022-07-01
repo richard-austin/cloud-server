@@ -4,8 +4,8 @@ import javax.net.ssl.SSLSocket;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.SocketException;
 import java.nio.ByteBuffer;
-import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -14,7 +14,11 @@ import java.util.concurrent.*;
 import ch.qos.logback.classic.Logger;
 import com.proxy.cloudListener.CloudInstanceMap;
 import com.proxy.cloudListener.CloudListener;
+import grails.util.Holders;
+import org.grails.web.json.JSONObject;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationContext;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import java.util.zip.CRC32;
 import java.util.zip.Checksum;
@@ -25,8 +29,8 @@ public class Cloud {
     private ExecutorService browserWriteExecutor = null;
     private ExecutorService browserReadExecutor = null;
     private ExecutorService sendToCloudProxyExecutor = null;
-    private ScheduledExecutorService startCloudProxyInputProcessExecutor = null;
-//    private ExecutorService acceptConnectionsFromBrowserExecutor = null;
+    private ExecutorService cloudProxyInputProcessExecutor = null;
+    private ScheduledExecutorService cloudProxyHeartbeatExecutor = null;
 
     private String NVRSESSIONID = "";
 
@@ -43,60 +47,71 @@ public class Cloud {
     private final CloudProperties cloudProperties = CloudProperties.getInstance();
     private final boolean protocolAgnostic = true;  // ProtocolAgnostic means that login to NVR won't be done automatically by the Cloud
     private final CloudInstanceMap instances;
+    // Remove browser (nvrSessionId) references after 120 seconds with no call coming in.
+    //  This is twice the time between getTemperature calls which will refresh the timer as they come in, as
+    //  will any other new request from the browser,
+    private final long browserSessionTimeout = 120 * 1000;
 
-    public Cloud(SSLSocket cloudProxy, String productId, CloudInstanceMap instances)
-    {
+    final private Map<String, Timer> sessionCountTimers;
+    SimpMessagingTemplate brokerMessagingTemplate;
+    final String update = new JSONObject()
+            .put("message", "update")
+            .toString();
+
+    public Cloud(SSLSocket cloudProxy, String productId, CloudInstanceMap instances) {
         this.cloudProxy = cloudProxy;
         this.productId = productId;
         this.instances = instances;
+        ApplicationContext ctx = Holders.getGrailsApplication().getMainContext();
+        brokerMessagingTemplate = (SimpMessagingTemplate) ctx.getBean("brokerMessagingTemplate");
+        sessionCountTimers = new ConcurrentHashMap<>();
     }
 
     /**
      * start: Start the threads in the Cloud instance
      */
     public void start() {
-        if(!running) {
+        if (!running) {
+            logger.info("Starting Cloud instance for "+productId);
             running = true;
             browserWriteExecutor = Executors.newSingleThreadExecutor();
             browserReadExecutor = Executors.newCachedThreadPool();
             sendToCloudProxyExecutor = Executors.newSingleThreadExecutor();
-            startCloudProxyInputProcessExecutor = Executors.newSingleThreadScheduledExecutor();
- //           acceptConnectionsFromBrowserExecutor = Executors.newSingleThreadExecutor();
-            running = true;
+            cloudProxyInputProcessExecutor = Executors.newSingleThreadScheduledExecutor();
+            cloudProxyHeartbeatExecutor = Executors.newSingleThreadScheduledExecutor();
             startCloudProxyInputProcess();
- //           acceptConnectionsFromBrowserExecutor.execute(() -> acceptConnectionsFromBrowser(browserFacingPort));
         }
     }
 
     public void stop() {
         try {
-            running = false;
-            if (cloudProxy != null)
-                cloudProxy.close();
-
-            // Close the browser listening socket
-            if (_sc != null)
-                _sc.close();
-
+            logger.info("Stopping Cloud instance for "+productId);
             browserWriteExecutor.shutdownNow();
             browserReadExecutor.shutdownNow();
             sendToCloudProxyExecutor.shutdownNow();
-            if (startCloudProxyInputProcessExecutor != null)
-                startCloudProxyInputProcessExecutor.shutdownNow();
 
-//            acceptConnectionsFromBrowserExecutor.shutdownNow();
+            if (cloudProxyInputProcessExecutor != null)
+                cloudProxyInputProcessExecutor.shutdownNow();
+
+//            if (cloudProxy != null) {
+//                cloudProxy.shutdownOutput();
+//                //cloudProxy.close();
+//            }
+
+            if (cloudProxyHeartbeatExecutor != null)
+                cloudProxyHeartbeatExecutor.shutdownNow();
+
             lastBitOfPreviousMessage = null;
             lastBitOfPreviousHttpMessage.clear();
-            clearSocketMap();
+            clearTokenSocketMap();
+            running = false;
         } catch (Exception ex) {
-            logger.error(ex.getClass().getName()+" in stop: " + ex.getMessage());
+            logger.error(ex.getClass().getName() + " in stop: " + ex.getMessage());
         }
     }
 
-    private final ServerSocketChannel _sc = null;
-
     private void startCloudProxyInputProcess() {
-        startCloudProxyInputProcessExecutor.scheduleAtFixedRate(() -> {
+        cloudProxyInputProcessExecutor.submit(() -> {
             try {
                 if (cloudProxy != null && !cloudProxy.isClosed()) {
                     ByteBuffer buf = getBuffer();
@@ -108,11 +123,10 @@ public class Cloud {
                     }
                     recycle(buf);
                 }
-            } catch (Exception ex) {
-                showExceptionDetails(ex, "startCloudProxyInputProcess");
-                reset();
+            } catch (Exception exx) {
+                showExceptionDetails(exx, "startCloudProxyInputProcess");
             }
-        }, 0, 100, TimeUnit.MILLISECONDS);
+        });
     }
 
     private void sendRequestToCloudProxy(ByteBuffer buf) {
@@ -120,14 +134,13 @@ public class Cloud {
             try {
                 OutputStream os = cloudProxy.getOutputStream();
                 do {
-                 //   System.out.println(new String(buf.array(), headerLength, buf.limit()));
+                    //   System.out.println(new String(buf.array(), headerLength, buf.limit()));
                     write(os, buf);
                     os.flush();
                 }
                 while (buf.position() < buf.limit());
             } catch (Exception ex) {
                 showExceptionDetails(ex, "sendRequestToCloudProxy");
-                reset();
             }
         });
     }
@@ -140,10 +153,10 @@ public class Cloud {
                 String payload = "username=" + cloudProperties.getUSERNAME() + "&password=" + cloudProperties.getPASSWORD();
 
                 String output = "POST /login/authenticate HTTP/1.1\r\n" +
-                        "Host: "+socket.getInetAddress().getHostAddress()+"\r\n" +
+                        "Host: " + socket.getInetAddress().getHostAddress() + "\r\n" +
                         "DNT: 1\r\n" +
                         "Upgrade-Insecure-Requests: 1\r\n" +
-                        "X-Auth-Token: 7yk=zJu+@77x@MTJG2HD*YLJgvBthkW!\r\n"+
+                        "X-Auth-Token: 7yk=zJu+@77x@MTJG2HD*YLJgvBthkW!\r\n" +
                         "Content-type: application/x-www-form-urlencoded\r\n" +
                         "Content-Length: " + payload.length() + "\r\n\r\n" +
                         payload + "\r\n";
@@ -175,7 +188,7 @@ public class Cloud {
 
             } catch (Exception ex) {
 
-                System.out.println(ex.getClass().getName()+" in authenticate: " + ex.getClass().getName() + ": " + ex.getMessage() + "\n\n");
+                System.out.println(ex.getClass().getName() + " in authenticate: " + ex.getClass().getName() + ": " + ex.getMessage() + "\n\n");
                 ex.printStackTrace();
             }
         } else
@@ -209,7 +222,7 @@ public class Cloud {
                         "Referer: http://localhost:8083/\r\n" +
                         "Accept-Encoding: gzip, deflate, br\r\n" +
                         "Accept-Language: en-GB,en-US;q=0.9,en;q=0.8\r\n" +
-                        "Cookie: " + cookie + "\r\n\r\n";
+                        "Cookie: NVRSESSIONID=" + cookie + "\r\n\r\n";
 
                 System.out.println(logoff);
                 ByteBuffer buf = doRequestResponse(logoff);
@@ -217,7 +230,7 @@ public class Cloud {
                     logger.info(new String(buf.array(), headerLength, buf.limit() - headerLength));
 
             } catch (Exception ioex) {
-                logger.error(ioex.getClass().getName()+" in logoff: " + ioex.getMessage());
+                logger.error(ioex.getClass().getName() + " in logoff: " + ioex.getMessage());
                 retVal = false;
             }
         }
@@ -226,9 +239,12 @@ public class Cloud {
 
     private final Map<Integer, ByteBuffer> lastBitOfPreviousHttpMessage = new ConcurrentHashMap<>();
 
-    public final void readFromBrowser(SocketChannel channel, ByteBuffer initialBuf, final int token, boolean finished) {
+    public final void readFromBrowser(final SocketChannel channel, final ByteBuffer initialBuf, final int token, final String nvrSessionId, boolean finished) {
         browserReadExecutor.submit(() -> {
             try {
+                if (!nvrSessionId.equals(""))
+                    createSessionTimeout(nvrSessionId);  // Reset the instance count timeout for this session id
+
                 updateSocketMap(channel, token);
                 ByteBuffer buf = initialBuf;
                 // Send the initial message delivered from the CloudListener
@@ -243,11 +259,12 @@ public class Cloud {
                 setToken(buf, token);
                 setConnectionClosedFlag(buf);
                 sendRequestToCloudProxy(buf);
+                removeSocket(token);
             } catch (IOException ignored) {
                 removeSocket(token);
             } catch (Exception ex) {
                 showExceptionDetails(ex, "readFromBrowser");
-                reset();
+                // reset();
             }
         });
     }
@@ -258,6 +275,7 @@ public class Cloud {
         if (getToken(buf) == -1 && getDataLength(buf) == ignored.length()) {
             instances.resetNVRTimeout(getProductId());  // Reset the timeout which would remove this Cloud instance from the map
             String strVal = new String(Arrays.copyOfRange(buf.array(), headerLength, buf.limit()), StandardCharsets.UTF_8);
+            sendRequestToCloudProxy(buf);   // Bounce the heartbeat back to the CloudProxy to show we are still connected
             return ignored.equals(strVal);
         }
         return false;
@@ -275,6 +293,7 @@ public class Cloud {
                 SocketChannel frontEndChannel = tokenSocketMap.get(token);  //Select the correct connection to respond to
                 if (getConnectionClosedFlag(buf) != 0) {
                     removeSocket(token);  // Usually already gone
+                    // frontEndChannel.close();
                 } else if (frontEndChannel != null && frontEndChannel.isOpen()) {
                     buf.position(headerLength);
                     buf.limit(headerLength + length);
@@ -288,7 +307,7 @@ public class Cloud {
                         logger.warn("IOException in respondToBrowser: " + ioex.getMessage());
                         setConnectionClosedFlag(buf);
                         sendRequestToCloudProxy(buf);
-                        frontEndChannel.shutdownOutput().shutdownOutput().close();
+                        frontEndChannel.shutdownOutput().close();
                     }
                 }
             } catch (Exception ex) {
@@ -312,8 +331,11 @@ public class Cloud {
     }
 
     private void removeSocket(int token) {
-        logger.info("Removing socket for token " + token);
-        tokenSocketMap.remove(token);
+        try (var skt = tokenSocketMap.remove(token)) {
+            logger.info("Removing socket for token " + token);
+        } catch (IOException ex) {
+            showExceptionDetails(ex, "removeSocket");
+        }
     }
 
     private synchronized void updateSocketMap(SocketChannel browser, int token) {
@@ -326,12 +348,11 @@ public class Cloud {
         tokens.forEach(tokenSocketMap::remove);
     }
 
-    private synchronized void clearSocketMap() {
+    private synchronized void clearTokenSocketMap() {
         Set<Integer> tokens = new HashSet<>(tokenSocketMap.keySet());
         tokens.forEach((tok) -> {
-            try {
-                tokenSocketMap.get(tok).close();
-                tokenSocketMap.remove(tok);
+            try(SocketChannel sock = tokenSocketMap.remove(tok)) {
+                logger.info("Removing socket for token "+tok.toString());
             } catch (Exception ignored) {
             }
         });
@@ -339,13 +360,12 @@ public class Cloud {
 
     void showExceptionDetails(Throwable t, String functionName) {
         logger.error(t.getClass().getName() + " exception in " + functionName + ": " + t.getMessage() + "\n" + t.fillInStackTrace());
-        for (StackTraceElement stackTraceElement : t.getStackTrace()) {
-            System.err.println(stackTraceElement.toString());
-        }
+//        for (StackTraceElement stackTraceElement : t.getStackTrace()) {
+//            System.err.println(stackTraceElement.toString());
+//        }
     }
 
-    public String getProductId()
-    {
+    public String getProductId() {
         return productId;
     }
 
@@ -518,6 +538,7 @@ public class Cloud {
                             }
                         } catch (Exception ex) {
                             showExceptionDetails(ex, "splitMessages");
+                            lastBitOfPreviousMessage = null;
                         }
                     }
                 }
@@ -525,7 +546,7 @@ public class Cloud {
             recycle(combinedBuf);
         } catch (Exception ex) {
             showExceptionDetails(ex, "splitMessages");
-            reset();
+            lastBitOfPreviousMessage = null;
         }
     }
 
@@ -584,7 +605,7 @@ public class Cloud {
         synchronized (blo.lockObject) {
             try {
                 logger.warn("Waiting...");
-                blo.lockObject.wait(2000);
+                blo.lockObject.wait(5000);
                 logger.warn("Waiting done");
                 retVal = blo.getBuffer();
                 if (retVal == null)
@@ -592,7 +613,7 @@ public class Cloud {
             } catch (InterruptedException ex) {
                 logger.warn("Interrupted wait in stealMessage: " + ex.getMessage());
             } catch (Exception ex) {
-                logger.trace(ex.getClass().getName()+" in stealMessage: " + ex.getMessage());
+                logger.trace(ex.getClass().getName() + " in stealMessage: " + ex.getMessage());
             }
         }
         stolenBuffers.remove(token);
@@ -626,7 +647,7 @@ public class Cloud {
                     setDataLength(nonHttp, combinedBuf.limit());
                     nonHttp.flip();
                     sendRequestToCloudProxy(nonHttp);
-                 } catch (Exception e) {
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
                 break;
@@ -648,12 +669,12 @@ public class Cloud {
                     if (msg.getContentLength() > 0)
                         output.put(msg.getMessageBody());
                     int dataLength = output.position() - headerLength;
-
                     setDataLength(output, dataLength);
                     setBufferForSend(output);
                     sendRequestToCloudProxy(output);
                 } catch (Exception ex) {
                     System.out.println("ERROR: Exception in splitHttpMessages when writing to stream: " + ex.getClass().getName() + ex.getMessage());
+                    lastBitOfPreviousHttpMessage.clear();
                 }
             } else {
                 ByteBuffer remainingData = ByteBuffer.allocate(combinedBuf.limit() - combinedBuf.position());
@@ -669,24 +690,18 @@ public class Cloud {
         stop();
         this.cloudProxy = cloudProxy;
         start();
-     }
-
-    public void reset() {
-        logger.info("Reset called");
-        if (startCloudProxyInputProcessExecutor != null)
-            startCloudProxyInputProcessExecutor.shutdown();
-
-        startCloudProxyInputProcessExecutor = Executors.newSingleThreadScheduledExecutor();
-        if (cloudProxy != null && cloudProxy.isBound()) {
-            try {
-                cloudProxy.close();
-            } catch (IOException ignored) {
-            }
-        }
-        lastBitOfPreviousMessage = null;
-        lastBitOfPreviousHttpMessage.clear();
-        clearSocketMap();
     }
+
+//    public void reset() {
+//        logger.info("Reset called");
+//        if (cloudProxyInputProcessExecutor != null)
+//            cloudProxyInputProcessExecutor.shutdownNow();
+//
+//        cloudProxyInputProcessExecutor = Executors.newSingleThreadScheduledExecutor();
+//        lastBitOfPreviousMessage = null;
+//        lastBitOfPreviousHttpMessage.clear();
+//        clearTokenSocketMap();
+//    }
 
     private int getMessageLengthFromPosition(ByteBuffer buf) {
         return buf.getInt(buf.position() + tokenLength) + headerLength;
@@ -701,5 +716,35 @@ public class Cloud {
         }
     }
 
+    public void incSessionCount(String nvrSessionId) {
+        if (!sessionCountTimers.containsKey(nvrSessionId)) {
+            createSessionTimeout(nvrSessionId);
+            brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", update);
+        }
+    }
+
+    public void decSessionCount(String nvrSessionId) {
+        if (sessionCountTimers.containsKey(nvrSessionId)) {
+            sessionCountTimers.get(nvrSessionId).cancel();
+            sessionCountTimers.get(nvrSessionId).purge();
+            sessionCountTimers.remove(nvrSessionId);
+            brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", update);
+        }
+    }
+
+    void createSessionTimeout(String nvrSessionId) {
+        TimerTask task = new SessionCountTimerTask(nvrSessionId, this);
+
+        Timer timer = new Timer(nvrSessionId);
+        timer.schedule(task, browserSessionTimeout);
+        if (sessionCountTimers.containsKey(nvrSessionId))
+            sessionCountTimers.get(nvrSessionId).cancel();
+
+        sessionCountTimers.put(nvrSessionId, timer);
+    }
+
+    public int getSessionCount() {
+        return sessionCountTimers.size();
+    }
 }
 

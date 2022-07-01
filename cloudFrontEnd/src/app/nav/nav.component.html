@@ -76,6 +76,20 @@
         <button mat-menu-item (click)="changePassword();menuClosed()">
           Change Password
         </button>
+        <button *ngIf="!utilsService.isAdmin" mat-menu-item (click)="getActiveIPAddresses(); menuClosed()">
+          Get Active Local IP Address(es)
+        </button>
+        <ng-container  *ngIf="!utilsService.isAdmin">
+          <button mat-menu-item [matMenuTriggerFor]="wifiAdmin">Wifi Admin</button>
+          <mat-menu #wifiAdmin="matMenu">
+            <button mat-menu-item (click)="getLocalWifiDetails(); menuClosed()">
+              Local Wifi Details
+            </button>
+            <button mat-menu-item (click)="wifiSettings(); menuClosed()">
+              Wifi Settings
+            </button>
+          </mat-menu>
+        </ng-container>
         <div *ngIf="!utilsService.isAdmin" class="dropdown-divider"></div>
         <button *ngIf="!utilsService.isAdmin" mat-menu-item (click)="setIp();menuClosed()">
           Save Current Public IP

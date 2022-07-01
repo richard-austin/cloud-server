@@ -9,6 +9,8 @@ const PROXY_CONFIG = [
       "/utils",
       "/recording",
       "/live",
+      "/wifiUtils",
+      "/cloudProxy",
       "/dc"
     ],
     ws: true,

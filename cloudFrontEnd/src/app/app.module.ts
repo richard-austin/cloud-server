@@ -55,6 +55,9 @@ import {OnlyLoggedInService} from "./guards/only-logged-in.service";
 import { SortPipe } from './accountAdmin/sort.pipe';
 import { RegisterLocalNvrAccountComponent } from './register-local-nvr-account/register-local-nvr-account.component';
 import { RemoveLocalNvrAccountComponent } from './remove-local-nvr-account/remove-local-nvr-account.component';
+import { GetActiveIPAddressesComponent } from './get-active-ipaddresses/get-active-ipaddresses.component';
+import { GetLocalWifiDetailsComponent } from './get-local-wifi-details/get-local-wifi-details.component';
+import { WifiSettingsComponent } from './wifi-settings/wifi-settings.component';
 
 @NgModule({
   declarations: [
@@ -87,6 +90,9 @@ import { RemoveLocalNvrAccountComponent } from './remove-local-nvr-account/remov
     SortPipe,
     RegisterLocalNvrAccountComponent,
     RemoveLocalNvrAccountComponent,
+    GetActiveIPAddressesComponent,
+    GetLocalWifiDetailsComponent,
+    WifiSettingsComponent,
   ],
     imports: [
         BrowserModule,

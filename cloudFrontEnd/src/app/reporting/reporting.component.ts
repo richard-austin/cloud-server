@@ -9,6 +9,7 @@ import {HttpErrorResponse} from "@angular/common/http";
 export class ReportingComponent implements OnInit {
   error: HttpErrorResponse | undefined;
   success: string | undefined;
+  warning: string | undefined;
   validationErrors!:string[];
   showMessageInError:boolean = true;
   @Input() embedded: boolean = false;
@@ -40,14 +41,20 @@ export class ReportingComponent implements OnInit {
     this.success = success;
   }
 
+  set warningMessage(warning: string)
+  {
+    this.clearMessage();
+    this.warning = warning;
+  }
+
   dismiss() {
     this.clearMessage();
   }
 
   private clearMessage() {
-    // @ts-ignore
     this.error = undefined;
     this.success = undefined;
+    this.warning = undefined;
   }
 
   ngOnInit(): void {

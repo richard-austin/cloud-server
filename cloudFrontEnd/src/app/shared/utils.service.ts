@@ -38,7 +38,7 @@ export class IdleTimeoutStatusMessage extends Message {
   active: boolean = true;
 }
 
-export class LoggedinMessage extends Message {
+export class LoggedInMessage extends Message {
   role: string;
 
   constructor(role: string) {
@@ -103,11 +103,11 @@ export class UtilsService {
   constructor(private http: HttpClient, private _baseUrl: BaseUrl) {
   }
 
-  login(username: string, password: string): Observable<{ role: string }> {
-    let creds: string = "username=" + username + "&password=" + password;
-    return this.http.post<{ role: string }>(this._baseUrl.getLink("login", "authenticate"), creds, this.httpUrlEncoded).pipe(
+  login(username: string, password: string, rememberMe: boolean): Observable<[{ authority: string }]> {
+    let creds: string = "username=" + username + "&password=" + password + (rememberMe ? "&remember-me=on" : '');
+    return this.http.post<[{ authority: string }]>(this._baseUrl.getLink("login", "authenticate"), creds, this.httpUrlEncoded).pipe(
       tap((result) => {
-          if (result.role === 'ROLE_ADMIN') {
+          if (result[0].authority === 'ROLE_ADMIN') {
             this._isAdmin = this._loggedIn = true;
           }
           else {
@@ -130,46 +130,15 @@ export class UtilsService {
   checkSessionStatus(): Observable<string> {
     return this.getUserAuthorities().pipe(
       map((auths) => {
-        return auths[0].authority;
+        return auths[0]?.authority;
       }),
-      tap((auth) => {
-        switch (auth) {
-          case 'ROLE_CLIENT':
-            this._isAdmin = false;
-            this._loggedIn = true;
-            this.getHasLocalAccount();
-            break;
-          case 'ROLE_ADMIN':
-            this._isAdmin = true;
-            this._loggedIn = true;
-            break;
-          case 'ROLE_ANONYMOUS':
-            this._isAdmin = this._loggedIn = false;
-            break;
-          default:
-            this._isAdmin = this._loggedIn = false;
-        }
-      })
-    )
+      tap()
+    );
   }
 
   getTemperature(): Observable<Temperature> {
-    return this.http.post<Temperature>(this._baseUrl.getLink("utils", "getTemperature"), '', this.httpJSONOptions).pipe(
-      tap((result) => {
-          this._loggedIn = true;
-          this._isAdmin = result.isAdmin;
-        },
-        () => {
-          this._loggedIn = this._isAdmin = false;
-          // Check to see if there is a Cloud session and log off if there is
-          this.getUserAuthorities().subscribe((val) => {
-            if (val.find(v => v.authority === 'ROLE_CLIENT') !== undefined)
-              window.location.href = '/logoff';
-          })
-          //window.location.href="/logoff";  // Ensure Cloud session logged out (may just be NVR offline)
-          this.sendMessage(new LoggedOutMessage())
-        }),
-      catchError((err: HttpErrorResponse) => throwError(err))
+    return this.http.post<Temperature>(this._baseUrl.getLink("cloud", "getTemperature"), '', this.httpJSONOptions).pipe(
+       catchError((err: HttpErrorResponse) => throwError(err))
     );
   }
 
@@ -310,7 +279,27 @@ export class UtilsService {
 
   getUserAuthorities(): Observable<{ authority: string }[]> {
     return this.http.post<{ authority: string }[]>(this._baseUrl.getLink('cloud', 'getUserAuthorities'), '', this.httpJSONOptions).pipe(
-      tap(),
+      tap((auth) => {
+        let strAuth: string = auth[0]?.authority;
+        switch (strAuth) {
+          case 'ROLE_CLIENT':
+            this._isAdmin = false;
+            this._loggedIn = true;
+            this.getHasLocalAccount();
+            break;
+          case 'ROLE_ADMIN':
+            this._isAdmin = true;
+            this._loggedIn = true;
+            break;
+          case 'ROLE_ANONYMOUS':
+            this._isAdmin = this._loggedIn = false;
+            this.sendMessage(new LoggedOutMessage());  // Tell nav component we are logged out
+            break;
+          default:
+            this._isAdmin = this._loggedIn = false;
+            this.sendMessage(new LoggedOutMessage());  // Tell nav component we are logged out
+        }
+      }),
       catchError((err: HttpErrorResponse) => throwError(err))
     );
   }

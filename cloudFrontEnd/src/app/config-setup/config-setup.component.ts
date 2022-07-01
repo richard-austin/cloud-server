@@ -82,7 +82,7 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit {
   updating: boolean = false;
   discovering: boolean = false;
   cameras: Map<string, Camera> = new Map<string, Camera>();
-  cameraColumns = ['camera_id', 'delete', 'expand', 'name', 'controlUri', 'address'];
+  cameraColumns = ['camera_id', 'delete', 'expand', 'name', 'controlUri', 'address', 'snapshotUri'];
   cameraFooterColumns = ['buttons'];
 
   expandedElement!: Camera | null;
@@ -207,6 +207,10 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit {
           value: camera.controlUri,
           disabled: false
         }, [Validators.maxLength(55)]),
+        snapshotUri: new FormControl({
+          value: camera.snapshotUri,
+          disabled: false
+        }, [Validators.maxLength(55)]),
       }, {updateOn: "change"});
     });
     this.camControls = new FormArray(toCameraGroups);
@@ -290,14 +294,14 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit {
       camera.streams.forEach((stream) => {
         if (isDevMode()) {  // Development mode
           stream.nms_uri = "rtmp://localhost:1935/nms/stream" + streamNum;
-          stream.uri = "http://localhost:8009/nms/stream" + streamNum + ".flv";
+          stream.uri = "/live/nms/stream" + streamNum + ".flv";
           if (stream.netcam_uri === '')
             stream.netcam_uri = 'rtsp://';
 
           if (stream.motion.enabled) {
             // stream.recording = new Recording();
             stream.recording.enabled = true;
-            stream.recording.uri = 'http://localhost:8084/recording/stream' + streamNum + '/';
+            stream.recording.uri = '/recording/stream' + streamNum + '/';
             stream.recording.location = 'stream' + streamNum;
             if (stream.motion.trigger_recording_on !== '') {
               let recStreamKey: string[] = stream.motion.trigger_recording_on.split('.');
@@ -307,7 +311,7 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit {
                 // Set up the recording
                 if (recStream !== undefined) {
                   recStream.recording.enabled = true;
-                  recStream.recording.uri = 'http://localhost:8084/recording/stream' + recStream.absolute_num + '/';
+                  recStream.recording.uri = '/recording/stream' + recStream.absolute_num + '/';
                   recStream.recording.location = 'stream' + recStream.absolute_num;
                 }
               }

@@ -1,5 +1,4 @@
-.login-container
-{
+.ip-addresses {
   margin-top: 1rem;
   font-size: 2rem;
   display: inline-flex;
@@ -9,14 +8,10 @@
     width: fit-content;
     margin-left: auto;
     margin-right: auto;
+    >mat-card-content {
+      >table {
+        width: 35rem;
+      }
+    }
   }
-}
-
-a.forgot-password {
-  color: #a5b9f8;
-}
-
-
-div.remember-me-checkbox {
-  margin-top: 0.7rem;
 }

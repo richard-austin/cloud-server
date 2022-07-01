@@ -4,7 +4,7 @@ import {Camera, CameraStream} from "../cameras/Camera";
 import {ReportingComponent} from "../reporting/reporting.component";
 import {HttpErrorResponse} from "@angular/common/http";
 import {Subscription} from "rxjs";
-import {IdleTimeoutStatusMessage, Message, messageType, UtilsService} from "../shared/utils.service";
+import {IdleTimeoutStatusMessage, LoggedInMessage, Message, messageType, UtilsService} from '../shared/utils.service';
 import {MatDialog} from "@angular/material/dialog";
 import {IdleTimeoutModalComponent} from "../idle-timeout-modal/idle-timeout-modal.component";
 import {MatDialogRef} from "@angular/material/dialog/dialog-ref";
@@ -67,6 +67,18 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
     window.location.href = '#/changepassword';
   }
 
+  getActiveIPAddresses() {
+    window.location.href = '#/getactiveipaddresses';
+  }
+
+  getLocalWifiDetails() {
+    window.location.href = '#/getlocalwifidetails';
+  }
+
+  wifiSettings() {
+    window.location.href = '#/wifisettings';
+  }
+
   multiCamView() {
     window.location.href = '#/multicam';
   }
@@ -125,7 +137,12 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
 
 private getAuthorities():void
   {
-    this.utilsService.checkSessionStatus().subscribe();
+    this.utilsService.checkSessionStatus().subscribe(
+      (auth) => {
+        if(auth !== null && auth !== 'ROLE_ANONYMOUS')
+          this.utilsService.sendMessage(new LoggedInMessage(auth));
+      }
+    );
   }
 
   setIp() {
@@ -218,6 +235,7 @@ private getAuthorities():void
         //    console.log("idle active = "+this.idleTimeoutActive)
       }
       else if (message.messageType === messageType.loggedIn) {
+        console.log('Logged in message received');
         window.location.href = "#/"
         this.idleTimeoutActive = true;
         if(!this.utilsService.isAdmin) {
