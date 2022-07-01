@@ -36,6 +36,16 @@ class CloudSecurityEventListener implements LogoutHandler, AuthenticationSuccess
 
         if (!isAdmin) {
             String cookie = cloudService.authenticatedNVRs(productId)
+
+            String uri = request.getRequestURI()
+            // If uri is /login/authenticate, we are here due to manual login and the 302 redirect would mess up the login
+            if(uri != "/login/authenticate") {
+                // Set up redirect to the original url if we are here due to remember me
+                response.status = 302
+                String url = request.getRequestURL().toString()
+                response.addHeader("Location", "${url}")
+            }
+
             response.addHeader("Set-Cookie", "NVRSESSIONID=" + cookie + "; Path=/; HttpOnly")
             response.addHeader("Set-Cookie", "PRODUCTID=" + productId + "; Path=/; HttpOnly")
             response.getWriter().write('[{"authority": "ROLE_CLIENT"}]')
