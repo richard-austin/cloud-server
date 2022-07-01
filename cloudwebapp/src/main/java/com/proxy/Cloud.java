@@ -72,20 +72,20 @@ public class Cloud {
      */
     public void start() {
         if (!running) {
+            logger.info("Starting Cloud instance for "+productId);
             running = true;
             browserWriteExecutor = Executors.newSingleThreadExecutor();
             browserReadExecutor = Executors.newCachedThreadPool();
             sendToCloudProxyExecutor = Executors.newSingleThreadExecutor();
             cloudProxyInputProcessExecutor = Executors.newSingleThreadScheduledExecutor();
             cloudProxyHeartbeatExecutor = Executors.newSingleThreadScheduledExecutor();
-            running = true;
             startCloudProxyInputProcess();
         }
     }
 
     public void stop() {
         try {
-            running = false;
+            logger.info("Stopping Cloud instance for "+productId);
             browserWriteExecutor.shutdownNow();
             browserReadExecutor.shutdownNow();
             sendToCloudProxyExecutor.shutdownNow();
@@ -104,6 +104,7 @@ public class Cloud {
             lastBitOfPreviousMessage = null;
             lastBitOfPreviousHttpMessage.clear();
             clearTokenSocketMap();
+            running = false;
         } catch (Exception ex) {
             logger.error(ex.getClass().getName() + " in stop: " + ex.getMessage());
         }
@@ -350,9 +351,8 @@ public class Cloud {
     private synchronized void clearTokenSocketMap() {
         Set<Integer> tokens = new HashSet<>(tokenSocketMap.keySet());
         tokens.forEach((tok) -> {
-            try {
-                tokenSocketMap.get(tok).close();
-                tokenSocketMap.remove(tok);
+            try(SocketChannel sock = tokenSocketMap.remove(tok)) {
+                logger.info("Removing socket for token "+tok.toString());
             } catch (Exception ignored) {
             }
         });
