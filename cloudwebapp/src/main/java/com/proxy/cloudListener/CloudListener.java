@@ -1,5 +1,6 @@
 package com.proxy.cloudListener;
 
+import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import com.proxy.*;
 import org.slf4j.LoggerFactory;
@@ -49,6 +50,7 @@ public class CloudListener implements SslContextProvider {
     private ServerSocketChannel _sc = null;
 
     public void start() {
+        logger.setLevel(Level.INFO);
         int cloudProxyFacingPort;
         int browserFacingPort;
 
@@ -191,26 +193,39 @@ public class CloudListener implements SslContextProvider {
         browserReadExecutor.submit(() -> {
             ByteBuffer buf = getBuffer();
             try {
+                logger.debug("In readFromBrowser: token"+token);
                 final int bytesRead = channel.read(buf);
-                HttpMessage msg = new HttpMessage(buf);
-                List<String> cookies = msg.get("cookie");
-                String PRODUCTID = "";
-                String NVRSESSIONID = "";
-                final String key = "PRODUCTID";
-                final String sessionIdKey = "NVRSESSIONID";
-                for (String cookie : cookies) {
-                    if (cookie.contains(key))
-                        PRODUCTID = cookieFinder.apply(cookie, key);
-                    if (cookie.contains(sessionIdKey))
-                        NVRSESSIONID = cookieFinder.apply(cookie, sessionIdKey);
+                logger.debug("Read "+bytesRead + "token "+token);
+                if(bytesRead > 0) {
+                    HttpMessage msg = new HttpMessage(buf);
+                    List<String> cookies = msg.get("cookie");
+                    String PRODUCTID = "";
+                    String NVRSESSIONID = "";
+                    final String key = "PRODUCTID";
+                    final String sessionIdKey = "NVRSESSIONID";
+                    for (String cookie : cookies) {
+                        if (cookie.contains(key))
+                            PRODUCTID = cookieFinder.apply(cookie, key);
+                        if (cookie.contains(sessionIdKey))
+                            NVRSESSIONID = cookieFinder.apply(cookie, sessionIdKey);
+                    }
+                    if (PRODUCTID.matches(productIdRegex)) {
+                        Cloud inst = instances.get(PRODUCTID);
+                        if (inst != null)
+                            // Call readFromBrowser on the Cloud instance if there is one for this session ID
+                            inst.readFromBrowser(channel, buf, token, NVRSESSIONID);
+                        else
+                        {
+                            recycle(buf);  // No Cloud instance for this product ID, just ignore this message
+                            channel.close();
+                        }
+                    } else {
+                        recycle(buf);  // No product ID, just ignore this message
+                        channel.close();
+                    }
                 }
-                if (PRODUCTID.matches(productIdRegex)) {
-                    Cloud inst = instances.get(PRODUCTID);
-                    if (inst != null)
-                        // Call readFromBrowser on the Cloud instance if there is one for this session ID
-                        inst.readFromBrowser(channel, buf, token, NVRSESSIONID, bytesRead == -1);
-                } else
-                    recycle(buf);  // No product ID, just ignore this message
+                else
+                    channel.close();
 
             } catch (IOException ignored) {
                 //removeSocket(token);

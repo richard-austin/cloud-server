@@ -239,7 +239,7 @@ public class Cloud {
 
     private final Map<Integer, ByteBuffer> lastBitOfPreviousHttpMessage = new ConcurrentHashMap<>();
 
-    public final void readFromBrowser(final SocketChannel channel, final ByteBuffer initialBuf, final int token, final String nvrSessionId, boolean finished) {
+    public final void readFromBrowser(final SocketChannel channel, final ByteBuffer initialBuf, final int token, final String nvrSessionId) {
         browserReadExecutor.submit(() -> {
             try {
                 if (!nvrSessionId.equals(""))
@@ -252,10 +252,12 @@ public class Cloud {
 
                 // Now read any more that may still come through
                 buf = getBuffer();
-                while (!finished && channel.read(buf) != -1) {
+                logger.debug("Into read with token "+token);
+                while (channel.read(buf) != -1) {
                     splitHttpMessages(buf, token, lastBitOfPreviousHttpMessage);
                     buf = getBuffer();
                 }
+                logger.debug("Out of read with token "+token);
                 setToken(buf, token);
                 setConnectionClosedFlag(buf);
                 sendRequestToCloudProxy(buf);
@@ -332,7 +334,7 @@ public class Cloud {
 
     private void removeSocket(int token) {
         try (var skt = tokenSocketMap.remove(token)) {
-            logger.info("Removing socket for token " + token);
+            logger.debug("Removing socket for token " + token);
         } catch (IOException ex) {
             showExceptionDetails(ex, "removeSocket");
         }
@@ -352,7 +354,7 @@ public class Cloud {
         Set<Integer> tokens = new HashSet<>(tokenSocketMap.keySet());
         tokens.forEach((tok) -> {
             try(SocketChannel sock = tokenSocketMap.remove(tok)) {
-                logger.info("Removing socket for token "+tok.toString());
+                logger.debug("Removing socket for token "+tok.toString());
             } catch (Exception ignored) {
             }
         });
