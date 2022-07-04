@@ -40,7 +40,6 @@ public class CloudInstanceMap {
     Cloud put(String key, Cloud cloud) {
         brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", update);
         createNVRSessionTimer(cloud.getProductId());
-
         return map.put(key, cloud);
     }
 
@@ -51,20 +50,20 @@ public class CloudInstanceMap {
      * @return: The Cloud instance
      */
     public Cloud get(String key) {
-        if (timers.containsKey(key)) {
-            timers.get(key).cancel();
-        }
         return map.get(key);
     }
 
      /**
-     * remove: Remove this key reference to the Cloud instance. If the key is a product ID, remove the Cloud instance and all references
+     * remove: Remove this key reference to the Cloud instance.
      *
      * @param key: The key
      * @return: The Cloud instance
      */
     public Cloud remove(String key) {
         brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", update);
+        Timer timer = timers.remove(key);
+        if(timer != null)
+            timer.cancel();
         return map.remove(key);
     }
 
@@ -75,7 +74,10 @@ public class CloudInstanceMap {
      * @param productId: The Cloud instance
      */
     public void resetNVRTimeout(String productId) {
-        timers.get(productId).cancel();
+        Timer timer = timers.get(productId);
+        if(timer != null)
+            timer.cancel();
+
         createNVRSessionTimer(productId);
     }
 

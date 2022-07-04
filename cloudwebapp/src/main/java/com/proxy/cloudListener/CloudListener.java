@@ -144,6 +144,7 @@ public class CloudListener implements SslContextProvider {
             newInstance.start();
             instances.put(prodId, newInstance);
         } else {
+            instances.resetNVRTimeout(prodId);
             Cloud cloud = instances.get(prodId);
             cloud.setCloudProxyConnection(cloudProxy);
         }

@@ -4,7 +4,6 @@ import javax.net.ssl.SSLSocket;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
@@ -45,7 +44,6 @@ public class Cloud {
     private SSLSocket cloudProxy;
     final private String productId;
     private final CloudProperties cloudProperties = CloudProperties.getInstance();
-    private final boolean protocolAgnostic = true;  // ProtocolAgnostic means that login to NVR won't be done automatically by the Cloud
     private final CloudInstanceMap instances;
     // Remove browser (nvrSessionId) references after 120 seconds with no call coming in.
     //  This is twice the time between getTemperature calls which will refresh the timer as they come in, as
@@ -93,16 +91,10 @@ public class Cloud {
             if (cloudProxyInputProcessExecutor != null)
                 cloudProxyInputProcessExecutor.shutdownNow();
 
-//            if (cloudProxy != null) {
-//                cloudProxy.shutdownOutput();
-//                //cloudProxy.close();
-//            }
-
             if (cloudProxyHeartbeatExecutor != null)
                 cloudProxyHeartbeatExecutor.shutdownNow();
 
             lastBitOfPreviousMessage = null;
-            lastBitOfPreviousHttpMessage.clear();
             clearTokenSocketMap();
             running = false;
         } catch (Exception ex) {
@@ -237,8 +229,6 @@ public class Cloud {
         return retVal;
     }
 
-    private final Map<Integer, ByteBuffer> lastBitOfPreviousHttpMessage = new ConcurrentHashMap<>();
-
     public final void readFromBrowser(final SocketChannel channel, final ByteBuffer initialBuf, final int token, final String nvrSessionId) {
         browserReadExecutor.submit(() -> {
             try {
@@ -248,13 +238,15 @@ public class Cloud {
                 updateSocketMap(channel, token);
                 ByteBuffer buf = initialBuf;
                 // Send the initial message delivered from the CloudListener
-                splitHttpMessages(buf, token, lastBitOfPreviousHttpMessage);
+                packageAndSendToCloudProxy(buf, token);
+                //splitHttpMessages(buf, token, lastBitOfPreviousHttpMessage);
 
                 // Now read any more that may still come through
                 buf = getBuffer();
                 logger.debug("Into read with token "+token);
                 while (channel.read(buf) != -1) {
-                    splitHttpMessages(buf, token, lastBitOfPreviousHttpMessage);
+                    packageAndSendToCloudProxy(buf, token);
+                    //splitHttpMessages(buf, token, lastBitOfPreviousHttpMessage);
                     buf = getBuffer();
                 }
                 logger.debug("Out of read with token "+token);
@@ -622,88 +614,33 @@ public class Cloud {
         return retVal;
     }
 
-    void splitHttpMessages(final ByteBuffer buf, int token, final Map<Integer, ByteBuffer> lastBitOfPreviousBuffer) {
-        buf.flip();
-        ByteBuffer combinedBuf;
-
-        if (lastBitOfPreviousBuffer.get(token) != null) {
-            // Append the new buffer onto the previous ones remaining content
-            combinedBuf = ByteBuffer.allocate(buf.limit() + lastBitOfPreviousBuffer.get(token).limit() - lastBitOfPreviousBuffer.get(token).position());
-            combinedBuf.put(lastBitOfPreviousBuffer.get(token));
-            combinedBuf.put(buf);
-
-            combinedBuf.flip();
-            lastBitOfPreviousBuffer.remove(token);
-            recycle(buf);
-        } else
-            combinedBuf = buf;
-
-        while (combinedBuf.position() < combinedBuf.limit()) {
-            final HttpMessage msg = new HttpMessage(combinedBuf);
-            if (protocolAgnostic || !msg.headersBuilt) {
-                // Ignore HTTP protocol
-                try {
-                    ByteBuffer nonHttp = ByteBuffer.allocate(combinedBuf.limit() + headerLength);
-                    setToken(nonHttp, token);
-                    nonHttp.put(combinedBuf);
-                    setDataLength(nonHttp, combinedBuf.limit());
-                    nonHttp.flip();
-                    sendRequestToCloudProxy(nonHttp);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                break;
-            }
-            String hdrs = msg.getHeaders();
-            int headersLength = hdrs.length();
-            int messageLength = headersLength + msg.getContentLength();
-            if (combinedBuf.position() + messageLength <= combinedBuf.limit()) {
-                combinedBuf.position(combinedBuf.position() + messageLength);
-                msg.remove("cookie");
-                List<String> js = new ArrayList<>();
-                js.add("NVRSESSIONID=" + NVRSESSIONID);
-                msg.put("Cookie", js);
-                try {
-                    String headers = msg.getHeaders();
-                    ByteBuffer output = ByteBuffer.allocate(headers.length() + msg.getContentLength() + headerLength);
-                    setToken(output, token);
-                    output.put(headers.getBytes(StandardCharsets.UTF_8));
-                    if (msg.getContentLength() > 0)
-                        output.put(msg.getMessageBody());
-                    int dataLength = output.position() - headerLength;
-                    setDataLength(output, dataLength);
-                    setBufferForSend(output);
-                    sendRequestToCloudProxy(output);
-                } catch (Exception ex) {
-                    System.out.println("ERROR: Exception in splitHttpMessages when writing to stream: " + ex.getClass().getName() + ex.getMessage());
-                    lastBitOfPreviousHttpMessage.clear();
-                }
-            } else {
-                ByteBuffer remainingData = ByteBuffer.allocate(combinedBuf.limit() - combinedBuf.position());
-                remainingData.put(combinedBuf);
-                remainingData.flip();
-                lastBitOfPreviousBuffer.put(token, remainingData);
-                break;
-            }
+    /**
+     * packageAndSendToCloudProxy: Set up the message in a buffer wih token and message length to send to the CloudProxy
+     * @param buf The raw buffer (no token or other CloudProxy protocol related information
+     * @param token: The token (represents the socket to use)
+     */
+    void packageAndSendToCloudProxy(ByteBuffer buf, final int token)
+    {
+        try {
+            buf.flip();
+            ByteBuffer bufToSend = ByteBuffer.allocate(buf.limit() + headerLength);
+            setToken(bufToSend, token);
+            bufToSend.put(buf);
+            setDataLength(bufToSend, buf.limit());
+            bufToSend.flip();
+            sendRequestToCloudProxy(bufToSend);
+        }
+        catch(Exception ex)
+        {
+            logger.trace(ex.getClass().getName() + " in sendToCloudProxy: " + ex.getMessage());
         }
     }
 
-    public void setCloudProxyConnection(SSLSocket cloudProxy) {
+     public void setCloudProxyConnection(SSLSocket cloudProxy) {
         stop();
         this.cloudProxy = cloudProxy;
         start();
     }
-
-//    public void reset() {
-//        logger.info("Reset called");
-//        if (cloudProxyInputProcessExecutor != null)
-//            cloudProxyInputProcessExecutor.shutdownNow();
-//
-//        cloudProxyInputProcessExecutor = Executors.newSingleThreadScheduledExecutor();
-//        lastBitOfPreviousMessage = null;
-//        lastBitOfPreviousHttpMessage.clear();
-//        clearTokenSocketMap();
-//    }
 
     private int getMessageLengthFromPosition(ByteBuffer buf) {
         return buf.getInt(buf.position() + tokenLength) + headerLength;
