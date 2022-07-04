@@ -29,7 +29,6 @@ public class Cloud {
     private ExecutorService browserReadExecutor = null;
     private ExecutorService sendToCloudProxyExecutor = null;
     private ExecutorService cloudProxyInputProcessExecutor = null;
-    private ScheduledExecutorService cloudProxyHeartbeatExecutor = null;
 
     private String NVRSESSIONID = "";
 
@@ -76,7 +75,6 @@ public class Cloud {
             browserReadExecutor = Executors.newCachedThreadPool();
             sendToCloudProxyExecutor = Executors.newSingleThreadExecutor();
             cloudProxyInputProcessExecutor = Executors.newSingleThreadScheduledExecutor();
-            cloudProxyHeartbeatExecutor = Executors.newSingleThreadScheduledExecutor();
             startCloudProxyInputProcess();
         }
     }
@@ -90,9 +88,6 @@ public class Cloud {
 
             if (cloudProxyInputProcessExecutor != null)
                 cloudProxyInputProcessExecutor.shutdownNow();
-
-            if (cloudProxyHeartbeatExecutor != null)
-                cloudProxyHeartbeatExecutor.shutdownNow();
 
             lastBitOfPreviousMessage = null;
             clearTokenSocketMap();
@@ -110,7 +105,7 @@ public class Cloud {
                     buf.flip();
                     InputStream is = cloudProxy.getInputStream();
                     while (read(is, buf) != -1) {
-                        splitMessages(buf);
+                        separateMessages(buf);
                         buf = getBuffer();
                     }
                     recycle(buf);
@@ -495,7 +490,13 @@ public class Cloud {
 
     ByteBuffer lastBitOfPreviousMessage = null;
 
-    void splitMessages(ByteBuffer buf) {
+    /**
+     * separateMessages: Ensures the messages read from the CloudProxy through the single channel link are not
+     *                   appended to each other and that if a message has been truncated, it will append the remain part
+     *                   to it.
+     * @param buf The buffer containing bytes read from the CloudProxy on the NVR
+     */
+    void separateMessages(ByteBuffer buf) {
         try {
             buf.flip();
             ByteBuffer combinedBuf;
