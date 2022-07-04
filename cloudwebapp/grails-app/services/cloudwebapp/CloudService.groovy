@@ -167,24 +167,19 @@ class CloudService {
     ObjectCommandResponse register(RegisterUserCommand cmd) {
         ObjectCommandResponse response = new ObjectCommandResponse()
         try {
-            String nvrSessionId = cloudListener.authenticate(cmd.productId)
-            // Decrement the instance count, or registering will show as a an active session on admin and we
-            // only want to show logged in client sessions.
-            cloudListener.getInstances()?.get(cmd.productId)?.decSessionCount(nvrSessionId)
-
-            if (User.findByProductid(cmd.productId) != null)
+             if (User.findByProductid(cmd.productId) != null)
                 throw new Exception("Product ID " + cmd.productId + " is already registered")
             else if (User.findByUsername(cmd.username) != null)
                 throw new Exception("Username " + cmd.username + " is already registered")
 
-            if (nvrSessionId != "" && nvrSessionId != "NO_CONN") {
+            Cloud cloud = cloudListener.getInstances().get(cmd.productId)
+
+            if (cloud != null) {
                 User u = new User(username: cmd.username, productid: cmd.productId, password: cmd.password, email: cmd.email)
                 u = userService.save(u)
                 userRoleService.save(u, roleService.findByAuthority('ROLE_CLIENT'))
-            } else if (nvrSessionId == "")
-                throw new Exception("Failed to login to NVR")
-            else
-                throw new Exception("NVR not connected or entered product id was incorrect")
+            } else
+                throw new Exception("Cannot find an NVR for product ID ${cmd.productId}")
 
             brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", update)
         }
