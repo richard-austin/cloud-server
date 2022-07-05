@@ -74,13 +74,13 @@ public class Cloud {
             browserWriteExecutor = Executors.newSingleThreadExecutor();
             browserReadExecutor = Executors.newCachedThreadPool();
             sendToCloudProxyExecutor = Executors.newSingleThreadExecutor();
-            cloudProxyInputProcessExecutor = Executors.newSingleThreadScheduledExecutor();
+            cloudProxyInputProcessExecutor = Executors.newSingleThreadExecutor();
             startCloudProxyInputProcess();
         }
     }
 
     public void stop() {
-        try {
+        try (SSLSocket ignored = cloudProxy) {
             logger.info("Stopping Cloud instance for "+productId);
             browserWriteExecutor.shutdownNow();
             browserReadExecutor.shutdownNow();
