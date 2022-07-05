@@ -19,10 +19,8 @@ import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.PrivateKey;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Queue;
+import java.text.SimpleDateFormat;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
@@ -194,10 +192,10 @@ public class CloudListener implements SslContextProvider {
         browserReadExecutor.submit(() -> {
             ByteBuffer buf = getBuffer();
             try {
-                logger.debug("In readFromBrowser: token"+token);
+                logger.debug("In readFromBrowser: token" + token);
                 final int bytesRead = channel.read(buf);
-                logger.debug("Read "+bytesRead + "token "+token);
-                if(bytesRead > 0) {
+                logger.debug("Read " + bytesRead + "token " + token);
+                if (bytesRead > 0) {
                     HttpMessage msg = new HttpMessage(buf);
                     List<String> cookies = msg.get("cookie");
                     String PRODUCTID = "";
@@ -215,18 +213,16 @@ public class CloudListener implements SslContextProvider {
                         if (inst != null)
                             // Call readFromBrowser on the Cloud instance if there is one for this session ID
                             inst.readFromBrowser(channel, buf, token, NVRSESSIONID);
-                        else
-                        {
+                        else {
                             recycle(buf);  // No Cloud instance for this product ID, just ignore this message
-                            channel.close();
+                            sendErrorResponseToBrowser("No Cloud instance for this product ID", channel);
                         }
                     } else {
                         recycle(buf);  // No product ID, just ignore this message
-                        channel.close();
+                        sendErrorResponseToBrowser("Couldn't find Product ID", channel);
                     }
-                }
-                else
-                    channel.close();
+                } else
+                    sendErrorResponseToBrowser("Channel closed", channel);
 
             } catch (IOException ignored) {
                 //removeSocket(token);
@@ -234,6 +230,36 @@ public class CloudListener implements SslContextProvider {
                 logger.error(ex.getClass().getName() + " in readFromBrowser: " + ex.getMessage());
             }
         });
+    }
+
+    /**
+     * sendErrorResponseToBrowser: Returns an error message to the browser where no response was received from the NVR
+     * @param message: The error message to send
+     * @param channel: The SocketChannel to send it on
+     */
+    private void sendErrorResponseToBrowser(final String message, SocketChannel channel) {
+        String dateString = new Date().toString();
+
+        final String resp =
+                "HTTP/1.1 401 Unauthorized\n" +
+                        "X-Powered-By: Express\n" +
+                        "Access-Control-Allow-Origin: *\n" +
+                        "vary: Origin, Access-Control-Request-Method, Access-Control-Request-Headers\n" +
+                        "content-length: "+message.length()+"\n" +
+                        "date: "+dateString+"\n" +
+                        "connection: close\n\n"+
+                        message +"\n";
+        ByteBuffer buf = getBuffer();
+        buf.put(resp.getBytes());
+        buf.flip();
+        try(SocketChannel c = channel)
+        {
+            c.write(buf);
+        }
+        catch(Exception ex)
+        {
+            logger.error(ex.getClass().getName() + " in sendErrorResponseToBrowser: " + ex.getMessage());
+        }
     }
 
     private String getProductId(SSLSocket cloudProxy) {
