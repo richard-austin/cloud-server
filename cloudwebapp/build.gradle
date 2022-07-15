@@ -11,7 +11,7 @@ buildscript {
     }
 }
 
-version "0.1"
+version "7.3"
 group "cloudwebapp"
 
 apply plugin:"eclipse"
@@ -39,7 +39,7 @@ bootRun {
 
 dependencies {
     developmentOnly("org.springframework.boot:spring-boot-devtools")
-    compileOnly "io.micronaut:micronaut-inject-groovy"
+//    compileOnly "io.micronaut:micronaut-inject-groovy"
     console "org.grails:grails-console"
     implementation "org.springframework.boot:spring-boot-starter-logging"
     implementation "org.springframework.boot:spring-boot-starter-validation"
@@ -56,22 +56,27 @@ dependencies {
     implementation "org.grails:grails-plugin-services"
     implementation "org.grails:grails-plugin-url-mappings"
     implementation "org.grails:grails-plugin-interceptors"
-    implementation "org.grails.plugins:cache"
+
+
+    implementation "org.grails.plugins:cache", { exclude group: "org.codehaus.groovy", module: "groovy-all" }
     implementation "org.grails.plugins:async"
     implementation "org.grails.plugins:scaffolding"
     implementation "org.grails.plugins:hibernate5"
-    implementation "org.hibernate:hibernate-core:5.5.7.Final"
+    implementation "org.hibernate:hibernate-core"
     implementation "org.grails.plugins:events"
     implementation "org.grails.plugins:gsp"
     implementation 'commons-codec:commons-codec:1.15'
     implementation 'com.google.guava:guava:31.0.1-jre'
     profile "org.grails.profiles:web"
-    runtimeOnly "org.glassfish.web:el-impl:2.2.1-b05"
+//    // https://mvnrepository.com/artifact/org.codehaus.groovy/groovy
+//    compileOnly group: 'org.codehaus.groovy', name: 'groovy-all', version: '3.0.11', ext: 'pom'
+
+//    runtimeOnly "org.glassfish.web:el-impl:2.2.1-b05"
     runtimeOnly "com.h2database:h2"
     runtimeOnly "org.apache.tomcat:tomcat-jdbc"
     runtimeOnly "javax.xml.bind:jaxb-api:2.3.1"
     runtimeOnly "com.bertramlabs.plugins:asset-pipeline-grails:3.3.4"
-    testImplementation "io.micronaut:micronaut-inject-groovy"
+    //testImplementation "io.micronaut:micronaut-inject-groovy"
     testImplementation "org.grails:grails-gorm-testing-support"
     testImplementation "org.mockito:mockito-core"
     testImplementation "org.grails:grails-web-testing-support"
@@ -79,9 +84,10 @@ dependencies {
     testImplementation "org.seleniumhq.selenium:selenium-remote-driver:3.141.59"
     testImplementation "org.seleniumhq.selenium:selenium-api:3.141.59"
     testImplementation "org.seleniumhq.selenium:selenium-support:3.141.59"
+
     testRuntimeOnly "org.seleniumhq.selenium:selenium-chrome-driver:3.141.59"
     testRuntimeOnly "org.seleniumhq.selenium:selenium-firefox-driver:3.141.59"
-    implementation 'org.quartz-scheduler:quartz:2.2.1' // Is not pulled in by default
+    implementation 'org.quartz-scheduler:quartz' // Is not pulled in by default
     implementation 'org.grails.plugins:quartz:2.0.13' // Needed to compile *Job classes
     implementation 'com.bertramlabs.plugins:i18n-asset-pipeline-grails:3.3.6'
     implementation 'org.springframework.boot:spring-boot-starter-websocket:2.6.3'
