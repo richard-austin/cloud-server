@@ -21,8 +21,8 @@ mkdir -p cloud_"${VERSION}"_arm64/lib/systemd/system/
 
 cp -r ../nginx.conf cloud_"${VERSION}"_arm64/tmp
 cp ../apache-tomcat-9.0.46/conf/server.xml ../apache-tomcat-9.0.46/conf/tomcat-users.xml cloud_"${VERSION}"_arm64/tmp
-cp ../install-cert.sh cloud_"${VERSION}"_arm64/tmp
-cp ../../cloudwebapp/build/libs/cloudwebapp-0.1.war cloud_"${VERSION}"_arm64/tmp
+cp ../install-cert.sh ../tomcat9 cloud_"${VERSION}"_arm64/tmp
+cp ../../cloudwebapp/build/libs/cloudwebapp-7.3.war cloud_"${VERSION}"_arm64/tmp
 
 cat << EOF > cloud_"${VERSION}"_arm64/DEBIAN/control
 Package: cloud
@@ -30,7 +30,7 @@ Version: $VERSION
 Architecture: arm64
 Maintainer: Richard Austin <richard.david.austin@gmail.com>
 Description: Cloud server to provide access to NVRs running the CloudProxy.
-Depends: openjdk-11-jre-headless (>=11.0.11), openjdk-11-jre-headless (<< 12.0.0),
+Depends: openjdk-17-jre-headless (>=17.0.3), openjdk-17-jre-headless (<< 18.0.0),
  nginx (>=1.18.0), nginx(<=1.20.9),
  tomcat9 (>=9.0.43-1), tomcat9 (<= 10.0.0),
  tomcat9-admin (>=9.0.43-1), tomcat9-admin (<= 10.0.0)
