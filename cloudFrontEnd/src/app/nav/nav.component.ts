@@ -4,12 +4,13 @@ import {Camera, CameraStream} from "../cameras/Camera";
 import {ReportingComponent} from "../reporting/reporting.component";
 import {HttpErrorResponse} from "@angular/common/http";
 import {Subscription} from "rxjs";
-import {IdleTimeoutStatusMessage, LoggedInMessage, Message, messageType, UtilsService} from '../shared/utils.service';
+import {IdleTimeoutStatusMessage, Message, messageType, UtilsService} from '../shared/utils.service';
 import {MatDialog} from "@angular/material/dialog";
 import {IdleTimeoutModalComponent} from "../idle-timeout-modal/idle-timeout-modal.component";
 import {MatDialogRef} from "@angular/material/dialog/dialog-ref";
 import {UserIdleConfig} from "../angular-user-idle/angular-user-idle.config";
 import {UserIdleService} from "../angular-user-idle/angular-user-idle.service";
+import {map} from 'rxjs/operators';
 
 @Component({
   selector: 'app-nav',
@@ -135,16 +136,6 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
       });
   }
 
-private getAuthorities():void
-  {
-    this.utilsService.checkSessionStatus().subscribe(
-      (auth) => {
-        if(auth !== null && auth !== 'ROLE_ANONYMOUS')
-          this.utilsService.sendMessage(new LoggedInMessage(auth));
-      }
-    );
-  }
-
   setIp() {
     window.location.href = '#/setip';
   }
@@ -199,7 +190,8 @@ private getAuthorities():void
   }
 
   ngOnInit(): void {
-    this.utilsService.checkSessionStatus().pipe(
+    this.utilsService.getUserAuthorities().pipe(
+      map((auths: { authority: string }[]) => {return auths !== null && auths.length > 0 ? auths[0]?.authority : 'ROLE_ANONYMOUS'})
     ).subscribe((auth) => {
       switch (auth)
       {
@@ -275,10 +267,10 @@ private getAuthorities():void
     // Gets the core temperature every minute (Raspberry pi only), and keeps the session alive
     this.pingHandle = this.userIdle.ping$.subscribe(() => {
       if(this.callGetTemp) {
-        this.getTemperature();
+        this.getTemperature();  // Gets temperature and is used as a heartbeat keep-alive call
       }
       else if(this.callGetAuthorities)
-        this.getAuthorities();
+        this.utilsService.getUserAuthorities().subscribe();  // Used as a heartbeat keep alive call
     });
 
     this.cameraSvc.getConfigUpdates().subscribe(() => {
