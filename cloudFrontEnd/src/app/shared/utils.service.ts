@@ -2,7 +2,7 @@ import {Injectable} from '@angular/core';
 import {HttpClient, HttpErrorResponse, HttpHeaders} from "@angular/common/http";
 import {BaseUrl} from "./BaseUrl/BaseUrl";
 import {Observable, Subject, throwError} from "rxjs";
-import {catchError, map, tap} from "rxjs/operators";
+import {catchError, tap} from "rxjs/operators";
 import {CameraParams} from "../cameras/Camera";
 
 export class Temperature {
@@ -125,15 +125,6 @@ export class UtilsService {
   logoff(): void {
     this._hasLocalAccount = this._loggedIn = false;
     window.location.href = 'logoff';
-  }
-
-  checkSessionStatus(): Observable<string> {
-    return this.getUserAuthorities().pipe(
-      map((auths) => {
-        return auths[0]?.authority;
-      }),
-      tap()
-    );
   }
 
   getTemperature(): Observable<Temperature> {
