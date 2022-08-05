@@ -1,6 +1,5 @@
 package cloudwebapp
 
-import cloudservice.Role
 import cloudservice.User
 import cloudservice.UserRole
 import cloudservice.commands.AdminChangeEmailCommand

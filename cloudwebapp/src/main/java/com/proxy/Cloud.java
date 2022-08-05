@@ -10,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.*;
 
+import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import com.proxy.cloudListener.CloudInstanceMap;
 import com.proxy.cloudListener.CloudListener;
@@ -35,7 +36,6 @@ public class Cloud {
     final Map<Integer, SocketChannel> tokenSocketMap = new ConcurrentHashMap<>();
 
     private static final Logger logger = (Logger) LoggerFactory.getLogger("CLOUD");
-    public static final int BUFFER_SIZE = 1024;
     private final int tokenLength = Integer.BYTES;
     private final int lengthLength = Integer.BYTES;
     private final int closedFlagLength = Byte.BYTES;
@@ -69,7 +69,8 @@ public class Cloud {
      */
     public void start() {
         if (!running) {
-            logger.info("Starting Cloud instance for "+productId);
+            setLogLevel(cloudProperties.getLOG_LEVEL());
+            logger.info("Starting Cloud instance for " + productId);
             running = true;
             browserWriteExecutor = Executors.newSingleThreadExecutor();
             browserReadExecutor = Executors.newCachedThreadPool();
@@ -81,7 +82,7 @@ public class Cloud {
 
     public void stop() {
         try (SSLSocket ignored = cloudProxy) {
-            logger.info("Stopping Cloud instance for "+productId);
+            logger.info("Stopping Cloud instance for " + productId);
             browserWriteExecutor.shutdownNow();
             browserReadExecutor.shutdownNow();
             sendToCloudProxyExecutor.shutdownNow();
@@ -109,6 +110,7 @@ public class Cloud {
                         buf = getBuffer();
                     }
                     recycle(buf);
+                    logger.error("CloudProxy reader socket has closed in startCloudProxyInputProcess");
                 }
             } catch (Exception exx) {
                 showExceptionDetails(exx, "startCloudProxyInputProcess");
@@ -126,6 +128,9 @@ public class Cloud {
                     os.flush();
                 }
                 while (buf.position() < buf.limit());
+                if (getDataLengthFullRestore(buf) != 6)
+                    logger.debug("sendRequestToCloudProxy length: " + getDataLengthFullRestore(buf));
+
             } catch (Exception ex) {
                 showExceptionDetails(ex, "sendRequestToCloudProxy");
             }
@@ -238,13 +243,14 @@ public class Cloud {
 
                 // Now read any more that may still come through
                 buf = getBuffer();
-                logger.debug("Into read with token "+token);
+                logger.debug("Into read with token " + token);
                 while (channel.read(buf) != -1) {
                     packageAndSendToCloudProxy(buf, token);
                     //splitHttpMessages(buf, token, lastBitOfPreviousHttpMessage);
                     buf = getBuffer();
                 }
-                logger.debug("Out of read with token "+token);
+                logger.debug("Out of read with token " + token);
+
                 setToken(buf, token);
                 setConnectionClosedFlag(buf);
                 sendRequestToCloudProxy(buf);
@@ -259,20 +265,23 @@ public class Cloud {
     }
 
     private boolean isHeartbeat(ByteBuffer buf) {
+        final int position = buf.position();
         // Dump the connection test heartbeats
         final String ignored = "Ignore";
         if (getToken(buf) == -1 && getDataLength(buf) == ignored.length()) {
             instances.resetNVRTimeout(getProductId());  // Reset the timeout which would remove this Cloud instance from the map
             String strVal = new String(Arrays.copyOfRange(buf.array(), headerLength, buf.limit()), StandardCharsets.UTF_8);
-            sendRequestToCloudProxy(buf);   // Bounce the heartbeat back to the CloudProxy to show we are still connected
             return ignored.equals(strVal);
         }
+        buf.position(position);
         return false;
     }
 
     private void respondToBrowser(ByteBuffer buf) {
-        if (isHeartbeat(buf))
+        if (isHeartbeat(buf)) {
+            sendRequestToCloudProxy(buf);   // Bounce the heartbeat back to the CloudProxy to show we are still connected
             return;
+        }
 
         browserWriteExecutor.submit(() -> {
             try {
@@ -287,6 +296,8 @@ public class Cloud {
                     buf.position(headerLength);
                     buf.limit(headerLength + length);
                     int result;
+                    logger.debug("respondToBrowser length: " + getDataLengthFullRestore(buf));
+
                     try {
                         do {
                             result = frontEndChannel.write(buf);
@@ -340,8 +351,8 @@ public class Cloud {
     private synchronized void clearTokenSocketMap() {
         Set<Integer> tokens = new HashSet<>(tokenSocketMap.keySet());
         tokens.forEach((tok) -> {
-            try(SocketChannel sock = tokenSocketMap.remove(tok)) {
-                logger.debug("Removing socket for token "+tok.toString());
+            try (SocketChannel sock = tokenSocketMap.remove(tok)) {
+                logger.debug("Removing socket for token " + tok.toString());
             } catch (Exception ignored) {
             }
         });
@@ -409,6 +420,16 @@ public class Cloud {
         buf.position(tokenLength);
         int length = buf.getInt();
         buf.position(position); // Leave the position where the data starts.
+        return length;
+    }
+
+    private int getDataLengthFullRestore(ByteBuffer buf) {
+        int limit = buf.limit();
+        int position = buf.position();
+        int length = getDataLength(buf);
+        buf.limit(limit);
+        buf.position(position);
+
         return length;
     }
 
@@ -492,8 +513,9 @@ public class Cloud {
 
     /**
      * separateMessages: Ensures the messages read from the CloudProxy through the single channel link are not
-     *                   appended to each other and that if a message has been truncated, it will append the remain part
-     *                   to it.
+     * appended to each other and that if a message has been truncated, it will append the remain part
+     * to it.
+     *
      * @param buf The buffer containing bytes read from the CloudProxy on the NVR
      */
     void separateMessages(ByteBuffer buf) {
@@ -532,15 +554,14 @@ public class Cloud {
                                 logger.trace("Received " + newBuf.limit() + " bytes");
                             }
                         } catch (Exception ex) {
-                            showExceptionDetails(ex, "splitMessages");
+                            showExceptionDetails(ex, "separateMessages");
                             lastBitOfPreviousMessage = null;
                         }
                     }
                 }
             }
-            recycle(combinedBuf);
         } catch (Exception ex) {
-            showExceptionDetails(ex, "splitMessages");
+            showExceptionDetails(ex, "separateMessages");
             lastBitOfPreviousMessage = null;
         }
     }
@@ -599,12 +620,12 @@ public class Cloud {
         ByteBuffer retVal = null;
         synchronized (blo.lockObject) {
             try {
-                logger.warn("Waiting...");
+                logger.debug("Waiting...");
                 blo.lockObject.wait(5000);
-                logger.warn("Waiting done");
+                logger.debug("Waiting done");
                 retVal = blo.getBuffer();
                 if (retVal == null)
-                    throw new Exception("Wait fo response timed out, no message returned.");
+                    throw new Exception("Wait for response timed out, no message returned.");
             } catch (InterruptedException ex) {
                 logger.warn("Interrupted wait in stealMessage: " + ex.getMessage());
             } catch (Exception ex) {
@@ -617,30 +638,39 @@ public class Cloud {
 
     /**
      * packageAndSendToCloudProxy: Set up the message in a buffer wih token and message length to send to the CloudProxy
-     * @param buf The raw buffer (no token or other CloudProxy protocol related information
+     *
+     * @param buf    The raw buffer (no token or other CloudProxy protocol related information
      * @param token: The token (represents the socket to use)
      */
-    void packageAndSendToCloudProxy(ByteBuffer buf, final int token)
-    {
+    void packageAndSendToCloudProxy(ByteBuffer buf, final int token) {
         try {
             buf.flip();
             ByteBuffer bufToSend = ByteBuffer.allocate(buf.limit() + headerLength);
             setToken(bufToSend, token);
             bufToSend.put(buf);
             setDataLength(bufToSend, buf.limit());
+            logger.debug("readFromBrowser length: " + getDataLengthFullRestore(bufToSend));
             bufToSend.flip();
             sendRequestToCloudProxy(bufToSend);
-        }
-        catch(Exception ex)
-        {
+        } catch (Exception ex) {
             logger.trace(ex.getClass().getName() + " in sendToCloudProxy: " + ex.getMessage());
         }
     }
 
-     public void setCloudProxyConnection(SSLSocket cloudProxy) {
+    public void setCloudProxyConnection(SSLSocket cloudProxy) {
         stop();
         this.cloudProxy = cloudProxy;
         start();
+    }
+
+    void setLogLevel(String level) {
+        logger.setLevel(Objects.equals(level, "INFO") ? Level.INFO :
+                Objects.equals(level, "DEBUG") ? Level.DEBUG :
+                        Objects.equals(level, "TRACE") ? Level.TRACE :
+                                Objects.equals(level, "WARN") ? Level.WARN :
+                                        Objects.equals(level, "ERROR") ? Level.ERROR :
+                                                Objects.equals(level, "OFF") ? Level.OFF :
+                                                        Objects.equals(level, "ALL") ? Level.ALL : Level.OFF);
     }
 
     private int getMessageLengthFromPosition(ByteBuffer buf) {
