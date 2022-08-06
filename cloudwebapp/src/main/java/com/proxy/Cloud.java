@@ -528,11 +528,13 @@ public class Cloud {
                 combinedBuf = ByteBuffer.allocate(buf.limit() + lastBitOfPreviousMessage.limit() - lastBitOfPreviousMessage.position());
                 combinedBuf.put(lastBitOfPreviousMessage);
                 combinedBuf.put(buf);
-                recycle(buf);
                 lastBitOfPreviousMessage = null;
-            } else
-                combinedBuf = buf;
-            combinedBuf.rewind();
+            } else {
+                combinedBuf = getBuffer();
+                combinedBuf.put(buf);
+            }
+            combinedBuf.flip();
+            recycle(buf);
 
             while (combinedBuf.position() < combinedBuf.limit()) {
                 if (combinedBuf.limit() - combinedBuf.position() < headerLength) {
