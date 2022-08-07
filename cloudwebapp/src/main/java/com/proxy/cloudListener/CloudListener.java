@@ -31,7 +31,7 @@ public class CloudListener implements SslContextProvider {
     private final CloudProperties cloudProperties = CloudProperties.getInstance();
     private boolean allRunning = false;
     final private static Queue<ByteBuffer> bufferQueue = new ConcurrentLinkedQueue<>();
-    private static final int BUFFER_SIZE = 1024;
+    public static final int BUFFER_SIZE = 1024;
     private final static int tokenLength = Integer.BYTES;
 
     private ExecutorService acceptConnectionsFromCloudProxyExecutor = null;

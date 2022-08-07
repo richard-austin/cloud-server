@@ -24,14 +24,11 @@ import java.util.zip.CRC32;
 import java.util.zip.Checksum;
 
 public class Cloud {
-    final Queue<ByteBuffer> bufferQueue = new ConcurrentLinkedQueue<>();
     private boolean running = false;
     private ExecutorService browserWriteExecutor = null;
     private ExecutorService browserReadExecutor = null;
     private ExecutorService sendToCloudProxyExecutor = null;
     private ExecutorService cloudProxyInputProcessExecutor = null;
-
-    private String NVRSESSIONID = "";
 
     final Map<Integer, SocketChannel> tokenSocketMap = new ConcurrentHashMap<>();
 
@@ -109,7 +106,6 @@ public class Cloud {
                         separateMessages(buf);
                         buf = getBuffer();
                     }
-                    recycle(buf);
                     logger.error("CloudProxy reader socket has closed in startCloudProxyInputProcess");
                 }
             } catch (Exception exx) {
@@ -129,8 +125,9 @@ public class Cloud {
                 }
                 while (buf.position() < buf.limit());
                 if (getDataLengthFullRestore(buf) != 6)
-                    logger.debug("sendRequestToCloudProxy length: " + getDataLengthFullRestore(buf));
+                    logger.trace("sendRequestToCloudProxy length: " + getDataLengthFullRestore(buf));
 
+                recycle(buf);
             } catch (Exception ex) {
                 showExceptionDetails(ex, "sendRequestToCloudProxy");
             }
@@ -139,7 +136,7 @@ public class Cloud {
 
     public String authenticate() {
         SSLSocket socket = this.cloudProxy;
-        NVRSESSIONID = "";
+        String NVRSESSIONID = "";
         if (socket != null && !socket.isClosed()) {
             try {
                 String payload = "username=" + cloudProperties.getUSERNAME() + "&password=" + cloudProperties.getPASSWORD();
@@ -395,7 +392,11 @@ public class Cloud {
     }
 
     private void recycle(ByteBuffer buf) {
-        CloudListener.recycle(buf);
+        if(buf.capacity() == CloudListener.BUFFER_SIZE)  // Don't recycle buffers created outside getBuffer()
+        {
+            buf.clear();
+            CloudListener.recycle(buf);
+        }
     }
 
     /**
@@ -582,9 +583,7 @@ public class Cloud {
         buf.put(request.getBytes());
         setBufferForSend(buf);
         sendRequestToCloudProxy(buf);
-        ByteBuffer retVal = stealMessage(token);
-        recycle(buf);
-        return retVal;
+        return stealMessage(token);
     }
 
     /**
