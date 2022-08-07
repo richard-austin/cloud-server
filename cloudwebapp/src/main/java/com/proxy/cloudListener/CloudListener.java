@@ -19,14 +19,11 @@ import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.PrivateKey;
-import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 
 import static com.proxy.SslUtil.*;
 
@@ -34,7 +31,7 @@ public class CloudListener implements SslContextProvider {
     private final CloudProperties cloudProperties = CloudProperties.getInstance();
     private boolean allRunning = false;
     final private static Queue<ByteBuffer> bufferQueue = new ConcurrentLinkedQueue<>();
-    private static final int BUFFER_SIZE = 1024;
+    public static final int BUFFER_SIZE = 1024;
     private final static int tokenLength = Integer.BYTES;
 
     private ExecutorService acceptConnectionsFromCloudProxyExecutor = null;
@@ -53,6 +50,7 @@ public class CloudListener implements SslContextProvider {
         int browserFacingPort;
 
         if (!allRunning) {
+            setLogLevel(cloudProperties.getLOG_LEVEL());
             browserFacingPort = cloudProperties.getBROWSER_FACING_PORT();
             cloudProxyFacingPort = cloudProperties.getCLOUD_PROXY_FACING_PORT();
 
@@ -192,9 +190,9 @@ public class CloudListener implements SslContextProvider {
         browserReadExecutor.submit(() -> {
             ByteBuffer buf = getBuffer();
             try {
-                logger.debug("In readFromBrowser: token" + token);
+                logger.debug("In readFromBrowser: token " + token);
                 final int bytesRead = channel.read(buf);
-                logger.debug("Read " + bytesRead + "token " + token);
+                logger.debug("Read " + bytesRead + " token " + token);
                 if (bytesRead > 0) {
                     HttpMessage msg = new HttpMessage(buf);
                     List<String> cookies = msg.get("cookie");
@@ -361,6 +359,15 @@ public class CloudListener implements SslContextProvider {
         buf.putInt(token);
         buf.putInt(0);  // Reserve space for the data length
         buf.put((byte) 0); // Reserve space for the closed connection flag
+    }
+    void setLogLevel(String level) {
+        logger.setLevel(Objects.equals(level, "INFO") ? Level.INFO :
+                Objects.equals(level, "DEBUG") ? Level.DEBUG :
+                        Objects.equals(level, "TRACE") ? Level.TRACE :
+                                Objects.equals(level, "WARN") ? Level.WARN :
+                                        Objects.equals(level, "ERROR") ? Level.ERROR :
+                                                Objects.equals(level, "OFF") ? Level.OFF :
+                                                        Objects.equals(level, "ALL") ? Level.ALL : Level.OFF);
     }
 
     /**

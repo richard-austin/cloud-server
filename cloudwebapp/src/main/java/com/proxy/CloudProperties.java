@@ -36,6 +36,7 @@ public final class CloudProperties {
         PRIVATE_KEY_PATH = config.getProperty("cloud.privateKeyPath");
         CLOUD_PROXY_FACING_PORT = Integer.parseInt(Objects.requireNonNull(config.getProperty("cloud.cloudProxyFacingPort")));
         BROWSER_FACING_PORT = Integer.parseInt(Objects.requireNonNull(config.getProperty("cloud.browserFacingPort")));
+        LOG_LEVEL = config.getProperty("cloud.logLevel");
     }
 
     static final int REQUEST_TIMEOUT_SECS = 300;
@@ -48,6 +49,7 @@ public final class CloudProperties {
     private String PRIVATE_KEY_PATH;
     private int CLOUD_PROXY_FACING_PORT;
     private int BROWSER_FACING_PORT;
+    private String LOG_LEVEL;
 
     public String getTRUSTSTORE_PATH() {
         return TRUSTSTORE_PATH;
@@ -66,5 +68,6 @@ public final class CloudProperties {
     public String getPRIVATE_KEY_PATH() { return PRIVATE_KEY_PATH; }  // Private key to decrypt the product ID
     public int getCLOUD_PROXY_FACING_PORT() { return CLOUD_PROXY_FACING_PORT; }
     public int getBROWSER_FACING_PORT() { return BROWSER_FACING_PORT; }
+    public String getLOG_LEVEL() { return LOG_LEVEL; }
 }
 
