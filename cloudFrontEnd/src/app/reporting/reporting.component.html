@@ -14,7 +14,7 @@
     {{warning}}
   </div>
   <div *ngIf="!success && error?.status != 400">
-    <div *ngIf="error?.status != 0">Error status: {{error?.status}}</div>
+    <div *ngIf="error !== undefined && error?.status !== undefined && error?.status != 0">Error status: {{error?.status}}</div>
     <br>
     <div *ngIf="showMessageInError">{{error?.error}}</div>
     <div *ngIf="!showMessageInError">See logs for more information</div>
