@@ -38,10 +38,14 @@ export class WifiSettingsComponent implements OnInit, OnDestroy {
   showWifi() {
     this.loading = true;
     this.wifiUtilsService.getCurrentWifiConnection().subscribe((result) => {
-      this.currentWifiConnection = result;
-      this.loading = false;
-      this.selector.value = this.currentWifiConnection.accessPoint;
-    });
+        this.currentWifiConnection = result;
+        this.loading = false;
+        this.selector.value = this.currentWifiConnection.accessPoint;
+      },
+      reason => {
+        this.loading = false;
+        this.reporting.errorMessage = reason;
+      });
   }
 
   getLocalWifiDetails(): void {
