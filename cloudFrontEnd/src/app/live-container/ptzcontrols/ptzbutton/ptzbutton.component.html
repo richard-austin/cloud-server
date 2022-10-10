@@ -1,0 +1,6 @@
+<div [matTooltip]="ptzBtnMatTooltip"
+              matTooltipClass="tooltip">
+  <button mat-icon-button (mousedown)="move()" (touchstart)="move()" (mouseup)="stop()" (touchend)="stop()">
+    <mat-icon [style.transform]="'scale('+scale+')'">{{matIcon}}</mat-icon>
+  </button>
+</div>
