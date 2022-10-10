@@ -58,6 +58,11 @@ import { RemoveLocalNvrAccountComponent } from './remove-local-nvr-account/remov
 import { GetActiveIPAddressesComponent } from './get-active-ipaddresses/get-active-ipaddresses.component';
 import { GetLocalWifiDetailsComponent } from './get-local-wifi-details/get-local-wifi-details.component';
 import { WifiSettingsComponent } from './wifi-settings/wifi-settings.component';
+import { PTZControlsComponent } from './live-container/ptzcontrols/ptzcontrols.component';
+import { PTZButtonComponent } from './live-container/ptzcontrols/ptzbutton/ptzbutton.component';
+import { PresetButtonComponent } from './live-container/ptzcontrols/preset-button/preset-button.component';
+import {MatDividerModule} from "@angular/material/divider";
+import {MatSlideToggleModule} from "@angular/material/slide-toggle";
 
 @NgModule({
   declarations: [
@@ -93,6 +98,9 @@ import { WifiSettingsComponent } from './wifi-settings/wifi-settings.component';
     GetActiveIPAddressesComponent,
     GetLocalWifiDetailsComponent,
     WifiSettingsComponent,
+    PTZControlsComponent,
+    PTZButtonComponent,
+    PresetButtonComponent
   ],
     imports: [
         BrowserModule,
@@ -120,7 +128,9 @@ import { WifiSettingsComponent } from './wifi-settings/wifi-settings.component';
         LayoutModule,
         MatTableModule,
         MatSortModule,
-        MatTooltipModule
+        MatTooltipModule,
+        MatDividerModule,
+        MatSlideToggleModule
     ],
   providers: [HttpClient, BaseUrl, OnlyAdminUsersService, OnlyClientUsersService, OnlyAnonUsersService, OnlyLoggedInService, SortPipe],
   bootstrap: [AppComponent],

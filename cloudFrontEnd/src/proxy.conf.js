@@ -11,6 +11,7 @@ const PROXY_CONFIG = [
       "/live",
       "/wifiUtils",
       "/cloudProxy",
+      "/ptz",
       "/dc"
     ],
     ws: true,

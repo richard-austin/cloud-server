@@ -48,6 +48,13 @@ export function isValidMaskFileName(cameras:Map<string, Camera>): ValidatorFn {
   }
 }
 
+export function validateTrueOrFalse(): ValidatorFn {
+  return (control: AbstractControl): ValidationErrors | null => {
+    let invalidValue: boolean = control.value != true && control.value !== false;
+    return invalidValue ? {ptzControls: true} : null;
+  }
+}
+
 @Component({
   selector: 'app-config-setup',
   templateUrl: './config-setup.component.html',
@@ -82,7 +89,7 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit {
   updating: boolean = false;
   discovering: boolean = false;
   cameras: Map<string, Camera> = new Map<string, Camera>();
-  cameraColumns = ['camera_id', 'delete', 'expand', 'name', 'controlUri', 'address', 'snapshotUri'];
+  cameraColumns = ['camera_id', 'delete', 'expand', 'name', 'controlUri', 'address', 'snapshotUri', 'ptzControls', 'onvifHost'];
   cameraFooterColumns = ['buttons'];
 
   expandedElement!: Camera | null;
@@ -107,6 +114,14 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit {
     return this.camControls.at(index).get(fieldName) as FormControl;
   }
 
+  setOnvifHostDisabledState(index: number): void {
+    let fc: FormControl = this.getCamControl(index, 'onvifHost');
+
+    this.getCamControl(index, 'ptzControls').value ?
+      fc.enable({onlySelf: true, emitEvent: false}) :
+      fc.disable({onlySelf: true, emitEvent: false});
+  }
+
   updateCam(index: number, field: string, value: any) {
     console.log(index, field, value);
 
@@ -122,6 +137,8 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit {
     if (control) {
       this.updateCam(index, field, control.value);
     }
+    if (field == 'ptzControls')
+      this.setOnvifHostDisabledState(index);
   }
 
   getStreamControl(camIndex: number, streamIndex: number, fieldName: string): FormControl {
@@ -212,6 +229,15 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit {
           value: camera.snapshotUri,
           disabled: false
         }, [Validators.maxLength(55)]),
+        ptzControls: new FormControl({
+          value: camera.ptzControls,
+          disabled: false
+        }, [validateTrueOrFalse()]),
+        onvifHost: new FormControl({
+          value: camera.onvifHost,
+          disabled: false
+        }, [Validators.maxLength(22),
+          Validators.pattern(/^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))($|:([0-9]{1,4}|6[0-5][0-5][0-3][0-5])$)/)])
       }, {updateOn: "change"});
     });
     this.camControls = new FormArray(toCameraGroups);
