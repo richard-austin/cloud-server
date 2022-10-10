@@ -85,7 +85,7 @@ export class UtilsService {
   private _loggedIn: boolean = false;
   private _isAdmin: boolean = false;
   private _hasLocalAccount: boolean = false;
-  public readonly passwordRegex: RegExp = new RegExp("^[A-Za-z0-9][A-Za-z0-9(){\[1*£$\\]}=@~?^]{7,31}$");
+  public readonly passwordRegex: RegExp = new RegExp(/^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,64}$/);
 
   get loggedIn(): boolean {
     return this._loggedIn;
