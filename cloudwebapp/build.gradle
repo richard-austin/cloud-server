@@ -48,6 +48,7 @@ dependencies {
     implementation "org.grails:grails-core"
     implementation "org.springframework.boot:spring-boot-starter-actuator"
     implementation "org.springframework.boot:spring-boot-starter-tomcat"
+    implementation 'org.springframework.boot:spring-boot-starter-websocket:2.6.3'
     implementation "org.grails:grails-web-boot"
     implementation "org.grails:grails-logging"
     implementation "org.grails:grails-plugin-rest"
@@ -90,7 +91,6 @@ dependencies {
     implementation 'org.quartz-scheduler:quartz' // Is not pulled in by default
     implementation 'org.grails.plugins:quartz:2.0.13' // Needed to compile *Job classes
     implementation 'com.bertramlabs.plugins:i18n-asset-pipeline-grails:3.3.6'
-    implementation 'org.springframework.boot:spring-boot-starter-websocket:2.6.3'
     implementation 'javax.mail:mail:1.4.7'
 }
 
