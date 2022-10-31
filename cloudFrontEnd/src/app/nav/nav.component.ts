@@ -1,5 +1,5 @@
 import {AfterViewInit, Component, ElementRef, OnDestroy, OnInit, ViewChild} from '@angular/core';
-import {CameraService} from "../cameras/camera.service";
+import {CameraService, cameraType} from '../cameras/camera.service';
 import {Camera, CameraStream} from "../cameras/Camera";
 import {ReportingComponent} from "../reporting/reporting.component";
 import {HttpErrorResponse} from "@angular/common/http";
@@ -35,6 +35,7 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
   private callGetTemp: boolean = false;  // Prevent calling getTemperature while not logged in
   private callGetAuthorities: boolean = false;
   private messageSubscription!: Subscription;
+  cameraTypes: typeof cameraType = cameraType;
 
   constructor(private cameraSvc: CameraService, public utilsService: UtilsService, private userIdle: UserIdleService, private dialog: MatDialog) {
   }

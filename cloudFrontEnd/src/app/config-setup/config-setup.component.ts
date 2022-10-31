@@ -1,6 +1,6 @@
 import {AfterViewInit, Component, isDevMode, OnInit, ViewChild} from '@angular/core';
 import {CameraService} from '../cameras/camera.service';
-import {Camera, Stream} from "../cameras/Camera";
+import {Camera, CameraParamSpec, Stream} from "../cameras/Camera";
 import {ReportingComponent} from '../reporting/reporting.component';
 import {animate, state, style, transition, trigger} from '@angular/animations';
 import {
@@ -19,6 +19,7 @@ import {HttpErrorResponse} from "@angular/common/http";
 import { DomSanitizer, SafeResourceUrl} from '@angular/platform-browser';
 import { ElementRef } from '@angular/core';
 import { KeyValue } from '@angular/common';
+import {UtilsService} from '../shared/utils.service';
 
 export function isValidMaskFileName(cameras:Map<string, Camera>): ValidatorFn {
   return (control: AbstractControl): ValidationErrors | null => {
@@ -89,7 +90,7 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit {
   updating: boolean = false;
   discovering: boolean = false;
   cameras: Map<string, Camera> = new Map<string, Camera>();
-  cameraColumns = ['camera_id', 'delete', 'expand', 'name', 'controlUri', 'address', 'snapshotUri', 'ptzControls', 'onvifHost'];
+  cameraColumns = ['camera_id', 'delete', 'expand', 'name', 'cameraParamSpecs', 'address', 'snapshotUri', 'ptzControls', 'onvifHost'];
   cameraFooterColumns = ['buttons'];
 
   expandedElement!: Camera | null;
@@ -107,7 +108,7 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit {
   snapShotKey: string ='';
   showPasswordDialogue: boolean = false;
 
-  constructor(private cameraSvc: CameraService, private sanitizer: DomSanitizer) {
+  constructor(public cameraSvc: CameraService, private utils: UtilsService, private sanitizer: DomSanitizer) {
   }
 
   getCamControl(index: number, fieldName: string): FormControl {
@@ -137,7 +138,7 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit {
     if (control) {
       this.updateCam(index, field, control.value);
     }
-    if (field == 'ptzControls')
+    if (field === 'ptzControls')
       this.setOnvifHostDisabledState(index);
   }
 
@@ -162,23 +163,26 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit {
     }
   }
 
-  updateMotion(camIndex: number, streamIndex: number, field: string, value: any) {
-    Array.from(  // Streams
-      Array.from( // Cameras
-        this.cameras.values())[camIndex].streams.values()).forEach((stream: Stream, i) => {
-      if (i === streamIndex) { // @ts-ignore
-        stream['motion'][field] = value;
-      }
-    });
+  /**
+   *
+   * @param camera
+   * Get the actual CameraParamSpec object used for the control rather than the copy of it returned from the API
+   * call. If we don't do this, the selector won't show the correct setting.
+   */
+  getCameraParamSpecsReferenceCopy(camera: Camera): CameraParamSpec {
+    if ( camera?.cameraParamSpecs?.camType === undefined)
+      return this.cameraSvc.cameraParamSpecs[0];  // Return the Not Listed option
+    else
+      return this.cameraSvc.cameraParamSpecs.find((spec) => camera.cameraParamSpecs.camType === spec.camType) as CameraParamSpec;
   }
 
-  // updateMotionField(camIndex: number, streamIndex: number, field: string) {
-  //   const control = this.getStreamControl(camIndex, streamIndex, field);
-  //   if (control) {
-  //     this.updateMotion(camIndex, streamIndex, field, control.value);
-  //   }
-  // }
-  //
+   getCameraAddressDisabledState(camera: Camera): boolean
+   {
+     if(camera?.cameraParamSpecs?.uri?.length === undefined)
+       return true;
+     else
+      return camera.cameraParamSpecs.uri.length == 0
+   }
 
   /**
    * setUpTableFormControls: Associate a FormControl with each editable field on the table
@@ -220,9 +224,12 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit {
       this.streamControls.push(new FormArray(toStreamGroups));
       return new FormGroup({
         name: new FormControl(camera.name, [Validators.required, Validators.maxLength(25)]),
-        address: new FormControl({value: camera.address, disabled: camera.controlUri.length == 0}, [Validators.pattern(/\b((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\.|$)){4}\b/)]),
-        controlUri: new FormControl({
-          value: camera.controlUri,
+        address: new FormControl({
+          value: camera.address,
+          disabled: this.getCameraAddressDisabledState(camera)
+        }, [Validators.pattern(/\b((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\.|$)){4}\b/)]),
+        cameraParamSpecs: new FormControl({
+          value: this.getCameraParamSpecsReferenceCopy(camera),
           disabled: false
         }, [Validators.maxLength(55)]),
         snapshotUri: new FormControl({
@@ -256,7 +263,7 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit {
   }
 
   /**
-   * deleteCamera: Delete a camera from the cameras.map
+   * deleteCamera: Delete a camera from the cameras map
    * @param key: The key of the map entry to be deleted
    */
   deleteCamera(key: string): boolean {
@@ -267,7 +274,7 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit {
   }
 
   /**
-   * deleteStream: Delete a stream from the streams.map
+   * deleteStream: Delete a stream from the streams map
    * @param cameraKey
    * @param streamKey
    */
@@ -287,7 +294,7 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit {
             enableFirstAsMultiDisplayDefault = false;
           }
           if (stream.motion.enabled)
-            stream.motion.trigger_recording_on = '';  // Set all recording triggers to 'None' as the the stream keys may be renumbered
+            stream.motion.trigger_recording_on = '';  // Set all recording triggers to 'None' as the stream keys may be renumbered
         })
       }
       this.FixUpCamerasData();
@@ -296,7 +303,7 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit {
   }
 
   /**
-   * FixUpCamerasData: Fix the key names in the cameras and streams maps so they follow the sequence
+   * FixUpCamerasData: Fix the key names in the cameras and streams maps, so they follow the sequence
    *                   camera1, camera2 or stream1, stream 2 etc. This is run after deleting an item
    *                   from the map. Also number the live streams and recording uri's logically
    */
@@ -574,8 +581,7 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit {
             (reason) => {
               this.reporting.errorMessage = reason
             });
-      }
-      else
+      } else
         this.reporting.errorMessage = new HttpErrorResponse({
           error: "The file " + stream.motion.mask_file + (control.errors?.mask_file ? " is not a valid mask file"
               : control.errors?.duplicate ? " is used with more than one stream"
@@ -590,8 +596,7 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit {
     }
   }
 
-  getSnapshot(cam: KeyValue<string, Camera>)
-  {
+  getSnapshot(cam: KeyValue<string, Camera>) {
     this.snapshotLoading = true;
     if(this.snapShotKey === cam.key)
       this.snapShotKey = '';

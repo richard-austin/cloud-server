@@ -17,6 +17,7 @@ export class PTZButtonComponent implements OnInit {
   @Input() camera!: Camera | null;
   @Input() reporting!: ReportingComponent;
   @Input() scale: number = 2;
+
   constructor(private ptz: PTZService) {
   }
 

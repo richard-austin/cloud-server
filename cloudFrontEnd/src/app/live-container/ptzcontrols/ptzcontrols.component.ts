@@ -5,7 +5,7 @@ import {ReportingComponent} from 'src/app/reporting/reporting.component';
 import {ePresetOperations} from './preset-button/preset-button.component';
 import {eMoveDirections} from './ptzbutton/ptzbutton.component';
 import {UtilsService} from "../../shared/utils.service";
-import {PTZMaxPresets, PTZService} from "../ptz.service";
+import {PTZPresetsInfoCommand, PTZPresetsInfoResponse, PTZService} from "../ptz.service";
 
 @Component({
   selector: 'app-ptzcontrols',
@@ -20,16 +20,17 @@ export class PTZControlsComponent implements OnInit {
   savePreset: boolean = false;
   clearPreset: boolean = false;
   maxPresets: number = 0;
+  presetsInfo!: PTZPresetsInfoResponse;
 
-  constructor(private utils: UtilsService, private ptzService: PTZService) { }
+  constructor(private utils: UtilsService, private ptzService: PTZService) {
+  }
 
   // ngFor counter for preset buttons
   counter(i: number) {
     return new Array(i);
   }
 
-  presetsTooltip(presetNbr: number): string
-  {
+  presetsTooltip(presetNbr: number): string {
     return this.savePreset ? "Save the current view to preset "+presetNbr :
            this.clearPreset ? "Clear the saved position from preset "+presetNbr :
              "Move the view to the saved position in preset "+presetNbr;
@@ -63,8 +64,9 @@ export class PTZControlsComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.ptzService.maxNumberOfPresets(new PTZMaxPresets(this.camera?.onvifHost as string)).subscribe((result) => {
-      this.maxPresets = result.maxPresets > 32 ? 32 : result.maxPresets;
+    this.ptzService.ptzPresetsInfo(new PTZPresetsInfoCommand(this.camera?.onvifHost as string)).subscribe((result) => {
+        this.presetsInfo = result;
+        this.maxPresets = result.maxPresets > 32 ? 32 : this.presetsInfo.maxPresets;
     },
       reason => {
         this.reporting.errorMessage = reason;

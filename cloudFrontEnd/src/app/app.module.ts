@@ -47,11 +47,7 @@ import { ProductIdInputComponent } from './register-account/product-id-input/pro
 import { AccountAdminComponent } from './accountAdmin/account-admin.component';
 import { FilterPipe } from './accountAdmin/filter.pipe';
 import { ForgottenPasswordComponent } from './login/forgotten-password/forgotten-password.component';
-import {OnlyAdminUsersService} from "./guards/only-admin-users.service";
-import {OnlyClientUsersService} from "./guards/only-client-users.service";
-import {OnlyAnonUsersService} from "./guards/only-anon-users.service";
 import { ResetPasswordComponent } from './reset-password/reset-password.component';
-import {OnlyLoggedInService} from "./guards/only-logged-in.service";
 import { SortPipe } from './accountAdmin/sort.pipe';
 import { RegisterLocalNvrAccountComponent } from './register-local-nvr-account/register-local-nvr-account.component';
 import { RemoveLocalNvrAccountComponent } from './remove-local-nvr-account/remove-local-nvr-account.component';
@@ -63,6 +59,10 @@ import { PTZButtonComponent } from './live-container/ptzcontrols/ptzbutton/ptzbu
 import { PresetButtonComponent } from './live-container/ptzcontrols/preset-button/preset-button.component';
 import {MatDividerModule} from "@angular/material/divider";
 import {MatSlideToggleModule} from "@angular/material/slide-toggle";
+import {MatDatepickerModule} from "@angular/material/datepicker";
+import {DateAdapter, MAT_DATE_LOCALE, MatNativeDateModule} from '@angular/material/core';
+import {Platform} from "@angular/cdk/platform";
+import {CustomDateAdapter} from "./cameras/camera.service";
 
 @NgModule({
   declarations: [
@@ -130,9 +130,16 @@ import {MatSlideToggleModule} from "@angular/material/slide-toggle";
         MatSortModule,
         MatTooltipModule,
         MatDividerModule,
-        MatSlideToggleModule
+    MatSlideToggleModule,
+    MatDatepickerModule,
+    MatNativeDateModule
     ],
-  providers: [HttpClient, BaseUrl, OnlyAdminUsersService, OnlyClientUsersService, OnlyAnonUsersService, OnlyLoggedInService, SortPipe],
+  providers: [    {
+    provide: DateAdapter,
+    useClass: CustomDateAdapter,
+    deps: [MAT_DATE_LOCALE, Platform]
+  },
+    HttpClient, BaseUrl],
   bootstrap: [AppComponent],
   entryComponents: [IdleTimeoutModalComponent]
 })
