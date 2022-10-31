@@ -3,8 +3,9 @@ import {HttpClient, HttpErrorResponse, HttpHeaders} from "@angular/common/http";
 import {BaseUrl} from "../shared/BaseUrl/BaseUrl";
 import {Observable, Subject, throwError} from "rxjs";
 import {catchError, map, tap} from "rxjs/operators";
-import {Camera, CameraStream, Stream} from "./Camera";
+import {Camera, CameraParamSpec, CameraStream, Stream} from "./Camera";
 import {CameraAdminCredentials} from "../credentials-for-camera-access/credentials-for-camera-access.component";
+import { NativeDateAdapter } from '@angular/material/core';
 
 
 /**
@@ -26,6 +27,26 @@ export class LocalMotionEvent {
 export class LocalMotionEvents {
   events: LocalMotionEvent[] = [];
 }
+
+export class DateSlot {
+  date!: Date;
+  lme: LocalMotionEvents = new LocalMotionEvents();
+}
+
+/**
+ * CustomDateAdapter: For formatting the date n the datepicker on the recording page
+ */
+export class CustomDateAdapter extends NativeDateAdapter {
+  readonly months: string[] = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  format(date: Date, displayFormat: any): string {
+    const days = date.getDate();
+    const months = date.getMonth() + 1;
+    const year = date.getFullYear();
+    return ("00"+days).slice(-2) + '-' + this.months[months-1] + '-' + year;
+  }
+}
+export enum cameraType {none, sv3c, zxtechMCW5B10X}
 
 @Injectable({
   providedIn: 'root'
@@ -56,6 +77,25 @@ export class CameraService {
   // Currently active recording
   private activeRecording!: Camera;
   errorEmitter: EventEmitter<HttpErrorResponse> = new EventEmitter<HttpErrorResponse>();
+  private _cameraParamSpecs: CameraParamSpec[] =
+    [new CameraParamSpec(
+      cameraType.none,
+      "",
+      '',
+      "Not Listed"),
+      new CameraParamSpec(cameraType.sv3c,
+        "cmd=getinfrared&cmd=getserverinfo&cmd=getoverlayattr&-region=0&cmd=getserverinfo&cmd=getoverlayattr&-region=1",
+        'web/cgi-bin/hi3510/param.cgi',
+        "SV3C (General)"),
+      new CameraParamSpec(
+        cameraType.zxtechMCW5B10X,
+        "cmd=getvideoattr&cmd=getlampattrex&cmd=getimageattr&cmd=getinfrared&cmd=getserverinfo&cmd=getoverlayattr&-region=0&cmd=getserverinfo&cmd=getoverlayattr&-region=1",
+        'web/cgi-bin/hi3510/param.cgi',
+        "ZTech MCW5B10X")]
+
+  get cameraParamSpecs() {
+    return this._cameraParamSpecs;
+  };
 
   constructor(private http: HttpClient, private _baseUrl: BaseUrl) {
   }
