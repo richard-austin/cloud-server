@@ -65,18 +65,13 @@ export class CameraService {
     })
   };
 
-  private activeLiveUpdates: Subject<any> = new Subject<any>();
   private configUpdates: Subject<void> = new Subject();
 
   private cameraStreams: CameraStream[] = [];
   private cameras: Camera[] = [];
 
-  // List of live views currently active
-  private activeLive: CameraStream[] = [];
-
-  // Currently active recording
-  private activeRecording!: Camera;
   errorEmitter: EventEmitter<HttpErrorResponse> = new EventEmitter<HttpErrorResponse>();
+
   private _cameraParamSpecs: CameraParamSpec[] =
     [new CameraParamSpec(
       cameraType.none,
@@ -122,38 +117,6 @@ export class CameraService {
   }
 
   /**
-   * Get details of all cameraStreams to be shown live
-   */
-  getActiveLive(): CameraStream[] {
-    return this.activeLive;
-  }
-
-  /**
-   * getActiveRecording: Get details of the active recording
-   */
-  getActiveRecording(): Camera {
-    return this.activeRecording;
-  }
-
-  /**
-   * setActiveLive; Set the list of cameraStreams to be shown for viewing
-   * @param cam: The set of cameraStreams to be viewed live
-   * @param sendNotification: Send notification of to subscribed processes (such as recording page) if true.
-   *                          (defaulted to true)
-   */
-  setActiveLive(cam: CameraStream[], sendNotification: boolean = true): void {
-    this.activeLive = cam;
-    this.activeRecording = new Camera();
-
-    if (sendNotification)
-      this.activeLiveUpdates.next(cam);
-  }
-
-  getActiveLiveUpdates(): Observable<any> {
-    return this.activeLiveUpdates.asObservable();
-  }
-
-  /**
    * configUpdated: Send message to the nav component when the camera configuration has changed.
    */
   configUpdated(): void {
@@ -165,15 +128,6 @@ export class CameraService {
    */
   getConfigUpdates(): Observable<any> {
     return this.configUpdates.asObservable();
-  }
-
-  /**
-   * setActiveRecording: Set a camera to show recordings from
-   * @param camera: The camera whose recordings are to be shown
-   */
-  setActiveRecording(camera: Camera): void {
-    this.activeRecording = camera;
-    this.activeLive = [];
   }
 
   /**
@@ -308,8 +262,7 @@ export class CameraService {
       catchError((err: HttpErrorResponse) => throwError(err)));
   }
 
-  setCameraAdminCredentials(creds: CameraAdminCredentials):Observable<any>
-  {
+  setCameraAdminCredentials(creds: CameraAdminCredentials): Observable<any> {
     return this.http.post<any>(this._baseUrl.getLink("cam", "setAccessCredentials"), creds, this.httpUploadOptions).pipe(
       tap(),
       catchError((err: HttpErrorResponse) => throwError(err)));

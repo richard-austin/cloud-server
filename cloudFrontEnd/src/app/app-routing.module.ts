@@ -25,14 +25,14 @@ import {GetLocalWifiDetailsComponent} from './get-local-wifi-details/get-local-w
 import {WifiSettingsComponent} from './wifi-settings/wifi-settings.component';
 
 const routes: Routes = [
-  {path: 'live', component: LiveContainerComponent, canActivate: [OnlyClientUsersService]},
-  {path: 'recording', component: RecordingControlComponent, canActivate: [OnlyClientUsersService]},
+  {path: 'live/:streamName', component: LiveContainerComponent},
+  {path: 'recording/:streamName', component: RecordingControlComponent},
   {path: 'multicam', component: MultiCamViewComponent, canActivate: [OnlyClientUsersService]},
   {path: 'changepassword', component: ChangePasswordComponent, canActivate: [OnlyLoggedInService]},  // Change password while logged in
   {path: 'about/:isLocal', component: AboutComponent, canActivate: [OnlyAdminUsersService]},
   {path: 'about', component: AboutComponent, canActivate: [OnlyClientUsersService]},
   {path: 'setip', component: SetIpComponent, canActivate: [OnlyClientUsersService]},
-  {path: 'cameraparams', component: CameraParamsComponent, canActivate: [OnlyClientUsersService]},
+  {path: 'cameraparams/:camera', component: CameraParamsComponent},
   {path: 'configsetup', component: ConfigSetupComponent, canActivate: [OnlyClientUsersService]},
   {path: 'login', component: LoginComponent, canActivate: [OnlyAnonUsersService]},
   {path: 'register', component: RegisterAccountComponent, canActivate: [OnlyAnonUsersService]},

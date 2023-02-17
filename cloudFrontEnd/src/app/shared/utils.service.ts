@@ -4,6 +4,7 @@ import {BaseUrl} from "./BaseUrl/BaseUrl";
 import {Observable, Subject, throwError} from "rxjs";
 import {catchError, tap} from "rxjs/operators";
 import {CameraParams} from "../cameras/Camera";
+import {environment} from "../../environments/environment";
 import {cameraType} from '../cameras/camera.service';
 
 export class Temperature {

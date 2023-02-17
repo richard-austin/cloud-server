@@ -2,12 +2,18 @@
   <mat-card>
     <mat-card-title>Wifi Settings</mat-card-title>
     <mat-card-content>
-      <div class="alert-warning-embedded" *ngIf="ethernetConnectionStatus == 'NOT_CONNECTED_VIA_ETHERNET'"
-        [innerHTML]="'You have an Ethernet connection, but your NVR is connected to the Cloud service through Wi-Fi. To disable Wi-Fi, the NVR must be connected through Ethernet. You can still select another Wi-Fi access point. <br><br>To switch the connection to ethernet, click the Reset Connection button, then wait until display shows the current Wi-Fi status again.'">
+      <div class="alert-warning-embedded" *ngIf="ethernetConnectionStatus == 'NOT_CONNECTED_VIA_ETHERNET'">
+        You have an Ethernet connection, but your NVR is connected to the Cloud service through Wi-Fi.
+        To make changes to the Wi-Fi settings, this connection must be through Ethernet. To switch the connection to
+        Ethernet,
+        click the Reset Connection button, then wait until display shows the current Wi-Fi status again.
       </div>
 
-      <div class="alert-warning-embedded" *ngIf="ethernetConnectionStatus == 'NO_ETHERNET'"
-           [innerHTML]="'You have no Ethernet connection available, To disable Wi-Fi, the NVR must be connected through Ethernet. You can still select another Wi-Fi access point. <br><br>To switch the connection to Ethernet, connect an Ethernet cable between your router and the NVR then click the Reset Connection button, then wait until display shows the current Wi-Fi status again.'">
+      <div class="alert-warning-embedded" *ngIf="ethernetConnectionStatus == 'NO_ETHERNET'">
+        You have no Ethernet connection available,
+        To make changes to the Wi-Fi settings, the NVR must be connected to the Cloud Service through Ethernet.
+        To switch the connection to Ethernet, connect an Ethernet cable between your router and the NVR then
+        click the Reset Connection button, then wait until display shows the current Wi-Fi status again.
       </div>
       <div class="reset-connection-button loading-spinner">
         <button *ngIf="ethernetConnectionStatus != 'CONNECTED_VIA_ETHERNET' && ethernetConnectionStatus != ''"
@@ -40,7 +46,7 @@
               Loading..
             </div>
           </mat-label>
-          <mat-select [disabled]="!wifiEnabled"
+          <mat-select [disabled]="ethernetConnectionStatus != 'CONNECTED_VIA_ETHERNET' || !wifiEnabled"
                       (selectionChange)="onSelectorChange()"
                       #selector>
             <mat-option *ngFor="let wifi of wifiList" [value]="wifi.ssid">

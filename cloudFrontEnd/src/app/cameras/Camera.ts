@@ -33,6 +33,7 @@ export class Motion {
 export class Recording
 {
   enabled: boolean = false
+  recording_src_url: string = "";
   uri: string = "";
   location: string = "";
 }
@@ -43,16 +44,16 @@ export class Stream {
   selected: boolean = false;
   netcam_uri: string = "";
   uri: string = "";
-  nms_uri: string = "";
-  audio_bitrate: number=0;
+  media_server_input_uri: string = "";
+  audio_bitrate: string="0";
   audio_encoding:string = "";
-  audio_sample_rate:number = 0;
+  audio_sample_rate:string = "0";
 
   motion: Motion = new Motion();
   video_width: number = 0;
   video_height: number = 0;
   recording: Recording = new Recording();
-  absolute_num: number = 0;  // Used to give an absolute stream number for the recording URI with motion triggered recordings
+  rec_num: number = 0;  // Used to give a rec number for the recording URI with motion triggered recordings
 }
 export class CameraParamSpec {
   constructor(camType: cameraType, params: string, uri: string, name: string) {
@@ -75,6 +76,7 @@ export class Camera
     cameraParamSpecs!: CameraParamSpec;
     snapshotUri: string="";
     ptzControls: boolean = false;
+    ftp: boolean = false;
     streams: Map<string, Stream> = new Map<string, Stream>();
     onvifHost: string="";
 }

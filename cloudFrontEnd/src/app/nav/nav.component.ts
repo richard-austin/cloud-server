@@ -49,20 +49,23 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   setVideoStream(camStream: CameraStream): void {
-    this.cameraSvc.setActiveLive([camStream]);
-    window.location.href = '#/live';
+    let suuid = 'suuid=';
+    let uri = camStream.stream.uri;
+    let index = uri.indexOf(suuid);
+    let streamName = uri.substring(index+suuid.length)
+    window.location.href = '#/live/'+streamName;
   }
 
   showRecording(camStream: CameraStream): void {
-    this.cameraSvc.setActiveLive([camStream]);
-    window.location.href = '#/recording';
+    let suuid = 'suuid=';
+    let uri = camStream.stream.recording.recording_src_url;
+    let index = uri.indexOf(suuid);
+    let streamName = uri.substring(index+suuid.length)
+    window.location.href = '#/recording/'+streamName;
   }
 
   cameraControl(cam: Camera) {
-    let cs: CameraStream = new CameraStream();
-    cs.camera = cam;
-    this.cameraSvc.setActiveLive([cs]);
-    window.location.href = '#/cameraparams';
+    window.location.href = '#/cameraparams/'+ btoa(cam.address);
   }
 
   changePassword() {
@@ -197,7 +200,7 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
       switch (auth)
       {
         case 'ROLE_CLIENT':
-          this.cameraSvc.initialiseCameras();
+//          this.cameraSvc.initialiseCameras();
           this.cameraStreams = this.cameraSvc.getCameraStreams();
           this.cameras = this.cameraSvc.getCameras();
           this.idleTimeoutActive = this.callGetTemp = true;
