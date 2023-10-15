@@ -28,6 +28,7 @@
     "hls.js": "^1.0.7",
     "moment": "^2.29.1",
     "mpegts.js": "^1.6.7",
+    "object-hash": "^3.0.0",
     "rx": "^4.1.0",
     "rxjs": "~6.6.0",
     "rxjs-observe": "^2.1.5",

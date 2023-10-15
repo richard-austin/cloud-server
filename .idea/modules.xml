@@ -2,8 +2,8 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/cloud-server.iml" filepath="$PROJECT_DIR$/.idea/cloud-server.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/1479676748/cloud-server.cloudFrontEnd.iml" filepath="$PROJECT_DIR$/.idea/modules/1479676748/cloud-server.cloudFrontEnd.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/cloud-server.iml" filepath="$PROJECT_DIR$/.idea/modules/cloud-server.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/cloudFrontEnd/cloud-server.cloudFrontEnd.iml" filepath="$PROJECT_DIR$/.idea/modules/cloudFrontEnd/cloud-server.cloudFrontEnd.iml" />
     </modules>
   </component>
 </project>

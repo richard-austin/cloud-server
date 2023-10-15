@@ -3,9 +3,9 @@ import {HttpClient, HttpErrorResponse, HttpHeaders} from "@angular/common/http";
 import {BaseUrl} from "../shared/BaseUrl/BaseUrl";
 import {Observable, Subject, throwError} from "rxjs";
 import {catchError, map, tap} from "rxjs/operators";
-import {Camera, CameraParamSpec, CameraStream, Stream} from "./Camera";
+import {AudioEncoding, Camera, CameraParamSpec, CameraStream, Stream} from "./Camera";
 import {CameraAdminCredentials} from "../credentials-for-camera-access/credentials-for-camera-access.component";
-import { NativeDateAdapter } from '@angular/material/core';
+import {NativeDateAdapter} from '@angular/material/core';
 
 
 /**
@@ -43,9 +43,10 @@ export class CustomDateAdapter extends NativeDateAdapter {
     const days = date.getDate();
     const months = date.getMonth() + 1;
     const year = date.getFullYear();
-    return ("00"+days).slice(-2) + '-' + this.months[months-1] + '-' + year;
+    return ("00" + days).slice(-2) + '-' + this.months[months - 1] + '-' + year;
   }
 }
+
 export enum cameraType {none, sv3c, zxtechMCW5B10X}
 
 @Injectable({
@@ -72,7 +73,7 @@ export class CameraService {
 
   errorEmitter: EventEmitter<HttpErrorResponse> = new EventEmitter<HttpErrorResponse>();
 
-  private _cameraParamSpecs: CameraParamSpec[] =
+  public readonly _cameraParamSpecs: CameraParamSpec[] =
     [new CameraParamSpec(
       cameraType.none,
       "",
@@ -88,32 +89,44 @@ export class CameraService {
         'web/cgi-bin/hi3510/param.cgi',
         "ZTech MCW5B10X")]
 
+  private _audioEncodings: AudioEncoding[] = [
+    new AudioEncoding('None', 'None'),  // No audio in stream
+    new AudioEncoding('Not Listed', 'Not Listed'),  // Audio type not listed, transcode to AAC
+    new AudioEncoding('G711', 'G711'),  // Transcode to AAC
+    new AudioEncoding('G726', 'G726'),  // Transcode to AAC
+    new AudioEncoding('AAC', 'AAC'),    // No transcoding required
+
+  ];
+
   get cameraParamSpecs() {
     return this._cameraParamSpecs;
   };
 
-  constructor(private http: HttpClient, private _baseUrl: BaseUrl) {
+  get audioEncodings() {
+    return this._audioEncodings;
   }
 
-  initialiseCameras(): void{
-    this.cameraStreams = [];
-    this.cameras = [];
-    this.loadCameraStreams().subscribe(cameraStreams => {
-        // Build up a cameraStreams array which excludes the addition guff which comes from
-        // having the cameraStreams set up configured in application.yml
-        for (const i in cameraStreams) {
-          const c = cameraStreams[i];
-          this.cameraStreams.push(c);
+  constructor(private http: HttpClient, private _baseUrl: BaseUrl) {
+    this.loadAndUpdateCameraStreams().then(() => {});
+  }
 
-          if (!this.cameras.find((cs: Camera) => {
-            return cs.name === c.camera.name
-          }))
-            this.cameras.push(c.camera);
-        }
-      },
-      // Error messages would be shown by the nav component
-      reason => this.errorEmitter.emit(reason)
-    );
+  async loadAndUpdateCameraStreams(): Promise<void> {
+    try {
+      let cameraStreams: CameraStream[] = await this.loadCameraStreams().toPromise();
+      // Build up a cameraStreams array which excludes the addition guff which comes from
+      // having the cameraStreams set up configured in application.yml
+      for (const i in cameraStreams) {
+        const c = cameraStreams[i];
+        this.cameraStreams.push(c);
+
+        if (!this.cameras.find((cs: Camera) => {
+          return cs.name === c.camera.name
+        }))
+          this.cameras.push(c.camera);
+      }
+    } catch (reason) {
+      this.errorEmitter.emit(reason)
+    }
   }
 
   /**
@@ -230,18 +243,22 @@ export class CameraService {
     );
   }
 
-  discover():Observable<Map<string, Camera>> {
+  discover(): Observable<Map<string, Camera>> {
     return this.http.post<any>(this._baseUrl.getLink("onvif", "discover"), '', this.httpJSONOptions).pipe(
-      tap((cams) => {
-        this.cameras = [];
-
-        for (const key in cams)
-          this.cameras.push(cams[key] as Camera);
-
-        this.cameraStreams = CameraService.createCameraStreams(cams);
-      }),
       map(cams => {
         return CameraService.convertCamsObjectToMap(cams);
+      })
+    );
+  }
+
+  discoverCameraDetails(onvifUrl: string): Observable<Camera> {
+    const formData: FormData = new FormData();
+    formData.append('onvifUrl', onvifUrl)
+    return this.http.post<any>(this._baseUrl.getLink("onvif", "discoverCameraDetails"), formData, this.httpUploadOptions).pipe(
+      map(cams => {
+        let map: Map<string, Camera>  = CameraService.convertCamsObjectToMap(cams);
+        if(map.size == 1)
+          return map.entries().next().value[1];
       })
     );
   }
@@ -254,7 +271,7 @@ export class CameraService {
       catchError((err: HttpErrorResponse) => throwError(err)));
   }
 
-  getSnapshot(url:string): Observable<Array<any>>{
+  getSnapshot(url: string): Observable<Array<any>> {
     const formData: FormData = new FormData();
     formData.append('url', url);
     return this.http.post<Array<any>>(this._baseUrl.getLink("onvif", "getSnapshot"), formData, this.httpUploadOptions).pipe(
@@ -265,6 +282,26 @@ export class CameraService {
   setCameraAdminCredentials(creds: CameraAdminCredentials): Observable<any> {
     return this.http.post<any>(this._baseUrl.getLink("cam", "setAccessCredentials"), creds, this.httpUploadOptions).pipe(
       tap(),
+      catchError((err: HttpErrorResponse) => throwError(err)));
+  }
+
+  getAccessToken(cameraHost: string, port: number): Observable<{ accessToken: string }> {
+    let params: {} = {host: cameraHost, port: port}
+    return this.http.post<{
+      accessToken: string
+    }>(this._baseUrl.getLink("cam", "getAccessToken"), params, this.httpJSONOptions).pipe(
+      catchError((err: HttpErrorResponse) => throwError(err)));
+  }
+
+  resetTimer(accessToken: string): Observable<void> {
+    let params: {} = {accessToken: accessToken}
+    return this.http.post<void>(this._baseUrl.getLink("cam", "resetTimer"), params, this.httpJSONOptions).pipe(
+      catchError((err: HttpErrorResponse) => throwError(err)));
+  }
+
+  closeClients(accessToken: string): Observable<void> {
+    let params: {} = {accessToken: accessToken}
+    return this.http.post<void>(this._baseUrl.getLink("cam", "closeClients"), params, this.httpJSONOptions).pipe(
       catchError((err: HttpErrorResponse) => throwError(err)));
   }
 }
