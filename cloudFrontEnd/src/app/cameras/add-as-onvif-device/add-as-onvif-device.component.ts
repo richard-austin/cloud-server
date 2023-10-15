@@ -1,7 +1,7 @@
 import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
 import {AbstractControl, FormControl, FormGroup, ValidationErrors, ValidatorFn, Validators} from "@angular/forms";
 import {ReportingComponent} from "../../reporting/reporting.component";
-import {Camera} from "../../cameras/Camera";
+import {Camera} from '../Camera';
 
 /**
  * isValidDeviceIP: Custom validator to check that the onvif URL presented for getting camera details does not have
