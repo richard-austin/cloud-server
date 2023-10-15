@@ -64,6 +64,7 @@ import {DateAdapter, MAT_DATE_LOCALE, MatNativeDateModule} from '@angular/materi
 import {Platform} from "@angular/cdk/platform";
 import {CustomDateAdapter} from "./cameras/camera.service";
 import {AddAsOnvifDeviceComponent} from './cameras/add-as-onvif-device/add-as-onvif-device.component';
+import {AudioInputPipe} from './video/audio-input.pipe';
 
 @NgModule({
   declarations: [
@@ -102,6 +103,7 @@ import {AddAsOnvifDeviceComponent} from './cameras/add-as-onvif-device/add-as-on
     PTZControlsComponent,
     PTZButtonComponent,
     PresetButtonComponent,
+    AudioInputPipe,
     AddAsOnvifDeviceComponent
   ],
     imports: [

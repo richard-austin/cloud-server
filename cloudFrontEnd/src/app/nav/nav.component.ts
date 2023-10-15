@@ -11,6 +11,7 @@ import {MatDialogRef} from "@angular/material/dialog/dialog-ref";
 import {UserIdleConfig} from "../angular-user-idle/angular-user-idle.config";
 import {UserIdleService} from "../angular-user-idle/angular-user-idle.service";
 import {map} from 'rxjs/operators';
+import {Client, StompSubscription} from "@stomp/stompjs";
 
 @Component({
   selector: 'app-nav',
@@ -36,6 +37,8 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
   private callGetAuthorities: boolean = false;
   private messageSubscription!: Subscription;
   cameraTypes: typeof cameraType = cameraType;
+  private client!: Client;
+  talkOffSubscription!: StompSubscription;
 
   constructor(private cameraSvc: CameraService, public utilsService: UtilsService, private userIdle: UserIdleService, private dialog: MatDialog) {
   }
@@ -207,6 +210,18 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
           this.callGetAuthorities = false;
           this.getTemperature();  // Ensure we show the core temperature straight away on refresh
                                   // (rather than wait till the first heartbeat)
+          let serverUrl: string = (window.location.protocol == 'http:' ? 'ws://' : 'wss://') + window.location.host +'/stomp';
+          this.client = new Client({
+            brokerURL: serverUrl,
+            reconnectDelay: 2000,
+            heartbeatOutgoing: 120000,
+            heartbeatIncoming: 120000,
+            onConnect: ()=> {
+               this.talkOffSubscription = this.client.subscribe('/topic/talkoff', (message: any) => this.utilsService.talkOff(message));
+            },
+            debug: () => {}
+          });
+          this.client.activate();
           break;
         case 'ROLE_ADMIN':
           this.idleTimeoutActive = this.callGetAuthorities = true;
@@ -292,5 +307,7 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
     this.pingHandle.unsubscribe();
     this.timerHandle.unsubscribe();
     this.messageSubscription.unsubscribe();
+    this.talkOffSubscription?.unsubscribe();
+    this.client?.deactivate({force: false}).then(()=> {});
   }
 }

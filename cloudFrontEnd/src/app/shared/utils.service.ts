@@ -3,7 +3,7 @@ import {HttpClient, HttpErrorResponse, HttpHeaders} from "@angular/common/http";
 import {BaseUrl} from "./BaseUrl/BaseUrl";
 import {Observable, Subject, throwError} from "rxjs";
 import {catchError, tap} from "rxjs/operators";
-import {CameraParams} from "../cameras/Camera";
+import {CameraParams, Stream} from '../cameras/Camera';
 import {environment} from "../../environments/environment";
 import {cameraType} from '../cameras/camera.service';
 
@@ -109,7 +109,8 @@ export class UtilsService {
   private _isAdmin: boolean = false;
   private _hasLocalAccount: boolean = false;
   public readonly passwordRegex: RegExp = new RegExp(/^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,64}$/);
-
+  speakActive: boolean = true;
+  readonly isGuestAccount: boolean = false;
   get loggedIn(): boolean {
     return this._loggedIn;
   }
@@ -124,6 +125,8 @@ export class UtilsService {
   }
 
   constructor(private http: HttpClient, private _baseUrl: BaseUrl) {
+    // Initialise the speakActive state
+    this.audioInUse().subscribe();
   }
 
   login(username: string, password: string, rememberMe: boolean): Observable<[{ authority: string }]> {
@@ -330,4 +333,39 @@ export class UtilsService {
   getMessages(): Observable<Message> {
     return this._messaging.asObservable();
   }
+
+  startAudioOut(stream: Stream) {
+    return this.http.post<void>(this._baseUrl.getLink("utils", "startAudioOut"), JSON.stringify({stream: stream}), this.httpJSONOptions).pipe(
+      catchError((err: HttpErrorResponse) => throwError(err))
+    );
+  }
+
+  stopAudioOut() {
+    return this.http.post<void>(this._baseUrl.getLink("utils", "stopAudioOut"), "", this.httpJSONOptions).pipe(
+      catchError((err: HttpErrorResponse) => throwError(err))
+    );
+  }
+
+  audioInUse() {
+    return this.http.post<{audioInUse: boolean }>(this._baseUrl.getLink("utils", "audioInUse"), "", this.httpJSONOptions).pipe(
+      tap((result)=> {
+        this.speakActive = result.audioInUse;
+      }),
+      catchError((err: HttpErrorResponse) => throwError(err)));
+  }
+
+  /**
+   * talkOff: Called on receipt of the talkOff websocket message. This disables audio out to any camera while the channel is in use and
+   *          re-enables it when that usage has finished.
+   * @param message
+   */
+  talkOff(message: any) {
+    if (message.body) {
+      let msgObj = JSON.parse(message.body);
+      if (msgObj.message === 'talkOff') {
+        this.speakActive = msgObj.instruction == "on";
+      }
+    }
+  }
+
 }

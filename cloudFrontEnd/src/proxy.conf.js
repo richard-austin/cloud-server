@@ -12,7 +12,8 @@ const PROXY_CONFIG = [
       "/cloudProxy",
       "/ptz",
       "/ws",
-      "/dc"
+      "/dc",
+      "audio"
     ],
     ws: true,
     target: "http://localhost:8083/",
