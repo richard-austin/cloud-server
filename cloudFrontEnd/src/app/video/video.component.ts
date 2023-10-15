@@ -44,8 +44,8 @@ export class VideoComponent implements OnInit, AfterViewInit, OnDestroy {
 
   /**
    * setSource: Set up to play the given manifest file and display the camera details
-   * @param camStream: The camera
-   * @param manifest: The manifest file
+   * @param camStream
+   * @param manifest
    */
   setSource(camStream: CameraStream, manifest: string = ''): void {
     this.stop();
