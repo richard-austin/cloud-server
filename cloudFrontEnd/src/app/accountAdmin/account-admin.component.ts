@@ -7,9 +7,7 @@ import {animate, state, style, transition, trigger} from "@angular/animations";
 import {AbstractControl, FormControl, FormGroup, ValidationErrors, ValidatorFn, Validators} from "@angular/forms";
 import {ReportingComponent} from "../reporting/reporting.component";
 import { Sort } from '@angular/material/sort';
-
-declare let SockJS: any;
-declare let Stomp: any;
+import {Client, StompSubscription} from '@stomp/stompjs';
 
 @Component({
   selector: 'app-nvradmin',
@@ -49,6 +47,8 @@ export class AccountAdminComponent implements OnInit {
   showConfirmDeleteAccount: boolean = false;
   sortActive: string ="productId";
   sortDirection: string = "desc";
+  client!: Client;
+  accountUpdatesSubscription!:StompSubscription;
 
   constructor(private utilsService: UtilsService) {
     this.initializeWebSocketConnection();
@@ -99,24 +99,50 @@ export class AccountAdminComponent implements OnInit {
   }
 
   initializeWebSocketConnection() {
-    let serverUrl: string = window.location.origin + "/stomp";
+    let serverUrl: string = (window.location.protocol == 'http:' ? 'ws://' : 'wss://') + window.location.host +'/cloudstomp';
 
-    let ws = new SockJS(serverUrl);
-    this.stompClient = Stomp.over(ws);
-    this.stompClient.debug = null;
-    let that = this;
-    this.stompClient.connect({}, () => {
-      that.stompClient.subscribe("/topic/accountUpdates", (message: any) => {
-        if (message.body) {
-          let msgObj = JSON.parse(message.body);
-          if (msgObj.message === "update") {
-            that.getAccounts();
-            that.expandedElement = undefined;
-            console.log(message.body);
+
+    this.client = new Client({
+      brokerURL: serverUrl,
+      reconnectDelay: 2000,
+      heartbeatOutgoing: 120000,
+      heartbeatIncoming: 120000,
+      onConnect: ()=> {
+        this.accountUpdatesSubscription = this.client.subscribe('/topic/accountUpdates', (message: any) => {
+          if (message.body) {
+            let msgObj = JSON.parse(message.body);
+            if (msgObj.message === "update") {
+              this.getAccounts();
+              this.expandedElement = undefined;
+              console.log(message.body);
+            }
           }
-        }
-      });
+        });
+      },
+      debug: () => {}
     });
+    this.client.activate();
+
+
+
+
+    //
+    // let ws = new SockJS(serverUrl);
+    // this.stompClient = Stomp.over(ws);
+    // this.stompClient.debug = null;
+    // let that = this;
+    // this.stompClient.connect({}, () => {
+    //   that.stompClient.subscribe("/topic/accountUpdates", (message: any) => {
+    //     if (message.body) {
+    //       let msgObj = JSON.parse(message.body);
+    //       if (msgObj.message === "update") {
+    //         that.getAccounts();
+    //         that.expandedElement = undefined;
+    //         console.log(message.body);
+    //       }
+    //     }
+    //   });
+    // });
   }
 
   getAccounts(): void {

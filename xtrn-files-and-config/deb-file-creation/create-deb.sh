@@ -13,7 +13,7 @@ cp ../cacert.jks ../client.jks ../cloud.jks ../privateKey \
 mkdir -p cloud_"${VERSION}"_arm64/DEBIAN
 cp preinst postinst prerm postrm cloud_"${VERSION}"_arm64/DEBIAN
 
-mkdir -p cloud_"${VERSION}"_arm64/home/cloud/logs
+mkdir -p cloud_"${VERSION}"_arm64/var/cloud/logs
 
 mkdir -p cloud_"${VERSION}"_arm64/tmp
 

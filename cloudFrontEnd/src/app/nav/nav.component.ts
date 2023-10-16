@@ -217,7 +217,7 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
             heartbeatOutgoing: 120000,
             heartbeatIncoming: 120000,
             onConnect: ()=> {
-               this.talkOffSubscription = this.client.subscribe('/topic/talkoff', (message: any) => this.utilsService.talkOff(message));
+              this.talkOffSubscription = this.client.subscribe('/topic/talkoff', (message: any) => this.utilsService.talkOff(message));
             },
             debug: () => {}
           });
@@ -233,6 +233,7 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
         default:
           this.idleTimeoutActive = this.callGetTemp = this.callGetAuthorities = false;
       }
+
     });
 
     //Start watching for user inactivity.
