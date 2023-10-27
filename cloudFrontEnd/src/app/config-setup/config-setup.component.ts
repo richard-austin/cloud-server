@@ -92,7 +92,7 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit, OnDestroy {
   updating: boolean = false;
   discovering: boolean = false;
   cameras: Map<string, Camera> = new Map<string, Camera>();
-  cameraColumns = ['sorting', 'camera_id', 'delete', 'expand', 'name', 'cameraParamSpecs', 'ftp', 'address', 'snapshotUri', 'rtspTransport', 'backchannelAudioSupported', 'ptzControls', 'onvifHost'];
+  cameraColumns = ['sorting', 'camera_id', 'delete', 'expand', 'name', 'cameraParamSpecs', 'ftp', 'retrigger-window', 'address', 'snapshotUri', 'useRtspAuth', 'rtspTransport', 'backchannelAudioSupported', 'ptzControls', 'onvifHost'];
   cameraFooterColumns = ['buttons'];
 
   expandedElement!: Camera | null;
@@ -112,7 +112,8 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit, OnDestroy {
   showAddCameraDialogue: boolean = false;
   readonly isGuest: boolean = false;
   gettingCameraDetails: boolean = false;
-  savedDataHash: string = '';
+  savedDataHash: string = "";
+  haveCameraCredentials: boolean = false;
 
   constructor(public cameraSvc: CameraService, private utils: UtilsService, private sanitizer: DomSanitizer) {
   }
@@ -233,7 +234,7 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit, OnDestroy {
           }, [Validators.required, Validators.min(90), Validators.max(3000)]),
           //  enabled: new FormControl(stream.motion.enabled, [Validators.nullValidator]),
           threshold: new FormControl({
-            value: stream.motion?.threshold,
+            value: stream.motion?.threshold != undefined ? stream.motion.threshold : 1500,
             disabled: !stream.motion.enabled
           }, [Validators.required, Validators.min(1), Validators.max(2147483647)]),
           trigger_recording_on: new FormControl({
@@ -244,7 +245,7 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit, OnDestroy {
             value: stream.motion.mask_file,
             disabled: !stream.motion.enabled
           }, [isValidMaskFileName(this.cameras), Validators.maxLength(55)])
-        }, {updateOn: 'change'});
+        }, {updateOn: "change"});
       });
 
       this.streamControls.push(new FormArray(toStreamGroups));
@@ -262,6 +263,11 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit, OnDestroy {
           value: camera.ftp,
           disabled: this.getFTPDisabledState(camera),
         }, [validateTrueOrFalse({ftp: true})]),
+        retriggerWindow: new FormControl({
+            value: camera?.retriggerWindow != undefined ? camera.retriggerWindow : 30,
+            disabled: false,
+          }, [Validators.pattern(/^10$|20|30|40|50|60|70|80|100/)]
+        ),
         snapshotUri: new FormControl({
           value: camera.snapshotUri,
           disabled: false
@@ -275,11 +281,15 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit, OnDestroy {
           disabled: false,
         }, [Validators.maxLength(22),
           Validators.pattern(/^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))($|:([0-9]{1,4}|6[0-5][0-5][0-3][0-5])$)/)]),
+        useRtspAuth: new FormControl({
+          value: camera.useRtspAuth == undefined ? false : camera.useRtspAuth,
+          disabled: false,
+        }, [validateTrueOrFalse({useRtspAuth: true})]),
         rtspTransport: new FormControl({
           value: camera.rtspTransport,
           disabled: false,
         }, [Validators.required, Validators.pattern(/^(udp|tcp)$/)])
-      }, {updateOn: 'change'});
+      }, {updateOn: "change"});
     });
     this.camControls = new FormArray(toCameraGroups);
 
@@ -293,7 +303,7 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit, OnDestroy {
       for (let i = 0; i < fa.length; ++i) {
         fa.at(i).markAllAsTouched();
       }
-    });
+    })
   }
 
   /**
@@ -327,10 +337,9 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit, OnDestroy {
             stream.defaultOnMultiDisplay = enableFirstAsMultiDisplayDefault;
             enableFirstAsMultiDisplayDefault = false;
           }
-          if (stream.motion.enabled) {
-            stream.motion.trigger_recording_on = '';
-          }  // Set all recording triggers to 'None' as the stream keys may be renumbered
-        });
+          if (stream.motion.enabled)
+            stream.motion.trigger_recording_on = '';  // Set all recording triggers to 'None' as the stream keys may be renumbered
+        })
       }
       this.FixUpCamerasData();
     }
@@ -774,10 +783,19 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit, OnDestroy {
     }
     return window.btoa(binary);
   }
+  private checkIfCameraCredentialsPresent() {
+    this.cameraSvc.haveCameraCredentials().subscribe(result => {
+        this.haveCameraCredentials = result == "true";
+      },
+      () => {
+        this.reporting.errorMessage = new HttpErrorResponse({error: "Couldn't determine if camera credentials are set."});
+      });
+  }
 
   togglePasswordDialogue() {
     this.showPasswordDialogue = !this.showPasswordDialogue;
     this.showAddCameraDialogue = false;
+    this.checkIfCameraCredentialsPresent();
   }
 
   toggleAddCameraOnvifUriDialogue() {

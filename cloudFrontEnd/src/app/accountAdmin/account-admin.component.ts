@@ -122,27 +122,6 @@ export class AccountAdminComponent implements OnInit {
       debug: () => {}
     });
     this.client.activate();
-
-
-
-
-    //
-    // let ws = new SockJS(serverUrl);
-    // this.stompClient = Stomp.over(ws);
-    // this.stompClient.debug = null;
-    // let that = this;
-    // this.stompClient.connect({}, () => {
-    //   that.stompClient.subscribe("/topic/accountUpdates", (message: any) => {
-    //     if (message.body) {
-    //       let msgObj = JSON.parse(message.body);
-    //       if (msgObj.message === "update") {
-    //         that.getAccounts();
-    //         that.expandedElement = undefined;
-    //         console.log(message.body);
-    //       }
-    //     }
-    //   });
-    // });
   }
 
   getAccounts(): void {

@@ -32,7 +32,7 @@ export class VideoComponent implements OnInit, AfterViewInit, OnDestroy {
   selectedDeviceId!: string;
   selectedAudioInput!: MediaDeviceInfo;
   stopAudioAfterLongTimeSubscription!: Subscription
-  readonly isGuest: boolean;
+  readonly isGuest: boolean = false;
 //  private isFullscreenNow: boolean = false;
   private client!: Client;
   private timeForStartAudioOutResponse: number = 0;
@@ -40,6 +40,7 @@ export class VideoComponent implements OnInit, AfterViewInit, OnDestroy {
 
   constructor(public utilsService: UtilsService) {
     this.isGuest = utilsService.isGuestAccount;
+    utilsService.audioInUse().subscribe();  // Update speakActive state
   }
 
   /**

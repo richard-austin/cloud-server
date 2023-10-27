@@ -5,13 +5,13 @@
 <mat-card>
   <mat-card-title>Cameras Configuration
     <span
-      matTooltip="{{isGuest ? 'Disabled for guest' : 'Set or change the user name and password used to access the cameras. All cameras should have the same user name and password.'}}"
+      [matTooltip]="!haveCameraCredentials ? 'Camera credentials are not set, please enter a username and password. If your cameras do not use authentication for web admin or snapshots, this will not be required' : isGuest ? 'Disabled for guest' : 'Set or change the user name and password used to access the cameras. All cameras should have the same user name and password.'"
       matTooltipClass="tooltip">
       <button class="change-password-button"
               mat-icon-button
               [disabled]="isGuest"
               (click)="togglePasswordDialogue()">
-        <mat-icon>security</mat-icon>
+        <mat-icon [ngClass]="{'no-camera-credentials': !haveCameraCredentials}">security</mat-icon>
       </button>
     </span>
     <div class="password-dialogue">
@@ -149,6 +149,22 @@
           <mat-error *ngIf="getCamControl(i, 'ftp').invalid">Set the FTP status</mat-error>
         </td>
       </ng-container>
+      <ng-container matColumnDef="retrigger-window">
+        <th mat-header-cell *matHeaderCellDef>Retrigger Window.</th>
+        <td mat-cell *matCellDef="let cam; let i = dataIndex">
+          <mat-form-field appearance="legacy" [style.width.px]="50">
+            <mat-select [formControl]="getCamControl(i, 'retriggerWindow')"
+                        (selectionChange)="updateCamField(i, 'retriggerWindow')"
+                        [disabled]="!cam.value.ftp"
+                        matTooltip="Select the maximum time in seconds that can elapse between FTP uploads from the camere for the recording to be extended further by this selected time. The absence of another FTP within this window will result in the recording being completed."
+                        matTooltipClass="tooltip">
+              <mat-option *ngFor="let win of cameraSvc.ftpRetriggerWindows" [value]="win.value">
+                {{win.name}}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+        </td>
+      </ng-container>
 
       <ng-container matColumnDef="address">
         <th mat-header-cell *matHeaderCellDef>Address.</th>
@@ -174,6 +190,18 @@
                    placeholder="Snapshot URI" (change)="updateCamField(i, 'snapshotUri')">
             <mat-error *ngIf="getCamControl(i, 'snapshotUri').invalid">Enter the URI</mat-error>
           </mat-form-field>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="useRtspAuth">
+        <th mat-header-cell *matHeaderCellDef>RTSP Authentication.</th>
+        <td mat-cell *matCellDef="let cam; let i = dataIndex">
+          <mat-checkbox [formControl]="getCamControl(i, 'useRtspAuth')"
+                        matTooltip="{{'Use authentication on the RTSP streams on '+ cam.key + ' If checked. The username and password for all cameras are entered on the cameras configuration page by clicking the button to the right of the page title.'}}"
+                        matTooltipClass="tooltip"
+                        (change)="updateCamField(i, 'useRtspAuth')">
+          </mat-checkbox>
+          <mat-error *ngIf="getCamControl(i, 'useRtspAuth').invalid">Set the RTSP auth status</mat-error>
         </td>
       </ng-container>
 

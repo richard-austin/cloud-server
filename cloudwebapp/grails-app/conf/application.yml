@@ -119,7 +119,7 @@ environments:
         enabled: true
 
     dataSource:
-      dbCreate: create-drop
+      dbCreate: update
       url: jdbc:h2:/var/cloud/db/prodDb;LOCK_TIMEOUT=10000;DB_CLOSE_ON_EXIT=FALSE
 
     cloud:
@@ -177,14 +177,14 @@ environments:
       mail:
         smtp:
           auth: true
-          username: rdaustin@virginmedia.com
-          password: DC10plus
+          username: rdaustin@noisp.com
+          password: easypassword
           starttls:
             enable: true
           ssl:
             protocols: TLSv1.2
-            trust: smtp.virginmedia.com
-          host: smtp.virginmedia.com
+            trust: smtp.noisp.com
+          host: smtp.noisp.com
           port: 587
           fromaddress: noreply@cctvcloud.com
 
