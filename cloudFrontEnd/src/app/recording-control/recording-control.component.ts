@@ -9,7 +9,6 @@ import {ReportingComponent} from '../reporting/reporting.component';
 import {HttpErrorResponse} from '@angular/common/http';
 import {ActivatedRoute} from '@angular/router';
 import {MatSelect} from '@angular/material/select/select';
-import {UtilsService} from '../shared/utils.service';
 import {MatDatepickerInputEvent} from '@angular/material/datepicker';
 
 declare let saveAs: (blob: Blob, name?: string, type?: string) => {};
