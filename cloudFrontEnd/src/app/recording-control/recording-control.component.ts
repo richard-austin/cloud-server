@@ -1,15 +1,14 @@
-import {AfterViewInit, Component, ElementRef, OnDestroy, OnInit, ViewChild} from '@angular/core';
+import {AfterViewInit, Component, OnDestroy, OnInit, ViewChild} from '@angular/core';
 import {VideoComponent} from '../video/video.component';
 import {CameraStream} from '../cameras/Camera';
 import {CameraService, DateSlot, LocalMotionEvent, LocalMotionEvents} from '../cameras/camera.service';
-import {Subscription, timer} from 'rxjs';
+import {timer} from 'rxjs';
 import {MatSelectChange} from '@angular/material/select';
 import {MotionService} from '../motion/motion.service';
 import {ReportingComponent} from '../reporting/reporting.component';
 import {HttpErrorResponse} from '@angular/common/http';
 import {ActivatedRoute} from '@angular/router';
 import {MatSelect} from '@angular/material/select/select';
-import {MatButtonToggle} from '@angular/material/button-toggle';
 import {UtilsService} from '../shared/utils.service';
 import {MatDatepickerInputEvent} from '@angular/material/datepicker';
 
@@ -52,7 +51,7 @@ export class RecordingControlComponent implements OnInit, AfterViewInit, OnDestr
   //cs!: CameraStream;
   initialised: boolean;
 
-  constructor(private route: ActivatedRoute, private cameraSvc: CameraService, private motionService: MotionService, private utilsService: UtilsService) {
+  constructor(private route: ActivatedRoute, private cameraSvc: CameraService, private motionService: MotionService) {
     // route.url.subscribe((u:UrlSegment[]) => {
     // });
     this.initialised = false;
