@@ -137,8 +137,8 @@ environments:
       mail:
         smtp:
           auth: true
-          username: rdaustin@virginmedia.com
-          password: DC10plus
+          username: nousernamed@virginmedia.com
+          password: nopassword
           starttls:
             enable: true
           ssl:

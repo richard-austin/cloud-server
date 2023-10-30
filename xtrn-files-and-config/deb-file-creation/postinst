@@ -55,7 +55,7 @@ AddToTomcatUnitFileIfNotPresent() {
 }
 
 # Give tomcat permission to write to some additional directories
-lineToWrite="ReadWritePaths=/var/cloud/logs/"
+lineToWrite="ReadWritePaths=/var/cloud/"
 lineToWriteUnder="ReadWritePaths=/var/lib/tomcat9/webapps/"
 unitFile="/usr/lib/systemd/system/tomcat9.service"
 

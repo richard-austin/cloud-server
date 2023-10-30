@@ -30,6 +30,7 @@ beans = {
             authoritiesMapper = ref('authoritiesMapper')
             hideUserNotFoundExceptions = true
         }
+
         // This bean adds the PRODUCTID, and NVRSESSIONID cookies to the login response and audits login and logout events
         authenticationSuccessHandler(CloudSecurityEventListener) {
             logService = ref("logService")
