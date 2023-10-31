@@ -13,7 +13,8 @@ cp ../cacert.jks ../client.jks ../cloud.jks ../privateKey \
 mkdir -p cloud_"${VERSION}"_arm64/DEBIAN
 cp preinst postinst prerm postrm cloud_"${VERSION}"_arm64/DEBIAN
 
-mkdir -p cloud_"${VERSION}"_arm64/home/cloud/logs
+mkdir -p cloud_"${VERSION}"_arm64/var/cloud/logs
+mkdir cloud_"${VERSION}"_arm64/var/cloud/db
 
 mkdir -p cloud_"${VERSION}"_arm64/tmp
 
@@ -30,10 +31,10 @@ Version: $VERSION
 Architecture: arm64
 Maintainer: Richard Austin <richard.david.austin@gmail.com>
 Description: Cloud server to provide access to NVRs running the CloudProxy.
-Depends: openjdk-17-jre-headless (>=17.0.3), openjdk-17-jre-headless (<< 18.0.0),
- nginx (>=1.18.0), nginx(<=1.20.9),
+Depends: openjdk-19-jre-headless (>=19.0.2), openjdk-19-jre-headless (<< 19.9.9),
+ nginx (>=1.22.0), nginx(<=1.23.9),
  tomcat9 (>=9.0.43-1), tomcat9 (<= 10.0.0),
- tomcat9-admin (>=9.0.43-1), tomcat9-admin (<= 10.0.0)
+ tomcat9-admin (>=9.0.70-1), tomcat9-admin (<= 10.0.0)
 EOF
 
 dpkg-deb --build --root-owner-group cloud_"${VERSION}"_arm64

@@ -114,7 +114,7 @@
                 color="warning">Reboot camera, Are you sure?
         </button>
         <button *ngIf="!_confirmReboot" mat-flat-button (click)="confirmReboot()" [disabled]="anyChanged() || anyInvalid()"
-                matTooltip="Click to reboot this camera"
+                matTooltip="{{'Click to reboot this camera'}}"
                 matTooltipClass="tooltip"
                 color="warning">Reboot Camera
         </button>

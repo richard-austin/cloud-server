@@ -8,11 +8,13 @@ const PROXY_CONFIG = [
       "/user",
       "/utils",
       "/recording",
-      "/live",
       "/wifiUtils",
       "/cloudProxy",
       "/ptz",
-      "/dc"
+      "/stomp",
+      "/ws",
+      "/dc",
+      "/audio"
     ],
     ws: true,
     target: "http://localhost:8083/",
@@ -24,7 +26,7 @@ const PROXY_CONFIG = [
       "/login",
       "/logoff",
       "/cloud",
-      "/stomp"
+      "/cloudstomp"
     ],
     ws: true,
     target: "http://localhost:8086",

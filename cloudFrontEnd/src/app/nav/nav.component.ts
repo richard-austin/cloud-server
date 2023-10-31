@@ -11,6 +11,7 @@ import {MatDialogRef} from "@angular/material/dialog/dialog-ref";
 import {UserIdleConfig} from "../angular-user-idle/angular-user-idle.config";
 import {UserIdleService} from "../angular-user-idle/angular-user-idle.service";
 import {map} from 'rxjs/operators';
+import {Client, StompSubscription} from "@stomp/stompjs";
 
 @Component({
   selector: 'app-nav',
@@ -36,6 +37,8 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
   private callGetAuthorities: boolean = false;
   private messageSubscription!: Subscription;
   cameraTypes: typeof cameraType = cameraType;
+  private client!: Client;
+  talkOffSubscription!: StompSubscription;
 
   constructor(private cameraSvc: CameraService, public utilsService: UtilsService, private userIdle: UserIdleService, private dialog: MatDialog) {
   }
@@ -49,20 +52,23 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   setVideoStream(camStream: CameraStream): void {
-    this.cameraSvc.setActiveLive([camStream]);
-    window.location.href = '#/live';
+    let suuid = 'suuid=';
+    let uri = camStream.stream.uri;
+    let index = uri.indexOf(suuid);
+    let streamName = uri.substring(index+suuid.length)
+    window.location.href = '#/live/'+streamName;
   }
 
   showRecording(camStream: CameraStream): void {
-    this.cameraSvc.setActiveLive([camStream]);
-    window.location.href = '#/recording';
+    let suuid = 'suuid=';
+    let uri = camStream.stream.recording.recording_src_url;
+    let index = uri.indexOf(suuid);
+    let streamName = uri.substring(index+suuid.length)
+    window.location.href = '#/recording/'+streamName;
   }
 
   cameraControl(cam: Camera) {
-    let cs: CameraStream = new CameraStream();
-    cs.camera = cam;
-    this.cameraSvc.setActiveLive([cs]);
-    window.location.href = '#/cameraparams';
+    window.location.href = '#/cameraparams/'+ btoa(cam.address);
   }
 
   changePassword() {
@@ -190,32 +196,46 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
     navbarCollapse.setAttribute('style', 'max-height: 0');
   }
 
+  initialise(auth: string) : void {
+    switch (auth)
+    {
+      case 'ROLE_CLIENT':
+//          this.cameraSvc.initialiseCameras();
+        this.cameraStreams = this.cameraSvc.getCameraStreams();
+        this.cameras = this.cameraSvc.getCameras();
+        this.idleTimeoutActive = this.callGetTemp = true;
+        this.callGetAuthorities = false;
+        this.getTemperature();  // Ensure we show the core temperature straight away on refresh
+                                // (rather than wait till the first heartbeat)
+        let serverUrl: string = (window.location.protocol == 'http:' ? 'ws://' : 'wss://') + window.location.host +'/stomp';
+        this.client = new Client({
+          brokerURL: serverUrl,
+          reconnectDelay: 2000,
+          heartbeatOutgoing: 120000,
+          heartbeatIncoming: 120000,
+          onConnect: ()=> {
+            this.talkOffSubscription = this.client.subscribe('/topic/talkoff', (message: any) => this.utilsService.talkOff(message));
+          },
+          debug: () => {}
+        });
+        this.client.activate();
+        break;
+      case 'ROLE_ADMIN':
+        this.idleTimeoutActive = this.callGetAuthorities = true;
+        this.callGetTemp = false;
+        break;
+      case 'ROLE_ANONYMOUS':
+        this.idleTimeoutActive = this.callGetTemp = this.callGetAuthorities = false;
+        break;
+      default:
+        this.idleTimeoutActive = this.callGetTemp = this.callGetAuthorities = false;
+    }
+  }
+
   ngOnInit(): void {
     this.utilsService.getUserAuthorities().pipe(
       map((auths: { authority: string }[]) => {return auths !== null && auths.length > 0 ? auths[0]?.authority : 'ROLE_ANONYMOUS'})
-    ).subscribe((auth) => {
-      switch (auth)
-      {
-        case 'ROLE_CLIENT':
-          this.cameraSvc.initialiseCameras();
-          this.cameraStreams = this.cameraSvc.getCameraStreams();
-          this.cameras = this.cameraSvc.getCameras();
-          this.idleTimeoutActive = this.callGetTemp = true;
-          this.callGetAuthorities = false;
-          this.getTemperature();  // Ensure we show the core temperature straight away on refresh
-                                  // (rather than wait till the first heartbeat)
-          break;
-        case 'ROLE_ADMIN':
-          this.idleTimeoutActive = this.callGetAuthorities = true;
-          this.callGetTemp = false;
-          break;
-        case 'ROLE_ANONYMOUS':
-          this.idleTimeoutActive = this.callGetTemp = this.callGetAuthorities = false;
-          break;
-        default:
-          this.idleTimeoutActive = this.callGetTemp = this.callGetAuthorities = false;
-      }
-    });
+    ).subscribe((auth) => this.initialise(auth));
 
     //Start watching for user inactivity.
     this.userIdle.startWatching();
@@ -231,19 +251,25 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
         console.log('Logged in message received');
         window.location.href = "#/"
         this.idleTimeoutActive = true;
-        if(!this.utilsService.isAdmin) {
-          this.cameraStreams = this.cameraSvc.getCameraStreams();
-          this.cameras = this.cameraSvc.getCameras()
-          this.callGetTemp = true;
-          this.callGetAuthorities = false;
 
-          // Get the initial core temperature
-          this.getTemperature();
-        }
-        else {
-          this.callGetAuthorities = true;
-          this.callGetTemp = false;
-        }
+        this.utilsService.getUserAuthorities().pipe(
+          map((auths: { authority: string }[]) => {return auths !== null && auths.length > 0 ? auths[0]?.authority : 'ROLE_ANONYMOUS'})
+        ).subscribe((auth) => this.initialise(auth));
+
+
+        // if(!this.utilsService.isAdmin) {
+        //   this.cameraStreams = this.cameraSvc.getCameraStreams();
+        //   this.cameras = this.cameraSvc.getCameras()
+        //   this.callGetTemp = true;
+        //   this.callGetAuthorities = false;
+        //
+        //   // Get the initial core temperature
+        //   this.getTemperature();
+        // }
+        // else {
+        //   this.callGetAuthorities = true;
+        //   this.callGetTemp = false;
+        // }
       }
       else if (message.messageType == messageType.loggedOut )
         this.idleTimeoutActive = this.callGetAuthorities = this.callGetTemp = false;
@@ -289,5 +315,7 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
     this.pingHandle.unsubscribe();
     this.timerHandle.unsubscribe();
     this.messageSubscription.unsubscribe();
+    this.talkOffSubscription?.unsubscribe();
+    this.client?.deactivate({force: false}).then(()=> {});
   }
 }

@@ -11,10 +11,10 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 class WebSocketConfiguration implements WebSocketMessageBrokerConfigurer{
     @Override
     void registerStompEndpoints(StompEndpointRegistry registry) {
-        registry.addEndpoint("/stomp")
+        registry.addEndpoint("/cloudstomp")
                 .setAllowedOriginPatterns("*")
                 .withSockJS()
-        registry.addEndpoint("/stomp").setAllowedOriginPatterns("*")
+        registry.addEndpoint("/cloudstomp").setAllowedOriginPatterns("*")
        //
     }
 
