@@ -26,10 +26,6 @@ repositories {
     maven { url "https://repo.grails.org/grails/core" }
 }
 
-springBoot {
-    mainClass.set("server.Application")
-}
-
 configurations {
     developmentOnly
     runtimeClasspath {
