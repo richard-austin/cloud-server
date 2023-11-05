@@ -31,7 +31,6 @@ export class VideoComponent implements OnInit, AfterViewInit, OnDestroy {
   audioToggle: boolean = false;
   selectedDeviceId!: string;
   selectedAudioInput!: MediaDeviceInfo;
-  stopAudioAfterLongTimeSubscription!: Subscription
   readonly isGuest: boolean = false;
 //  private isFullscreenNow: boolean = false;
   private client!: Client;
@@ -39,7 +38,6 @@ export class VideoComponent implements OnInit, AfterViewInit, OnDestroy {
 
 
   constructor(public utilsService: UtilsService) {
-    this.isGuest = utilsService.isGuestAccount;
     utilsService.audioInUse().subscribe();  // Update speakActive state
   }
 
@@ -368,8 +366,19 @@ export class VideoComponent implements OnInit, AfterViewInit, OnDestroy {
         audio: (this.selectedAudioInput == null ? true : {deviceId: this.selectedAudioInput.deviceId}),
         video: false
       }).then((stream) => {
+        const mimeType = 'video/webm;codecs=vp8,opus';
         // @ts-ignore
-        this.recorder = new MediaRecorder(stream);
+        if (!MediaRecorder.isTypeSupported(mimeType)) {
+          alert('vp8/opus mime type is not supported');
+          return;
+        }
+        const options = {
+          audioBitsPerSecond: 48000,
+          mimeType,
+        }
+
+        // @ts-ignore
+        this.recorder = new MediaRecorder(stream, options);
         // fires every one second and passes a BlobEvent
         this.recorder.ondataavailable = (event: any) => {
           // get the Blob from the event
@@ -388,12 +397,18 @@ export class VideoComponent implements OnInit, AfterViewInit, OnDestroy {
           });
         };
 
+        this.recorder.onstop = () => {
+          this.recorder.ondataavailable = undefined;
+          this.recorder.onstop = undefined;
+        }
+
         this.client.onConnect = () => this.recorder.start(100);
         this.client.activate();
 
         // This stops the audio out after 5 minutes
-        this.stopAudioAfterLongTimeSubscription = timer(300000).subscribe(() => {
+        let stopAudioAfterLongTimeSubscription = timer(300000).subscribe(() => {
           this.stopAudioOut();
+          stopAudioAfterLongTimeSubscription.unsubscribe();
         });
       }).catch((error) => {
         this.stopAudioOut();
@@ -408,14 +423,14 @@ export class VideoComponent implements OnInit, AfterViewInit, OnDestroy {
   beginStopAudioOut() {
     // 1.6 second plus timeForStartAudioOutResponse delay on stopping to allow for the latency in the audio and prevent
     //  the end of the speech getting get cut off
-    timer(1600+this.timeForStartAudioOutResponse).subscribe(() => {
+    let timerSubscription = timer(1600+this.timeForStartAudioOutResponse).subscribe(() => {
       this.stopAudioOut();
+      timerSubscription.unsubscribe();
     });
   }
 
   private stopAudioOut() : void {
     this.video.muted = false;
-    this.stopAudioAfterLongTimeSubscription?.unsubscribe();
     this.recorder?.stop();
     this.utilsService.stopAudioOut().subscribe(() => {
       this.client?.deactivate({force: false}).then(() => {});
@@ -460,7 +475,12 @@ export class VideoComponent implements OnInit, AfterViewInit, OnDestroy {
   ngOnDestroy(): void {
     this.stop();
     if (this.audioToggle) {
+      // Calling stopAudioOut directly from ngOnDestroy leaves the backchannel in a state where no UDP output ids delivered from
+      //  ffmpeg to the backchannel device. The problem does not occur when done like this
+      let timerSubscription: Subscription =  timer(20).subscribe( () => {
       this.stopAudioOut();
+        timerSubscription.unsubscribe();
+      });
     }
   }
 }
