@@ -13,11 +13,19 @@ export class AboutComponent implements OnInit {
   @ViewChild(ReportingComponent) errorReporting!: ReportingComponent;
   version: string = "Unknown";
   isLocal: boolean = false;
+  openSourceInfo: string = "Loading...";
 
   constructor(private utils: UtilsService, private _baseUrl: BaseUrl, private route:ActivatedRoute) {
     route.url.subscribe((u:UrlSegment[]) => {
       this.isLocal=route.snapshot.params.isLocal!==undefined?route.snapshot.params.isLocal:false;
-    })
+      if(!this.isLocal) {
+        this.utils.getOpenSourceInfo().subscribe((info: string) => {
+            this.openSourceInfo = info;
+          },
+          reason => this.errorReporting.errorMessage = reason
+        );
+      }
+    });
   }
 
   getOnvifUrl() {

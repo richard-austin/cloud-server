@@ -1,12 +1,18 @@
 <app-reporting></app-reporting>
 
-<div class="about-box-container">
+<div [ngClass]="{'about-box-container': isLocal, 'about-box-container-nvr': !isLocal}">
   <mat-card class="mat-elevation-z8" xmlns="http://www.w3.org/1999/html">
-    <mat-card-title>About {{isLocal?"CCTV Cloud":"NVR"}}</mat-card-title>
+    <mat-card-title>About {{isLocal ? "CCTV Cloud" : "NVR"}}</mat-card-title>
     <mat-card-content>
-       <div>Version: {{version}}</div>
-      <hr *ngIf="!isLocal">
-      <img *ngIf="!isLocal" src="{{getOnvifUrl()}}" alt="Onvif logo" >
+      <div>Version: {{version}}</div>
+      <ng-container *ngIf="!isLocal">
+        <hr>
+        <img src="{{getOnvifUrl()}}" width="=100" height="50" alt="Onvif logo">
+        <hr>
+        <h1>Built with open source software</h1>
+        <div [innerHTML]="openSourceInfo">
+        </div>
+      </ng-container>
     </mat-card-content>
   </mat-card>
 </div>

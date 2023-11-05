@@ -182,7 +182,7 @@ export class UtilsService {
         email: email,
         confirmEmail: confirmEmail
       };
-    return this.http.post<any>(this._baseUrl.getLink("user", "createAccount"), details, this.httpJSONOptions).pipe(
+    return this.http.post<any>(this._baseUrl.getLink("user", "createOrUpdateAccount"), details, this.httpJSONOptions).pipe(
       catchError((err: HttpErrorResponse) => throwError(err))
     );
   }
@@ -196,6 +196,13 @@ export class UtilsService {
 
   getVersion(isLocal: boolean): Observable<Version> {
     return this.http.post<Version>(this._baseUrl.getLink(isLocal ? "cloud" : "utils", "getVersion"), '', this.httpJSONOptions).pipe(
+      tap(),
+      catchError((err: HttpErrorResponse) => throwError(err))
+    );
+  }
+
+  getOpenSourceInfo(): Observable<string> {
+    return this.http.post(this._baseUrl.getLink("utils", "getOpenSourceInfo"), '', {responseType: 'text'}).pipe(
       tap(),
       catchError((err: HttpErrorResponse) => throwError(err))
     );
