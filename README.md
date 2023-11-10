@@ -48,7 +48,7 @@ are not present, though you can add or remove the local NVR account.
   * Add/Remove local NVR account.
 ### Run time platform, for Cloud Server
 The current build configuration (as created with./gradlew buildDebFile) is for Raspberry pi V4 running headless (server) 
-version of Ubuntu 23.04 (Lunar Lobster). The application runs on Java on the server side, so it can easily be adapted 
+version of Ubuntu 23.10 (Mantic Minotaur). The application runs on Java on the server side, so it can easily be adapted 
 to other platforms.
 ### Tomcat Web Server
 Tomcat 9 (https://tomcat.apache.org/) hosts the server (Web Back End) and client (Web Front End) of the NVR, giving access
@@ -61,6 +61,8 @@ To get more help on the Angular CLI use `ng help` or go check out the [Angular C
 The Web Back End (server) is a Grails application (https://grails.org/), which provides
 a Restful API for the Angular Web Front End in admin mode. In client mode, the Restful API is mainly from
 the NVR via the account proxy.
+## Building the project
+Ready built .deb files are included in the Releases section, otherwise read the directions below.
 #### The project is verified to build with the following:-
 * Angular CLI: 15.2.0 or greater
 * Node: 18.17.1
@@ -94,6 +96,7 @@ cd xtrn-scripts-and-config/deb-file-creation
 ```
 scp the .deb file to the Raspberry pi
 ## Installation on the Raspberry pi
+The Raspberry pi should be running Ubuntu 23.10 (Mantic Minotaur) OS.
 ```
 sudo apt update
 sudo apt upgrade 
@@ -125,7 +128,7 @@ The admin account is set up with the default password *elementary*, this should 
 * Set a browser to <a>https://<i>cloud-server_ip_addr</i></a>
 * Ignore the warning which may be given as a result of the home generated
   site certificate and continue to application which will show the menu bar.
-* Click on the *Log in* option on the meny bar
+* Click on the *Log in* option on the menu bar
 * Enter *admin* as the user name and *elementary* as the password.
 * Click confirm.
 * Click on *General* on the right had side of the menu bar.
@@ -134,4 +137,31 @@ The admin account is set up with the default password *elementary*, this should 
 * Enter you new password and again in the confirm box.
 * Click on *Change Password*
 * The new password is now set up.
-
+## Client Mode
+In client mode, you can use the functions of a single NVR. This includes viewing live CCTV streams, selecting
+recordings by date and time and viewing them, set certain camera parameters and configure camera setup including Wi-Fi.
+#### Requirements
+* There must be at least one NVR with its cloudProxy -> cloudHost configuration in application.yml set to the 
+ip address of the Cloud Server. 
+* The cloudPort value is normally 8081. 
+* The Cloud Server may be hosted at a public IP address or within the same LAN as the NVRs.
+* On the NVRs which are  to connect to the Cloud, ensure the cloud proxy is enabled (checkbox checked at 
+General -> Set CloudProxy Status).
+* There must be a Cloud user account for each NVR you connect to the cloud. To set up Cloud user accounts, you will need
+the unique product ID for each of the NVRs. The product ID is shown towards the end of the text which is printed
+during the initial installation of the NVR software. It can also be seen on the User Accounts list with the Cloud admin account.
+* Set up Cloud user account for NVR: -
+  * Connect a web browser to the Cloud.
+  * Select Create Account on the menu bar
+  * Enter the username for the intended NVR
+  * Enter the NVRs 16 character unique product ID.
+  * Enter the the account password and confirm it.
+  * Enter the email address for the account and confirm it (required for reset password links).
+  * Click the *Register Account* button.
+## Admin Functions
+To enter administrator mode: -
+* Set a browser to https://cloud-server_ip_addr
+* Click on the *Log in* option on the menu bar
+* Enter *admin* as the user name and the admin password you set above as the password.
+* On the menu bar, select *Admin -> Accounts Admin*. A table listing connected NVRs and NVR Cloud 
+Server accounts will be shown. 
