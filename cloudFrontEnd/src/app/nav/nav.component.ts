@@ -231,6 +231,13 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
         this.idleTimeoutActive = this.callGetTemp = this.callGetAuthorities = false;
     }
   }
+  setUpSMTPClient() {
+    window.location.href = '#/setupsmtpclient'
+  }
+
+  changeAdminEmail() {
+    window.location.href = '#/changeadminaccountemail'
+  }
 
   ngOnInit(): void {
     this.utilsService.getUserAuthorities().pipe(

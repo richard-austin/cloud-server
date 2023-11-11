@@ -142,15 +142,14 @@ In client mode, you can use the functions of a single NVR. This includes viewing
 recordings by date and time and viewing them, set certain camera parameters and configure camera setup including Wi-Fi.
 #### Requirements
 * There must be at least one NVR with its cloudProxy -> cloudHost configuration in application.yml set to the 
-ip address of the Cloud Server. 
-* The cloudPort value is normally 8081. 
+ip address of the Cloud Server. The cloudPort number is normally 8081. 
 * The Cloud Server may be hosted at a public IP address or within the same LAN as the NVRs.
 * On the NVRs which are  to connect to the Cloud, ensure the cloud proxy is enabled (checkbox checked at 
 General -> Set CloudProxy Status).
 * There must be a Cloud user account for each NVR you connect to the cloud. To set up Cloud user accounts, you will need
 the unique product ID for each of the NVRs. The product ID is shown towards the end of the text which is printed
 during the initial installation of the NVR software. It can also be seen on the User Accounts list with the Cloud admin account.
-* Set up Cloud user account for NVR: -
+* Set up a Cloud user account for NVR: -
   * Connect a web browser to the Cloud.
   * Select Create Account on the menu bar
   * Enter the username for the intended NVR

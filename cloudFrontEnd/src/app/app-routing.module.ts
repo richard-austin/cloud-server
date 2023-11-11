@@ -23,6 +23,8 @@ import {RemoveLocalNvrAccountComponent} from "./remove-local-nvr-account/remove-
 import {GetActiveIPAddressesComponent} from './get-active-ipaddresses/get-active-ipaddresses.component';
 import {GetLocalWifiDetailsComponent} from './get-local-wifi-details/get-local-wifi-details.component';
 import {WifiSettingsComponent} from './wifi-settings/wifi-settings.component';
+import {SetupSMTPClientComponent} from './setup-smtpclient/setup-smtpclient.component';
+import {ChangeEmailComponent} from './change-email/change-email.component';
 
 const routes: Routes = [
   {path: 'live/:streamName', component: LiveContainerComponent},
@@ -44,7 +46,9 @@ const routes: Routes = [
   {path: 'removelocalnvraccount', component: RemoveLocalNvrAccountComponent, canActivate: [OnlyClientUsersService]},
   {path: 'getactiveipaddresses', component: GetActiveIPAddressesComponent, canActivate: [OnlyClientUsersService]},
   {path: 'getlocalwifidetails', component: GetLocalWifiDetailsComponent, canActivate: [OnlyClientUsersService]},
-  {path: 'wifisettings', component: WifiSettingsComponent, canActivate: [OnlyClientUsersService]}
+  {path: 'wifisettings', component: WifiSettingsComponent, canActivate: [OnlyClientUsersService]},
+  {path: 'setupsmtpclient', component: SetupSMTPClientComponent, canActivate: [OnlyAdminUsersService]},
+  {path: 'changeadminaccountemail', component: ChangeEmailComponent, canActivate: [OnlyAdminUsersService]}
 ];
 
 @NgModule({

@@ -65,6 +65,8 @@ import {Platform} from "@angular/cdk/platform";
 import {CustomDateAdapter} from "./cameras/camera.service";
 import {AddAsOnvifDeviceComponent} from './cameras/add-as-onvif-device/add-as-onvif-device.component';
 import {AudioInputPipe} from './video/audio-input.pipe';
+import {SetupSMTPClientComponent} from './setup-smtpclient/setup-smtpclient.component';
+import {ChangeEmailComponent} from './change-email/change-email.component';
 
 @NgModule({
   declarations: [
@@ -104,7 +106,9 @@ import {AudioInputPipe} from './video/audio-input.pipe';
     PTZButtonComponent,
     PresetButtonComponent,
     AudioInputPipe,
-    AddAsOnvifDeviceComponent
+    AddAsOnvifDeviceComponent,
+    SetupSMTPClientComponent,
+    ChangeEmailComponent
   ],
     imports: [
         BrowserModule,

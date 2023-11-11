@@ -76,6 +76,16 @@
         <button mat-menu-item (click)="changePassword();menuClosed()">
           Change Password
         </button>
+        <button mat-menu-item (click)="setUpSMTPClient();menuClosed()"
+          matTooltip="Set up the SMTP client used for password reset emails for the admin and all client accounts"
+          matTooltipClass="tooltip">
+          Set Up SMTP Client
+        </button>
+        <button mat-menu-item (click)="changeAdminEmail();menuClosed()"
+                matTooltip="Change the email address for the admin account"
+                matTooltipClass="tooltip">
+          Change Admin Email Address
+        </button>
         <button *ngIf="!utilsService.isAdmin" mat-menu-item (click)="getActiveIPAddresses(); menuClosed()">
           Get Active Local IP Address(es)
         </button>
