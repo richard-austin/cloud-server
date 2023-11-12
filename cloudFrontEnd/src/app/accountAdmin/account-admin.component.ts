@@ -80,7 +80,7 @@ export class AccountAdminComponent implements OnInit {
     return (control: AbstractControl): ValidationErrors | null => {
       this.email = control.value;
       // Update the validation status of the confirmPassword field
-      if (this.confirmPassword !== "") {
+      if (this.confirmEmail !== "") {
         let cpControl: AbstractControl | null = this.changeEmailForm.get("confirmEmail");
         cpControl?.updateValueAndValidity();
       }
@@ -179,6 +179,7 @@ export class AccountAdminComponent implements OnInit {
     this.successMessage = this.errorMessage = "";
     this.utilsService.adminChangePassword(account, this.password, this.confirmPassword).subscribe(() => {
       this.successMessage = "Password successfully updated";
+      this.getAccounts();
     }, reason => {
       this.errorReporting.errorMessage = reason;
     })
@@ -193,7 +194,7 @@ export class AccountAdminComponent implements OnInit {
       let local: Account | undefined = this.accounts.find(acc => acc.userName === account.userName);
       if(local !== undefined)
         local.email = this.email;
-
+      this.getAccounts();
     }, reason => {
       this.errorReporting.errorMessage = reason;
     })
@@ -268,7 +269,7 @@ export class AccountAdminComponent implements OnInit {
     }, {updateOn: "change"});
 
     this.changeEmailForm = new FormGroup({
-      email: new FormControl(this.email, [Validators.required, Validators.maxLength(70), this.emailValidator()]),
+      email: new FormControl(this.email, [Validators.required, Validators.maxLength(70), this.emailValidator(),]),
       confirmEmail: new FormControl(this.confirmEmail, [Validators.required, Validators.maxLength(70), this.emailMatchValidator()])
     }, {updateOn: "change"});
 

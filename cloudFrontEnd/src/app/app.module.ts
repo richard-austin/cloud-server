@@ -67,6 +67,7 @@ import {AddAsOnvifDeviceComponent} from './cameras/add-as-onvif-device/add-as-on
 import {AudioInputPipe} from './video/audio-input.pipe';
 import {SetupSMTPClientComponent} from './setup-smtpclient/setup-smtpclient.component';
 import {ChangeEmailComponent} from './change-email/change-email.component';
+import {MatAutocompleteModule} from '@angular/material/autocomplete';
 
 @NgModule({
   declarations: [
@@ -138,9 +139,10 @@ import {ChangeEmailComponent} from './change-email/change-email.component';
         MatSortModule,
         MatTooltipModule,
         MatDividerModule,
-    MatSlideToggleModule,
-    MatDatepickerModule,
-    MatNativeDateModule
+        MatSlideToggleModule,
+        MatDatepickerModule,
+        MatNativeDateModule,
+        MatAutocompleteModule
     ],
   providers: [    {
     provide: DateAdapter,

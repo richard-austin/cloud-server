@@ -7,6 +7,7 @@
           <mat-form-field appearance="standard">
             <mat-label>Password</mat-label>
             <input matInput type="password" formControlName="password"
+                   autocomplete="off"
                    placeholder="Enter password">
             <mat-error *ngIf="hasError('password', 'required')">Password is required</mat-error>
             <mat-error *ngIf="hasError('password', 'pattern')">Password incorrect</mat-error>

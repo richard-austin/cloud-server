@@ -67,24 +67,24 @@
     <div class="float-right-on-full-width" *ngIf="utilsService.loggedIn">
       <button mat-button [matMenuTriggerFor]="menuGeneral">General</button>
       <mat-menu #menuGeneral="matMenu">
-        <button *ngIf="!utilsService.isAdmin" mat-menu-item (click)="configSetup();menuClosed()">
-          Configure Camera Setup
-        </button>
         <button mat-menu-item (click)="confirmLogoff();menuClosed()">
           Log Off
         </button>
-        <button mat-menu-item (click)="changePassword();menuClosed()">
-          Change Password
-        </button>
-        <button mat-menu-item (click)="setUpSMTPClient();menuClosed()"
-          matTooltip="Set up the SMTP client used for password reset emails for the admin and all client accounts"
-          matTooltipClass="tooltip">
-          Set Up SMTP Client
-        </button>
-        <button mat-menu-item (click)="changeAdminEmail();menuClosed()"
+        <button *ngIf="utilsService.isAdmin" mat-menu-item (click)="changeAdminEmail();menuClosed()"
                 matTooltip="Change the email address for the admin account"
                 matTooltipClass="tooltip">
           Change Admin Email Address
+        </button>
+        <button *ngIf="!utilsService.isAdmin" mat-menu-item (click)="configSetup();menuClosed()">
+          Configure Camera Setup
+        </button>
+        <button mat-menu-item (click)="changePassword();menuClosed()">
+          Change {{utilsService.isAdmin ? "Admin " : ""}}Password
+        </button>
+        <button *ngIf="utilsService.isAdmin" mat-menu-item (click)="setUpSMTPClient();menuClosed()"
+                matTooltip="Set up the SMTP client used for password reset emails for the admin and all client accounts"
+                matTooltipClass="tooltip">
+          Set Up SMTP Client
         </button>
         <button *ngIf="!utilsService.isAdmin" mat-menu-item (click)="getActiveIPAddresses(); menuClosed()">
           Get Active Local IP Address(es)
