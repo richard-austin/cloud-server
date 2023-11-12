@@ -77,7 +77,6 @@ Using other versions may cause build issues in some cases.
 ```
 git clone git@github.com:richard-austin/cloud-server.git
 cd cloud-server
-gradle init
 ```
 ### Build for deployment to Raspberry pi
 ```
