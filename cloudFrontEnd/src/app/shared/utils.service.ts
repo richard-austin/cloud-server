@@ -5,6 +5,7 @@ import {Observable, Subject, throwError} from "rxjs";
 import {catchError, tap} from "rxjs/operators";
 import {CameraParams, Stream} from '../cameras/Camera';
 import {cameraType} from '../cameras/camera.service';
+import {SMTPData} from '../setup-smtpclient/setup-smtpclient.component';
 
 export class Temperature {
   temp: string = "";
@@ -293,6 +294,30 @@ export class UtilsService {
     );
   }
 
+  setupSMTPClientLocally(smtpData: SMTPData) {
+    return this.http.post<boolean>(this._baseUrl.getLink("cloud", "setupSMTPClientLocally"), JSON.stringify(smtpData), this.httpJSONOptions);
+  }
+
+  getSMTPClientParamsLocally() : Observable<SMTPData> {
+    return this.http.post<SMTPData>(this._baseUrl.getLink("cloud", "getSMTPClientParamsLocally"), "", this.httpJSONOptions);
+  }
+
+  getEmail(): Observable<{ email: string }> {
+    return this.http.post<{ email: string }>(this._baseUrl.getLink("cloud", "getEmail"), '', this.httpJSONOptions).pipe(
+      catchError((err: HttpErrorResponse) => throwError(err))
+    );
+  }
+
+  changeEmail(password: string, newEmail: string, confirmNewEmail: string) {
+    let passwordChange: { password: string, newEmail: string, confirmNewEmail: string } = {
+      password: password,
+      newEmail: newEmail,
+      confirmNewEmail: confirmNewEmail
+    };
+    return this.http.post<void>(this._baseUrl.getLink("cloud", "changeEmail"), JSON.stringify(passwordChange), this.httpJSONOptions).pipe(
+      catchError((err: HttpErrorResponse) => throwError(err))
+    );
+  }
 
   getUserAuthorities(): Observable<{ authority: string }[]> {
     return this.http.post<{ authority: string }[]>(this._baseUrl.getLink('cloud', 'getUserAuthorities'), '', this.httpJSONOptions).pipe(

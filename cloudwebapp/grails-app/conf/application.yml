@@ -136,17 +136,7 @@ environments:
 
       mail:
         smtp:
-          auth: true
-          username: nousernamed@virginmedia.com
-          password: nopassword
-          starttls:
-            enable: true
-          ssl:
-            protocols: TLSv1.2
-            trust: smtp.virginmedia.com
-          host: smtp.virginmedia.com
-          port: 587
-          fromaddress: noreply@cctvcloud.com
+          configFile: /var/cloud/smtp.json
 
       quartz:
       autoStartup: false
@@ -176,17 +166,7 @@ environments:
       #            smtp server details for sending reset password links
       mail:
         smtp:
-          auth: true
-          username: rdaustin@noisp.com
-          password: easypassword
-          starttls:
-            enable: true
-          ssl:
-            protocols: TLSv1.2
-            trust: smtp.noisp.com
-          host: smtp.noisp.com
-          port: 587
-          fromaddress: noreply@cctvcloud.com
+          configFile: /var/cloud/smtp.json
 
       quartz:
       autoStartup: false

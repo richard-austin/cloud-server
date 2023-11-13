@@ -57,7 +57,7 @@ dependencies {
     implementation "org.grails:grails-plugin-services"
     implementation "org.grails:grails-plugin-url-mappings"
     implementation "org.grails:grails-plugin-interceptors"
-
+    implementation 'com.google.code.gson:gson:2.8.9'
 
     implementation "org.grails.plugins:cache", { exclude group: "org.codehaus.groovy", module: "groovy-all" }
     implementation "org.grails.plugins:async"

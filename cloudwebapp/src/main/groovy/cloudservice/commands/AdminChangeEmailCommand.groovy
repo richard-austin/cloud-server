@@ -21,7 +21,10 @@ class AdminChangeEmailCommand  implements Validateable{
 
         email(nullable: false, blank: false, maxSize: 70,
                 validator: {email, cmd ->
-                    if(!email.matches(cmd.utilsService.emailRegex))
+                    User u = User.findByEmail(cmd.email)
+                    if(u != null)
+                        return "Cannot use this email address"
+                    else if(!email.matches(cmd.utilsService.emailRegex))
                         return "Invalid email address"
                 })
 

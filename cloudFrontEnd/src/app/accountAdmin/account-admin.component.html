@@ -15,11 +15,15 @@
     <mat-form-field appearance="standard">
       <mat-label>Filter Text</mat-label>
       <input matInput type="text"
+             name="uniquename"
              #filter
              (keyup)="updateFilter()"
              matTooltip="Enter a search term to filter the list"
              matTooltipClass="tooltip"
              placeholder="Filter">
+      <!-- This invisible input is to prevent the filter input from being assigned user names from the browsers saved  credential pop-up-->
+      <input matInput type="text"
+             style="width: 0; height: 0">
     </mat-form-field>
     <mat-checkbox class="filter-checkbox"
                   [color]="'primary'"
@@ -144,17 +148,19 @@
                     <mat-card>
                       <mat-card-title>Change Password</mat-card-title>
                       <mat-card-content>
-                        <mat-form-field>
+                        <mat-form-field aria-autocomplete="none">
                           <input matInput type="password" [formControl]="getFormControl(changePasswordForm, 'password')"
+                                 autocomplete="new-password"
                                  matTooltip="Enter new password for user {{acc.userName}}"
                                  matTooltipClass="tooltip"
                                  placeholder="New Password">
                           <mat-hint>New password for user {{acc.userName}}</mat-hint>
                         </mat-form-field>
                       </mat-card-content>
-                      <mat-form-field>
+                      <mat-form-field aria-autocomplete="none">
                         <input matInput type="password"
                                [formControl]="getFormControl(changePasswordForm, 'confirmPassword')"
+                               autocomplete="new-password"
                                matTooltip="Confirm new password"
                                matTooltipClass="tooltip"
                                placeholder="Confirm New Password">

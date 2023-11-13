@@ -4,6 +4,7 @@ import cloudservice.User
 import cloudservice.UserRole
 import cloudservice.commands.AdminChangeEmailCommand
 import cloudservice.commands.AdminChangePasswordCommand
+import cloudservice.commands.ChangeEmailCommand
 import cloudservice.commands.ChangePasswordCommand
 import cloudservice.commands.DeleteAccountCommand
 import cloudservice.commands.ResetPasswordCommand
@@ -38,6 +39,7 @@ class UserAdminService {
     LogService logService
     GrailsApplication grailsApplication
     UserService userService
+    UtilsService utilsService
     SimpMessagingTemplate brokerMessagingTemplate
     final String update = new JSONObject()
             .put("message", "update")
@@ -180,6 +182,51 @@ class UserAdminService {
         return result
     }
 
+    /**
+     * getEmail
+     * @return: Current users email address
+     */
+    ObjectCommandResponse getEmail() {
+        ObjectCommandResponse result = new ObjectCommandResponse()
+        try {
+            def principal = springSecurityService.getPrincipal()
+            String userName = principal.getUsername()
+
+            User user = User.findByUsername(userName)
+
+            result.responseObject = [email: user.getEmail()]
+        }
+        catch (Exception ex) {
+            logService.cloud.error("Exception in getEmail: " + ex.getCause() + ' ' + ex.getMessage())
+            result.status = PassFail.FAIL
+            result.error = ex.getMessage()
+        }
+        return result
+    }
+
+    /**
+     * changeEmail: Change the admin users email
+     * @param cmd
+     * @return
+     */
+    ObjectCommandResponse changeEmail(ChangeEmailCommand cmd) {
+        ObjectCommandResponse result = new ObjectCommandResponse()
+        try {
+            def principal = springSecurityService.getPrincipal()
+            String userName = principal.getUsername()
+
+            User user = User.findByUsername(userName)
+            user.setEmail(cmd.getNewEmail())
+            user.save()
+        }
+        catch (Exception ex) {
+            logService.cloud.error("Exception in changeEmail: " + ex.getCause() + ' ' + ex.getMessage())
+            result.status = PassFail.FAIL
+            result.error = ex.getMessage()
+        }
+        return result
+    }
+
     ObjectCommandResponse adminDeleteAccount(DeleteAccountCommand cmd) {
         ObjectCommandResponse result = new ObjectCommandResponse()
         try {
@@ -251,16 +298,17 @@ class UserAdminService {
 
     private def sendEmail(String email, String idStr, String clientUri)
     {
-        Config config = grailsApplication.getConfig()
-        def auth = config.getProperty("cloud.mail.smtp.auth")
-        def enable = config.getProperty("cloud.mail.smtp.starttls.enable")
-        def protocols = config.getProperty("cloud.mail.smtp.ssl.protocols")
-        def host = config.getProperty("cloud.mail.smtp.host")
-        def port = config.getProperty("cloud.mail.smtp.port")
-        def trust = config.getProperty("cloud.mail.smtp.ssl.trust")
-        def username = config.getProperty("cloud.mail.smtp.username")
-        def password = config.getProperty("cloud.mail.smtp.password")
-        def fromaddress = config.getProperty("cloud.mail.smtp.fromaddress")
+        def smtpData = utilsService.getSMTPConfigData()
+
+        def auth = smtpData.auth
+        def enable = smtpData.enableStartTLS
+        def protocols = smtpData.sslProtocols
+        def host = smtpData.host
+        def port = smtpData.port
+        def trust = smtpData.sslTrust
+        def username = smtpData.username
+        def password = smtpData.password
+        def fromaddress = smtpData.fromAddress
 
         User user = User.findByEmail(email)
         if(user != null) {
