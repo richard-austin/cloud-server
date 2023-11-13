@@ -68,6 +68,7 @@ import {AudioInputPipe} from './video/audio-input.pipe';
 import {SetupSMTPClientComponent} from './setup-smtpclient/setup-smtpclient.component';
 import {ChangeEmailComponent} from './change-email/change-email.component';
 import {MatAutocompleteModule} from '@angular/material/autocomplete';
+import {CreateUserAccountContainerComponent} from './create-user-account-container/create-user-account-container.component';
 
 @NgModule({
   declarations: [
@@ -109,7 +110,8 @@ import {MatAutocompleteModule} from '@angular/material/autocomplete';
     AudioInputPipe,
     AddAsOnvifDeviceComponent,
     SetupSMTPClientComponent,
-    ChangeEmailComponent
+    ChangeEmailComponent,
+    CreateUserAccountContainerComponent
   ],
     imports: [
         BrowserModule,

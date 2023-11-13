@@ -14,6 +14,7 @@ const PROXY_CONFIG = [
       "/stomp",
       "/ws",
       "/dc",
+      "/cua",
       "/audio"
     ],
     ws: true,
