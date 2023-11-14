@@ -87,6 +87,10 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
     window.location.href = '#/wifisettings';
   }
 
+  localAdminFunctionsForNVR() {
+    window.location.href = '#/cua';
+  }
+
   multiCamView() {
     window.location.href = '#/multicam';
   }

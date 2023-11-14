@@ -100,6 +100,9 @@
             </button>
           </mat-menu>
         </ng-container>
+        <div *ngIf="!utilsService.isAdmin" matTooltip="Change local NVR user account password/username/email and/or set up local NVR SMTP details" matTooltipClass="tooltip">
+          <button mat-menu-item (click)="localAdminFunctionsForNVR();menuClosed()">Admin Functions</button>
+        </div>
         <div *ngIf="!utilsService.isAdmin" class="dropdown-divider"></div>
         <button *ngIf="!utilsService.isAdmin" mat-menu-item (click)="setIp();menuClosed()">
           Save Current Public IP

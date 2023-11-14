@@ -25,6 +25,7 @@ import {GetLocalWifiDetailsComponent} from './get-local-wifi-details/get-local-w
 import {WifiSettingsComponent} from './wifi-settings/wifi-settings.component';
 import {SetupSMTPClientComponent} from './setup-smtpclient/setup-smtpclient.component';
 import {ChangeEmailComponent} from './change-email/change-email.component';
+import {CreateUserAccountContainerComponent} from './create-user-account-container/create-user-account-container.component';
 
 const routes: Routes = [
   {path: 'live/:streamName', component: LiveContainerComponent},
@@ -48,7 +49,8 @@ const routes: Routes = [
   {path: 'getlocalwifidetails', component: GetLocalWifiDetailsComponent, canActivate: [OnlyClientUsersService]},
   {path: 'wifisettings', component: WifiSettingsComponent, canActivate: [OnlyClientUsersService]},
   {path: 'setupsmtpclient', component: SetupSMTPClientComponent, canActivate: [OnlyAdminUsersService]},
-  {path: 'changeadminaccountemail', component: ChangeEmailComponent, canActivate: [OnlyAdminUsersService]}
+  {path: 'changeadminaccountemail', component: ChangeEmailComponent, canActivate: [OnlyAdminUsersService]},
+  {path: 'cua', component: CreateUserAccountContainerComponent},
 ];
 
 @NgModule({
