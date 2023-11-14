@@ -37,7 +37,7 @@ if (Environment.isDevelopmentMode() && targetDir != null) {
 }
 
 appender("cloudLogAppender", RollingFileAppender) {
-    def path = "/var/cloud/logs/"
+    def path = "/var/log/cloud/"
     file = "${path}cloud.log"
     encoder(PatternLayoutEncoder) {
         pattern = "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level %logger{36} [%thread] - %M:%L - %msg%n"
