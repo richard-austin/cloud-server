@@ -71,10 +71,6 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
     window.location.href = '#/cameraparams/'+ btoa(cam.address);
   }
 
-  changePassword() {
-    window.location.href = '#/changepassword';
-  }
-
   getActiveIPAddresses() {
     window.location.href = '#/getactiveipaddresses';
   }
@@ -239,8 +235,11 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
     window.location.href = '#/setupsmtpclient'
   }
 
-  changeAdminEmail() {
-    window.location.href = '#/changeadminaccountemail'
+  changeEmail() {
+    window.location.href = '#/changeaccountemail'
+  }
+  changePassword() {
+    window.location.href = '#/changepassword';
   }
 
   ngOnInit(): void {

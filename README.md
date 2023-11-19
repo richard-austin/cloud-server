@@ -168,14 +168,17 @@ as an existing user account on the NVR).
 
 With the Cloud user account and the NVR CloudProxy connected to the Cloud, you can now log in.
 #### Login to an NVR client account
-* Set a browser to  to https://cloud-server_ip_addr (cloud server ip address)
-* Select "Log in" end enter Cloud the account username and password set up for the required NVR .
+* Set a browser to https://cloud-server_ip_addr (cloud server ip address)
+* Select "Log in" end enter the Cloud account username and password which was set up for the required NVR. There may
+be a warning about the self generated site certificate, which can be safely ignored.
+
 
 When logged into an NVR client account, most functions are the same as when connected directly to the NVR
 itself. The differences between direct NVR access vs access through the Cloud are: -
-* The Camera Settings -> Camera Admin option where the camera admin pages are hosted is not supported on the Cloud.
+* The Camera Settings -> Camera Admin options where the camera admin pages are hosted is not supported on the Cloud.
 * The Camera Settings -> Quick Camera Setup option is not present with the options (only for SV3C and ZXTech cameras)
 appear directly under the Camera Settings menu.
+* The Setup Guest Account option is not available through Cloud Access.
 * The General -> Change Account Email option is not available via the Cloud. Instead, use General -> Admin Functions, 
 then select "Create or Update User Account" (which is also present with direct NVR access).
 * With Cloud access, there is the option "General -> Remove Local NVR Account" which is not present with direct NVR access.
