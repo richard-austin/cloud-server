@@ -1,6 +1,9 @@
 <h2 style="text-align: center">Security Cam Cloud Service</h2>
 <h2 style="text-align: center">Cloud Service for Hosting Multiple Security Cam Instances</h2>
+
 ### Introduction
+The Cloud Server is intended for use with the Security Cam NVR project.
+
 The <a href="https://github.com/richard-austin/security-cam">Security Cam</a> (NVR, Network Video Recorder) project is primarily 
 designed to run without the need for a cloud service, inside a secure LAN, with access from WAN being made available 
 with port forwarding. The Cloud Server can be used to provide access to a number of NVR instances
@@ -27,6 +30,9 @@ has its own individual proxy interface to its web server backend. The Cloud Serv
 secure access Cloud Account.
 #### Cloud Service Features
 * Hosts multiple NVRs with each one having its own user account
+* When not logged in
+  * Login as admin or to one of the client accounts.
+  * Register a new client (NVR) account.
 * Admin Access
   * Change admin account password.
   * Show list of connected NVRs
@@ -39,7 +45,7 @@ secure access Cloud Account.
   * Delete Users Cloud Account.
   * Show only accounts where the NVR is offline (not connected to Cloud)
   * Show only connected NVRs with no Cloud user account set up.
-  * NVR list filter for user name/product id
+  * NVR list filter for username/product id
 * Client NVR access
   * Most features present through direct access to the NVR are present with client access on the Cloud.
 Camera web admin pages are not accessible through the Cloud as they are with direct NVR access. The Admin functions
@@ -136,15 +142,15 @@ The admin account is set up with the default password *elementary*, this should 
 * Enter you new password and again in the confirm box.
 * Click on *Change Password*
 * The new password is now set up.
-## Admin Functions
+## Admin Mode
 To enter administrator mode: -
-* Set a browser to https://cloud-server_ip_addr
-* Click on the *Log in* option on the menu bar
+* Set a browser to https://cloud-server_ip_addr (ip address of the Cloud Server).
+* Click on the *Log in* option on the menu bar.
 * Enter *admin* as the user name and the admin password you set above as the password.
 * On the menu bar, select *Admin -> Accounts Admin*. A table listing connected NVRs and NVR Cloud
   Server accounts will be shown.
 ## Client Mode
-In client mode, you can use the functions of a single NVR. This includes viewing live CCTV streams, selecting
+In client mode you are connected to your NVR and can use the functions of that NVR. This includes viewing live CCTV streams, selecting
 recordings by date and time and viewing them, set certain camera parameters and configure camera setup including Wi-Fi.
 #### Requirements To Access NVRs Through The Cloud
 * There must be at least one NVR with its cloudProxy -> cloudHost configuration in application.yml set to the 
@@ -157,7 +163,7 @@ the unique product ID for each of the NVRs. The product ID is shown towards the 
 during the initial installation of the NVR software. It can also be seen on the User Accounts list with the Cloud admin account.
 * Set up a Cloud user account for NVR: -
   * Connect a web browser to the Cloud.
-  * Select Create Account on the menu bar.
+  * Select *Create Account* on the menu bar.
   * Enter the username for the intended NVR (this is for the cloud account and does ***not***  have to be the same username
 as an existing user account on the NVR).
   * Enter the NVRs 16 character unique product ID.
@@ -177,9 +183,26 @@ When logged into an NVR client account, most functions are the same as when conn
 itself. The differences between direct NVR access vs access through the Cloud are: -
 * The Camera Settings -> Camera Admin options where the camera admin pages are hosted is not supported on the Cloud.
 * The Camera Settings -> Quick Camera Setup option is not present with the options (only for SV3C and ZXTech cameras)
-appear directly under the Camera Settings menu.
+appearing directly under the Camera Settings menu.
 * The Setup Guest Account option is not available through Cloud Access.
 * The General -> Change Account Email option is not available via the Cloud. Instead, use General -> Admin Functions, 
 then select "Create or Update User Account" (which is also present with direct NVR access).
 * With Cloud access, there is the option "General -> Remove Local NVR Account" which is not present with direct NVR access.
 
+#### Client Functions Only Available In Cloud Client Mode
+* ***Remove Local NVR Account***
+  * Removes the local user account on the NVR. After this operation it will not be possible to log in 
+  directly to the NVR. With no local user account on the NVR, this option will be replaced with
+  ***Register Local NVR Account***
+* ***Register Local NVR Account***
+  * Create a user account for direct login to the NVR. Selecting this option brings up a dialogue box
+  in which you enter the required username, and enter and confirm the account password and email address.
+  * Fill in those details and click the ***Register Account*** button to create the user account.
+
+With a local user account on the NVR, the ***Register Local NVR Account*** option will be replaced by the  
+***Remove Local NVR Account*** option.
+
+The email address entered on the form is used to send reset password links for direct NVR login. Reset password links
+for Cloud accounts are sent to the email address associated with the Cloud account. The email address is
+also used to send changed public IP address warnings (useful when accessing the NVR from outside the LAN through port 
+forwarding on the router).
