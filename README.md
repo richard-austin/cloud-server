@@ -2,15 +2,29 @@
 <h2 style="text-align: center">Cloud Service for Hosting Multiple Security Cam Instances</h2>
 
 ### Introduction
-The Cloud Server is intended for use with the Security Cam NVR project.
+#### Why A Cloud Service?
+The Cloud Service is intended for use with the Security Cam NVR project. Many network CCTV cameras
+can be set up, controlled and viewed online via an app which links to the cameras
+through a Cloud Service designed for those devices. This Cloud Service gives that sort of control of the security-cam NVR
+while not requiring port forwarding or a local account on the NVR. Multiple NVRs can
+be accessed through the Cloud Service, each having its own user account for private access,
+![NVR Accessed with Cloud Service](README.images/nvr-via-cloud-service.png)
+*NVR Accessed with Cloud Service (with general menu selected)*
+
+The Cloud Service also has an admin account which allows observing NVR product IDs, whether they have accounts,
+are online and how many users are connected to their NVRs
+through the Cloud service. An administrator can also change NVR Cloud account passwords, email addresses as
+well as enable/disable or delete NVR Cloud accounts.
+![Accounts Admin Editable Table](README.images/accounts-admin.png)
+*Accounts Admin (editable table)*
 
 The <a href="https://github.com/richard-austin/security-cam">Security Cam</a> (NVR, Network Video Recorder) project is primarily 
 designed to run without the need for a cloud service, inside a secure LAN, with access from WAN being made available 
-with port forwarding. The Cloud Server can be used to provide access to a number of NVR instances
+with port forwarding. The Cloud Service can be used to provide access to a number of NVR instances
 without the port forwarding set up, as the NVR makes a client connection to the Cloud Service through
 which the web interactions are multiplexed.
 
-The Cloud Server is intended to be run at a public internet address, to which instances of Security Cam
+The Cloud Service is intended to be run at a public internet address, to which instances of Security Cam
 are configured to make client connections. 
 The NVR does not need to have a local user account set up to connect to the Cloud Service. Instead
 a user account is created on the Cloud Service for each NVR connected to it. When the user account is created,
@@ -22,11 +36,11 @@ When an NVR has no local account, it will attempt to connect to the Cloud Servic
 The Cloud server application consists of a Java (Grails) server side with an Angular 12 web application for the
 client side. The Angular client has two operating modes, as an admin application (for the admin user), and client
 mode for users who login to use their NVR. In client mode, the server side acts as a proxy to the connected NVRs
-with user accounts, so most restful API calls are made through this proxy to the users NVR. The Cloud Server can handle
-multiple NVRs and each connected NVR must have a user account set up on the Cloud Server to give client access
+with user accounts, so most restful API calls are made through this proxy to the users NVR. The Cloud Service can handle
+multiple NVRs and each connected NVR must have a user account set up on the Cloud Service to give client access
 to it. Each NVR is associated with its user account with a unique product ID that is set on the NVR on
 initial installation, and is entered along with the account data when the account is originally set up. Each connected NVR
-has its own individual proxy interface to its web server backend. The Cloud Server logs onto the NVRs using a special
+has its own individual proxy interface to its web server backend. The Cloud Service logs onto the NVRs using a special
 secure access Cloud Account.
 #### Cloud Service Features
 * Hosts multiple NVRs with each one having its own user account
@@ -52,7 +66,7 @@ Camera web admin pages are not accessible through the Cloud as they are with dir
 are not present, though you can add or remove the local NVR account.
   * NVR configuration  
   * Add/Remove local NVR account.
-### Run time platform, for Cloud Server
+### Run time platform, for Cloud Service
 The current build configuration (as created with./gradlew buildDebFile) is for Raspberry pi V4 running headless (server) 
 version of Ubuntu 23.10 (Mantic Minotaur). The application runs on Java on the server side, so it can easily be adapted 
 to other platforms.
@@ -144,18 +158,18 @@ The admin account is set up with the default password *elementary*, this should 
 * The new password is now set up.
 ## Admin Mode
 To enter administrator mode: -
-* Set a browser to https://cloud-server_ip_addr (ip address of the Cloud Server).
+* Set a browser to https://cloud-server_ip_addr (ip address of the Cloud Service).
 * Click on the *Log in* option on the menu bar.
-* Enter *admin* as the user name and the admin password you set above as the password.
+* Enter *admin* as the username and the admin password you set above as the password.
 * On the menu bar, select *Admin -> Accounts Admin*. A table listing connected NVRs and NVR Cloud
-  Server accounts will be shown.
+  Service accounts will be shown.
 ## Client Mode
 In client mode you are connected to your NVR and can use the functions of that NVR. This includes viewing live CCTV streams, selecting
 recordings by date and time and viewing them, set certain camera parameters and configure camera setup including Wi-Fi.
 #### Requirements To Access NVRs Through The Cloud
 * There must be at least one NVR with its cloudProxy -> cloudHost configuration in application.yml set to the 
-ip address of the Cloud Server. The cloudPort number is normally 8081. 
-* The Cloud Server may be hosted at a public IP address or within the same LAN as the NVRs.
+ip address of the Cloud Service. The cloudPort number is normally 8081. 
+* The Cloud Service may be hosted at a public IP address or within the same LAN as the NVRs.
 * On the NVRs which are  to connect to the Cloud, ensure the cloud proxy is enabled (checkbox checked at 
 General -> Set CloudProxy Status).
 * There must be a Cloud user account for each NVR you connect to the cloud. To set up Cloud user accounts, you will need
