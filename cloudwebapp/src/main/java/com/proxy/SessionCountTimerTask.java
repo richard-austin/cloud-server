@@ -1,14 +1,12 @@
 package com.proxy;
 
-import com.proxy.cloudListener.CloudInstanceMap;
-
 import java.util.TimerTask;
 
 public class SessionCountTimerTask extends TimerTask {
     String nvrSessionId;
-    Cloud cloud;
+    CloudMQ cloud;
 
-    SessionCountTimerTask(String nvrSessionId, Cloud cloud)
+    SessionCountTimerTask(String nvrSessionId, CloudMQ cloud)
     {
         this.nvrSessionId = nvrSessionId;
         this.cloud = cloud;
