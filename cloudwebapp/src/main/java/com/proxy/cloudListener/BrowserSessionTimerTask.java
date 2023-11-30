@@ -8,9 +8,9 @@ import java.util.TimerTask;
  */
 public class BrowserSessionTimerTask extends TimerTask {
     String nvrSessionId;
-    CloudInstanceMap map;
+    CloudMQInstanceMap map;
 
-    BrowserSessionTimerTask(String nvrSessionId, CloudInstanceMap map)
+    BrowserSessionTimerTask(String nvrSessionId, CloudMQInstanceMap map)
     {
         this.nvrSessionId = nvrSessionId;
         this.map = map;

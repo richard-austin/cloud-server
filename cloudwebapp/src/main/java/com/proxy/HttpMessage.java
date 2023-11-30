@@ -1,5 +1,7 @@
 package com.proxy;
 
+import org.apache.activemq.command.ActiveMQBytesMessage;
+
 import javax.jms.Message;
 import javax.jms.TextMessage;
 import java.nio.ByteBuffer;
@@ -17,6 +19,16 @@ public class HttpMessage extends HashMap<String, List<String>> {
 
     String firstLine;
 
+    public HttpMessage(ByteBuffer httpMessage)
+    {
+        this.httpMessage = new String(httpMessage.array(), 0, httpMessage.limit());
+        final int indexOfCrLf = indexOf(crlfcrlf, 0);
+        if(indexOfCrLf != -1)
+            headersLength = indexOfCrLf+crlfcrlf.length;
+        else
+            headersLength = 0;
+        headersBuilt=buildHeaders();
+    }
     public HttpMessage(Message httpMessage)
     {
         try {

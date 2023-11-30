@@ -19,6 +19,8 @@ import java.security.PrivateKey;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.BiFunction;
@@ -26,6 +28,8 @@ import java.util.function.BiFunction;
 public class CloudMQListener {
     private final CloudProperties cloudProperties = CloudProperties.getInstance();
     private final Logger logger = (Logger) LoggerFactory.getLogger("CLOUD");
+    final private static Queue<ByteBuffer> bufferQueue = new ConcurrentLinkedQueue<>();
+    public static final int BUFFER_SIZE = 1024;
     final private CloudMQInstanceMap instances = new CloudMQInstanceMap();
     private ExecutorService browserReadExecutor = null;
     private ExecutorService acceptConnectionsFromBrowserExecutor = null;
@@ -318,6 +322,21 @@ public class CloudMQListener {
         }
     }
 
+    /**
+     * getBuffer: Get a new ByteBuffer of BUFFER_SIZE bytes length.
+     *
+     * @return: The buffer
+     */
+    public static ByteBuffer getBuffer() {
+        ByteBuffer buf = Objects.requireNonNullElseGet(bufferQueue.poll(), () -> ByteBuffer.allocate(BUFFER_SIZE));
+        buf.clear();
+        return buf;
+    }
+
+    public static synchronized void recycle(ByteBuffer buf) {
+        buf.clear();
+        bufferQueue.add(buf);
+    }
     void setLogLevel(String level) {
         logger.setLevel(Objects.equals(level, "INFO") ? Level.INFO :
                 Objects.equals(level, "DEBUG") ? Level.DEBUG :
