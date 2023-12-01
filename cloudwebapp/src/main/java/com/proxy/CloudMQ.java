@@ -289,10 +289,21 @@ public class CloudMQ {
         });
     }
 
+    private boolean isHeartbeat(Message msg) {
+        try {
+            boolean isHeartbeat = msg.getBooleanProperty("heartbeat");
+            if (isHeartbeat)
+                instances.resetNVRTimeout(getProductId());  // Reset the timeout which would otherwise  remove this Cloud instance from the map
+            return isHeartbeat;
+        }
+        catch(Exception ex) {
+            logger.error(ex.getClass().getName()+" in isHeartbeat: "+ex.getMessage());
+        }
+        return false;
+    }
     private void respondToBrowser(ActiveMQBytesMessage bm) {
         try {
-            if (bm.getBooleanProperty("heartbeat")) {
-                sendRequestToCloudProxy(bm);   // Bounce the heartbeat back to the CloudProxy to show we are still connected
+            if (isHeartbeat(bm)) {  // Has rhe CloudProxy bounced back the heartbneat we sent?
                 return;
             }
 
