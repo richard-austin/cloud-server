@@ -19,6 +19,7 @@ import grails.util.Holders;
 import org.apache.activemq.command.ActiveMQBytesMessage;
 import org.grails.web.json.JSONObject;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import com.proxy.cloudListener.CloudMQListener;
@@ -26,11 +27,27 @@ import com.proxy.cloudListener.CloudMQListener;
 import java.util.zip.CRC32;
 import java.util.zip.Checksum;
 
+import static com.proxy.CloudMQ.MessageMetadata.HEARTBEAT;
+import static com.proxy.CloudMQ.MessageMetadata.TOKEN;
+
 public class CloudMQ {
+    public enum MessageMetadata {
+        HEARTBEAT("heartbeat"),
+        REQUEST_RESPONSE("requestResponse"),
+        TOKEN("token"),
+        CONNECTION_CLOSED("connectionClosed");
+
+        final String value;
+        MessageMetadata(String value)  {
+            this.value = value;
+        }
+    }
     private boolean running = false;
     private ExecutorService browserWriteExecutor = null;
     private ExecutorService browserReadExecutor = null;
     private ExecutorService sendToCloudProxyExecutor = null;
+    private ScheduledExecutorService cloudConnectionCheckExecutor;
+
     final Map<Integer, SocketChannel> tokenSocketMap = new ConcurrentHashMap<>();
 
     private static final Logger logger = (Logger) LoggerFactory.getLogger("CLOUD");
@@ -75,7 +92,9 @@ public class CloudMQ {
                 browserWriteExecutor = Executors.newSingleThreadExecutor();
                 browserReadExecutor = Executors.newCachedThreadPool();
                 sendToCloudProxyExecutor = Executors.newSingleThreadExecutor();
+                cloudConnectionCheckExecutor = Executors.newSingleThreadScheduledExecutor();
                 readerWriter = new CloudProxyReaderWriter();
+                startCloudConnectionCheck();
             }
             catch(Exception ex) {
                 logger.error(ex.getClass().getName()+" in CloudMQ.start: "+ex.getMessage());
@@ -89,6 +108,7 @@ public class CloudMQ {
             browserWriteExecutor.shutdownNow();
             browserReadExecutor.shutdownNow();
             sendToCloudProxyExecutor.shutdownNow();
+            cloudConnectionCheckExecutor.shutdownNow();
             readerWriter.stop();
             clearTokenSocketMap();
             running = false;
@@ -408,11 +428,29 @@ public class CloudMQ {
     }
 
 
-    void setBufferForSend(ByteBuffer buf) {
-        buf.flip();
+    TemporaryQueue replyTo;
+    private void startCloudConnectionCheck() {
+        try {
+            final BytesMessage msg = cloudProxySession.createBytesMessage();
+            msg.setBooleanProperty(HEARTBEAT.value, true);
+            final Destination cloudProxy = cloudProxySession.createQueue(productId);
+            replyTo = cloudProxySession.createTemporaryQueue();
+            msg.setJMSReplyTo(replyTo);
+
+            final MessageProducer heartbeatProducer = cloudProxySession.createProducer(cloudProxy);
+            cloudConnectionCheckExecutor.scheduleAtFixedRate(() -> {
+                try {
+                    heartbeatProducer.send(msg);
+                 }  catch (Exception ex) {
+                    logger.error(ex.getClass().getName()+" in cloudConnectionCheck: " + ex.getMessage());
+                 //   restart();
+                }
+            }, 10, 10, TimeUnit.SECONDS);
+        } catch (Exception ex) {
+            showExceptionDetails(ex, "startCloudConnectionCheck");
+          //  restart();
+        }
     }
-
-
     /**
      * doRequestResponse: Send a request to the webserver, and grab the response before it's sent to the web browser.
      * Return the response in its ByteBuffer.
@@ -422,7 +460,9 @@ public class CloudMQ {
      */
     private Message doRequestResponse(String request) {
         try {
-            Message tm = cloudProxySession.createTextMessage(request);
+            final int token = getToken();
+            BytesMessage tm = cloudProxySession.createBytesMessage();
+            tm.writeBytes(request.getBytes(), 0, request.length());
             Destination cloudProxy = cloudProxySession.createQueue(productId);
             MessageProducer cloudProxyProducer = cloudProxySession.createProducer(cloudProxy);
             cloudProxyProducer.setDeliveryMode(DeliveryMode.NON_PERSISTENT);
@@ -430,6 +470,8 @@ public class CloudMQ {
             tm.setJMSReplyTo(replyTo);
             tm.setJMSCorrelationID("requestResponse");
             tm.setBooleanProperty("requestResponse", true);
+            tm.setIntProperty(TOKEN.value, token);
+            cloudProxyProducer.send(tm);
             MessageConsumer fromCloudProxy = cloudProxySession.createConsumer(replyTo);
             return fromCloudProxy.receive(1000);
         }
