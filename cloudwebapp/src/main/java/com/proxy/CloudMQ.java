@@ -94,6 +94,7 @@ public class CloudMQ {
                 sendToCloudProxyExecutor = Executors.newSingleThreadExecutor();
                 cloudConnectionCheckExecutor = Executors.newSingleThreadScheduledExecutor();
                 readerWriter = new CloudProxyReaderWriter();
+                readerWriter.setHeartbeatHandler(new HeartbeatHandler());
                 startCloudConnectionCheck();
             }
             catch(Exception ex) {
@@ -116,12 +117,17 @@ public class CloudMQ {
             logger.error(ex.getClass().getName() + " in stop: " + ex.getMessage());
         }
     }
+    public interface IHandler {
+        public Object handler(Message msg);
+    }
     private class CloudProxyReaderWriter implements MessageListener {
         private Destination cloudProxyQueue = null;
         private Destination cloudProxyResponseQueue;
         private  MessageConsumer cloudProxyConsumer = null;
         private MessageProducer cloudProxyProducer = null;
-
+        private IHandler _heartbeatHandler = null;
+//        private IHandler _generalMessageHadler = null;
+//        private IHandler _requestResponseHandler = null;
         CloudProxyReaderWriter() {
             try {
                 cloudProxyQueue = cloudProxySession.createQueue(productId);   // Create a queue with the NVR product id as the name
@@ -136,10 +142,19 @@ public class CloudMQ {
                 logger.error(ex.getClass().getName() + " in CloudProxyReaderWriter.constructor: " + ex.getMessage());
             }
         }
-
+        void setHeartbeatHandler(IHandler value) {
+            _heartbeatHandler = value;
+        }
+//        void setGeneralMessageHandler(IHandler value) {
+//            _generalMessageHadler = value;
+//        }
+//        void setRequestResponseHandler(IHandler value) {
+//            _requestResponseHandler = value;
+//        }
         void write(Message bm) {
-            try {
+             try {
                 bm.setJMSCorrelationID("cloud");
+                bm.setJMSReplyTo(cloudProxyResponseQueue);
                 cloudProxyProducer.send(bm);
             }
             catch(Exception ex) {
@@ -159,8 +174,13 @@ public class CloudMQ {
         @Override
         public void onMessage(Message message) {
             try {
-                if (message instanceof ActiveMQBytesMessage bm) {
-                    if(Objects.equals(bm.getJMSCorrelationID(), "cloudProxy")) {
+                if (message instanceof BytesMessage bm) {
+                    if(message.getBooleanProperty(HEARTBEAT.value)) {
+                        logger.info("Heartbeat received");
+                        if(_heartbeatHandler != null)
+                            _heartbeatHandler.handler(message);
+                    }
+                    else if(Objects.equals(bm.getJMSCorrelationID(), "cloudProxy")) {
                         respondToBrowser(bm);
                     }
                     else
@@ -309,25 +329,20 @@ public class CloudMQ {
         });
     }
 
-    private boolean isHeartbeat(Message msg) {
-        try {
-            boolean isHeartbeat = msg.getBooleanProperty("heartbeat");
-            if (isHeartbeat)
+    class HeartbeatHandler implements IHandler {
+        public Object handler(Message ignore) {
+            try {
                 instances.resetNVRTimeout(getProductId());  // Reset the timeout which would otherwise  remove this Cloud instance from the map
-            return isHeartbeat;
-        }
-        catch(Exception ex) {
-            logger.error(ex.getClass().getName()+" in isHeartbeat: "+ex.getMessage());
-        }
-        return false;
-    }
-    private void respondToBrowser(ActiveMQBytesMessage bm) {
-        try {
-            if (isHeartbeat(bm)) {  // Has rhe CloudProxy bounced back the heartbneat we sent?
-                return;
+            } catch (Exception ex) {
+                logger.error(ex.getClass().getName() + " in handleHeartbeat: " + ex.getMessage());
             }
+            return null;
+        }
+    }
 
-            browserWriteExecutor.submit(() -> {
+    private void respondToBrowser(BytesMessage bm) {
+        try {
+             browserWriteExecutor.submit(() -> {
                 try {
 //            logMessageMetadata(buf, "To browser");
                     int token = bm.getIntProperty("token");
@@ -440,7 +455,7 @@ public class CloudMQ {
             final MessageProducer heartbeatProducer = cloudProxySession.createProducer(cloudProxy);
             cloudConnectionCheckExecutor.scheduleAtFixedRate(() -> {
                 try {
-                    heartbeatProducer.send(msg);
+                    readerWriter.write(msg);
                  }  catch (Exception ex) {
                     logger.error(ex.getClass().getName()+" in cloudConnectionCheck: " + ex.getMessage());
                  //   restart();
@@ -480,8 +495,6 @@ public class CloudMQ {
         }
         return null;
     }
-
-    final private Map<Integer, BufferLockobject> stolenBuffers = new ConcurrentHashMap<>();
 
     /**
      * packageAndSendToCloudProxy: Set up the message in a buffer wih token and message length to send to the CloudProxy
