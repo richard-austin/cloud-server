@@ -3,14 +3,12 @@ package com.proxy.cloudListener;
 import com.proxy.CloudMQ;
 import grails.util.Holders;
 import org.grails.web.json.JSONObject;
-import org.hibernate.validator.internal.metadata.aggregated.rule.OverridingMethodMustNotAlterParameterConstraints;
 import org.springframework.context.ApplicationContext;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import java.util.Map;
 import java.util.Timer;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.BiConsumer;
 
 public class CloudMQInstanceMap {
     //   private final Logger logger = (Logger) LoggerFactory.getLogger("CLOUD");
@@ -89,9 +87,7 @@ public class CloudMQInstanceMap {
             val.cancel();
             val.purge();  // Prevent any further heartbeats
         });
-        map.forEach((key, val)-> {
-            val.stop();
-        });
+        map.forEach((key, val)-> val.stop());
         timers.clear();
         map.clear();
     }

@@ -43,9 +43,6 @@ public class CloudMQ {
     final Map<Integer, SocketChannel> tokenSocketMap = new ConcurrentHashMap<>();
 
     private static final Logger logger = (Logger) LoggerFactory.getLogger("CLOUD");
-    private final int tokenLength = Integer.BYTES;
-    private final int lengthLength = Integer.BYTES;
-    private final int closedFlagLength = Byte.BYTES;
     private Session cloudProxySession;
     private CloudProxyReaderWriter readerWriter;
     final private String productId;
@@ -111,7 +108,7 @@ public class CloudMQ {
         }
     }
     public interface IHandler {
-        public Object handler(Message msg);
+        Object handler(Message msg);
     }
     private class CloudProxyReaderWriter implements MessageListener {
         private Destination cloudProxyQueue = null;
@@ -200,7 +197,7 @@ public class CloudMQ {
         String NVRSESSIONID = "";
         if (cloudProxySession != null) {
             try {
-                String localIP = "";
+                String localIP;
                 try(final DatagramSocket socket = new DatagramSocket()){
                     socket.connect(InetAddress.getByName("8.8.8.8"), 10002);
                     localIP = socket.getLocalAddress().getHostAddress();
@@ -292,7 +289,7 @@ public class CloudMQ {
     public final void readFromBrowser(final SocketChannel channel, final ByteBuffer initialBuf, final int token, final String nvrSessionId) {
         browserReadExecutor.submit(() -> {
             try {
-                if (!nvrSessionId.equals(""))
+                if (!nvrSessionId.isEmpty())
                     createSessionTimeout(nvrSessionId);  // Reset the instance count timeout for this session id
 
                 updateSocketMap(channel, token);
@@ -373,7 +370,7 @@ public class CloudMQ {
         }
     }
      private void removeSocket(int token) {
-        try (var skt = tokenSocketMap.remove(token)) {
+        try (var ignored = tokenSocketMap.remove(token)) {
             logger.debug("Removing socket for token " + token);
         } catch (IOException ex) {
             showExceptionDetails(ex, "removeSocket");
@@ -393,7 +390,7 @@ public class CloudMQ {
     private synchronized void clearTokenSocketMap() {
         Set<Integer> tokens = new HashSet<>(tokenSocketMap.keySet());
         tokens.forEach((tok) -> {
-            try (SocketChannel sock = tokenSocketMap.remove(tok)) {
+            try (SocketChannel ignored1 = tokenSocketMap.remove(tok)) {
                 logger.debug("Removing socket for token " + tok.toString());
             } catch (Exception ignored) {
             }
