@@ -3,6 +3,7 @@ package com.proxy.cloudListener;
 import com.proxy.CloudMQ;
 import grails.util.Holders;
 import org.grails.web.json.JSONObject;
+import org.hibernate.validator.internal.metadata.aggregated.rule.OverridingMethodMustNotAlterParameterConstraints;
 import org.springframework.context.ApplicationContext;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
@@ -81,6 +82,20 @@ public class CloudMQInstanceMap {
     }
 
     /**
+     * clear: Stop all timers and CloudMQ instances and clear the maps
+     */
+    void clear() {
+        timers.forEach((key, val) -> {
+            val.cancel();
+            val.purge();  // Prevent any further heartbeats
+        });
+        map.forEach((key, val)-> {
+            val.stop();
+        });
+        timers.clear();
+        map.clear();
+    }
+    /**
      * containsKey: Returns true if the key is present in the map (product id or session id)
      *
      * @param key: The key
@@ -90,14 +105,14 @@ public class CloudMQInstanceMap {
         return map.containsKey(key);
     }
 
-    /**
-     * forEach: Iterate over CloudMQ instances and their key lists
-     *
-     * @param action: Object to hols a key/value pair
-     */
-    public void forEach(BiConsumer<? super String, ? super CloudMQ> action) {
-        map.forEach(action);
-    }
+//    /**
+//     * forEach: Iterate over CloudMQ instances and their key lists
+//     *
+//     * @param action: Object to hols a key/value pair
+//     */
+//    public void forEach(BiConsumer<? super String, ? super CloudMQ> action) {
+//        map.forEach(action);
+//    }
 
     private void createNVRSessionTimer(String productId) {
         NVRSessionTimerTask task = new NVRSessionTimerTask(productId, this);

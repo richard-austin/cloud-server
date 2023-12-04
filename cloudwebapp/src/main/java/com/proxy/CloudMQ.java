@@ -98,13 +98,14 @@ public class CloudMQ {
     public void stop() {
         try  {
             logger.info("Stopping CloudMQ instance for " + productId);
+            running = false;
             browserWriteExecutor.shutdownNow();
             browserReadExecutor.shutdownNow();
             sendToCloudProxyExecutor.shutdownNow();
             cloudConnectionCheckExecutor.shutdownNow();
             readerWriter.stop();
             clearTokenSocketMap();
-            running = false;
+
         } catch (Exception ex) {
             logger.error(ex.getClass().getName() + " in stop: " + ex.getMessage());
         }
@@ -143,14 +144,23 @@ public class CloudMQ {
                 cloudProxyProducer.send(bm);
             }
             catch(Exception ex) {
-                logger.error(ex.getClass().getName() + " in CloudProxyWriter.write: " + ex.getMessage());
+                logger.error(ex.getClass().getName() + " in CloudProxyReaderWriter.write: " + ex.getMessage());
             }
         }
 
         void stop() {
             try {
-                cloudProxyConsumer.close();
-                cloudProxyProducer.close();
+                // Close the consumer and producer in a thread as this may block
+                Thread t = new Thread(()-> {
+                    try {
+                        cloudProxyConsumer.close();
+                        cloudProxyProducer.close();
+                    }
+                    catch(Exception exception) {
+                        logger.error(exception.getClass().getName()+" in CloudProxyReaderWriter.stop: "+exception.getMessage());
+                    }
+                });
+                t.start();
             }
             catch(Exception ex) {
                 logger.error(ex.getClass().getName() + " in CloudProxyReaderWriter.stop: " + ex.getMessage());
@@ -432,7 +442,8 @@ public class CloudMQ {
 
             cloudConnectionCheckExecutor.scheduleAtFixedRate(() -> {
                 try {
-                    readerWriter.write(msg);
+                    if(running)
+                        readerWriter.write(msg);
                  }  catch (Exception ex) {
                     logger.error(ex.getClass().getName()+" in cloudConnectionCheck: " + ex.getMessage());
                  //   restart();
