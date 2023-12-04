@@ -37,10 +37,9 @@ public class CloudMQListener {
     private static int _nextToken = 0;
     private ServerSocketChannel _sc = null;
     private boolean allRunning = false;
-    Session session = null;
-
     private class InitQueueConsumer implements MessageListener, ExceptionListener {
         Connection connection = null;
+        Session session = null;
         MessageConsumer consumer = null;
         void start() {
             try {
@@ -54,15 +53,13 @@ public class CloudMQListener {
 
                 browserFacingPort = cloudProperties.getBROWSER_FACING_PORT();
 
-                connection =connectionFactory.createConnection();
+                connection = connectionFactory.createConnection();
                 connection.start();
                 connection.setExceptionListener(this);
                 session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
                 Destination dest = session.createQueue("INIT");
                 consumer = session.createConsumer(dest);
                 consumer.setMessageListener(this);
-                browserReadExecutor = Executors.newCachedThreadPool();
-                acceptConnectionsFromBrowserExecutor = Executors.newSingleThreadExecutor();
                 allRunning = true;
                 acceptConnectionsFromBrowser(browserFacingPort);
             }
@@ -78,8 +75,6 @@ public class CloudMQListener {
                 connection.close();
                 if (_sc != null)
                     _sc.close();
-
-
             }
             catch(Exception ex) {
                 logger.error(ex.getClass().getName()+ " in InitQueueConsumer.stop(): "+ex.getMessage());
@@ -116,14 +111,25 @@ public class CloudMQListener {
         }
     }
 
+    InitQueueConsumer consumer = null;
     public void start() {
         logger.setLevel(Level.INFO);
         if (!allRunning) {
             setLogLevel(cloudProperties.getLOG_LEVEL());
             allRunning = true;
-            InitQueueConsumer consumer = new InitQueueConsumer();
+            consumer = new InitQueueConsumer();
             consumer.start();
+            browserReadExecutor = Executors.newCachedThreadPool();
+            acceptConnectionsFromBrowserExecutor = Executors.newSingleThreadExecutor();
+        }
+    }
 
+    public void stop() {
+        if(allRunning) {
+            allRunning = false;
+            consumer.stop();
+            browserReadExecutor.shutdownNow();
+            acceptConnectionsFromBrowserExecutor.shutdownNow();
         }
     }
 

@@ -2,13 +2,10 @@ package com.proxy;
 
 import javax.jms.*;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -16,16 +13,11 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import com.proxy.cloudListener.*;
 import grails.util.Holders;
-import org.apache.activemq.command.ActiveMQBytesMessage;
 import org.grails.web.json.JSONObject;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import com.proxy.cloudListener.CloudMQListener;
-
-import java.util.zip.CRC32;
-import java.util.zip.Checksum;
 
 import static com.proxy.CloudMQ.MessageMetadata.HEARTBEAT;
 import static com.proxy.CloudMQ.MessageMetadata.TOKEN;
@@ -95,7 +87,7 @@ public class CloudMQ {
                 cloudConnectionCheckExecutor = Executors.newSingleThreadScheduledExecutor();
                 readerWriter = new CloudProxyReaderWriter();
                 readerWriter.setHeartbeatHandler(new HeartbeatHandler());
-                startCloudConnectionCheck();
+                startCloudProxyConnectionCheck();
             }
             catch(Exception ex) {
                 logger.error(ex.getClass().getName()+" in CloudMQ.start: "+ex.getMessage());
@@ -126,14 +118,13 @@ public class CloudMQ {
         private  MessageConsumer cloudProxyConsumer = null;
         private MessageProducer cloudProxyProducer = null;
         private IHandler _heartbeatHandler = null;
-//        private IHandler _generalMessageHadler = null;
-//        private IHandler _requestResponseHandler = null;
         CloudProxyReaderWriter() {
             try {
                 cloudProxyQueue = cloudProxySession.createQueue(productId);   // Create a queue with the NVR product id as the name
                 cloudProxyResponseQueue = cloudProxySession.createTemporaryQueue();
 
                 cloudProxyProducer = cloudProxySession.createProducer(cloudProxyQueue);
+                cloudProxyProducer.setTimeToLive(1000);
                 cloudProxyConsumer = cloudProxySession.createConsumer(cloudProxyResponseQueue);
 
                 cloudProxyConsumer.setMessageListener(this);
@@ -145,12 +136,6 @@ public class CloudMQ {
         void setHeartbeatHandler(IHandler value) {
             _heartbeatHandler = value;
         }
-//        void setGeneralMessageHandler(IHandler value) {
-//            _generalMessageHadler = value;
-//        }
-//        void setRequestResponseHandler(IHandler value) {
-//            _requestResponseHandler = value;
-//        }
         void write(Message bm) {
              try {
                 bm.setJMSCorrelationID("cloud");
@@ -165,6 +150,7 @@ public class CloudMQ {
         void stop() {
             try {
                 cloudProxyConsumer.close();
+                cloudProxyProducer.close();
             }
             catch(Exception ex) {
                 logger.error(ex.getClass().getName() + " in CloudProxyReaderWriter.stop: " + ex.getMessage());
@@ -344,13 +330,11 @@ public class CloudMQ {
         try {
              browserWriteExecutor.submit(() -> {
                 try {
-//            logMessageMetadata(buf, "To browser");
                     int token = bm.getIntProperty("token");
                     int length = (int)bm.getBodyLength();
                     SocketChannel frontEndChannel = tokenSocketMap.get(token);  //Select the correct connection to respond to
                     if (bm.getBooleanProperty("connectionClosed")) {
                         removeSocket(token);  // Usually already gone
-                        // frontEndChannel.close();
                     } else if (frontEndChannel != null && frontEndChannel.isOpen()) {
                         ByteBuffer buf = ByteBuffer.allocate(length);
                         bm.readBytes(buf.array());
@@ -378,11 +362,6 @@ public class CloudMQ {
             logger.error(ex.getClass().getName()+" in respondToBrowser: "+ex.getMessage());
         }
     }
-
-    private int count = 0;
-    private int lengthTotal = 0;
-    private long checksumTotal = 0;
-
      private void removeSocket(int token) {
         try (var skt = tokenSocketMap.remove(token)) {
             logger.debug("Removing socket for token " + token);
@@ -444,15 +423,13 @@ public class CloudMQ {
 
 
     TemporaryQueue replyTo;
-    private void startCloudConnectionCheck() {
+    private void startCloudProxyConnectionCheck() {
         try {
             final BytesMessage msg = cloudProxySession.createBytesMessage();
             msg.setBooleanProperty(HEARTBEAT.value, true);
-            final Destination cloudProxy = cloudProxySession.createQueue(productId);
             replyTo = cloudProxySession.createTemporaryQueue();
             msg.setJMSReplyTo(replyTo);
 
-            final MessageProducer heartbeatProducer = cloudProxySession.createProducer(cloudProxy);
             cloudConnectionCheckExecutor.scheduleAtFixedRate(() -> {
                 try {
                     readerWriter.write(msg);
@@ -466,6 +443,7 @@ public class CloudMQ {
           //  restart();
         }
     }
+
     /**
      * doRequestResponse: Send a request to the webserver, and grab the response before it's sent to the web browser.
      * Return the response in its ByteBuffer.
@@ -529,15 +507,6 @@ public class CloudMQ {
                                         Objects.equals(level, "ERROR") ? Level.ERROR :
                                                 Objects.equals(level, "OFF") ? Level.OFF :
                                                         Objects.equals(level, "ALL") ? Level.ALL : Level.OFF);
-    }
-
-    int c = 0;
-
-    void throwEx() throws Exception {
-        if (c++ >= 20) {
-            c = 0;
-            throw new Exception("Contrived exception");
-        }
     }
 
     public void incSessionCount(String nvrSessionId) {
