@@ -29,7 +29,7 @@ public class CloudMQListener {
     private final CloudProperties cloudProperties = CloudProperties.getInstance();
     private final Logger logger = (Logger) LoggerFactory.getLogger("CLOUD");
     final private static Queue<ByteBuffer> bufferQueue = new ConcurrentLinkedQueue<>();
-    public static final int BUFFER_SIZE = 1024;
+    public static final int BUFFER_SIZE = 16384;
     final private CloudMQInstanceMap instances = new CloudMQInstanceMap();
     private ExecutorService browserReadExecutor = null;
     private ExecutorService acceptConnectionsFromBrowserExecutor = null;
