@@ -6,6 +6,7 @@ import org.grails.web.json.JSONObject;
 import org.springframework.context.ApplicationContext;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Timer;
 import java.util.concurrent.ConcurrentHashMap;
@@ -13,7 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class CloudMQInstanceMap {
     //   private final Logger logger = (Logger) LoggerFactory.getLogger("CLOUD");
     private final long nvrSessionTimeout = 20 * 1000;  // Remove NVR session references after 20 seconds without a heartbeat.
-    Map<String, CloudMQ> map;
+    ConcurrentHashMap<String, CloudMQ> map;
     // List of keys by Cloud instance value, used for remove by value
     Map<String, Timer> timers;
     SimpMessagingTemplate brokerMessagingTemplate;

@@ -18,9 +18,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.security.PrivateKey;
-import java.util.Date;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
@@ -39,18 +37,20 @@ public class CloudMQListener {
     private static int _nextToken = 0;
     private ServerSocketChannel _sc = null;
     private boolean allRunning = false;
+
     private class InitQueueConsumer implements MessageListener, ExceptionListener {
         ActiveMQConnection connection = null;
         Session session = null;
         MessageConsumer consumer = null;
         boolean running = false;
+
         void start() {
             try {
-                if(!running) {
+                if (!running) {
                     running = true;
                     int browserFacingPort;
 
-                ActiveMQSslConnectionFactory connectionFactory = new ActiveMQSslConnectionFactory("failover://ssl://localhost:61617?socket.verifyHostName=false");
+                    ActiveMQSslConnectionFactory connectionFactory = new ActiveMQSslConnectionFactory("failover://ssl://localhost:61617?socket.verifyHostName=false");
                     connectionFactory.setKeyStore("/home/richard/client.ks");
                     connectionFactory.setKeyStorePassword("password");
                     connectionFactory.setTrustStore("/home/richard/client.ts");
@@ -67,7 +67,7 @@ public class CloudMQListener {
 
                         @Override
                         public void onException(IOException error) {
-                            logger.info(error.getClass().getName()+" received in InitQueueConsumer transport listener: "+error.getMessage());
+                            logger.info(error.getClass().getName() + " received in InitQueueConsumer transport listener: " + error.getMessage());
                         }
 
                         @Override
@@ -91,15 +91,14 @@ public class CloudMQListener {
                     allRunning = true;
                     acceptConnectionsFromBrowser(browserFacingPort);
                 }
-            }
-            catch(Exception ex) {
-                logger.error(ex.getClass().getName()+" in InitQueueConsumer.start: "+ex.getMessage());
+            } catch (Exception ex) {
+                logger.error(ex.getClass().getName() + " in InitQueueConsumer.start: " + ex.getMessage());
             }
         }
 
         void stop() {
             try {
-                if(running) {
+                if (running) {
                     running = false;
                     session.close();
                     connection.stop();
@@ -107,9 +106,8 @@ public class CloudMQListener {
                     if (_sc != null)
                         _sc.close();
                 }
-            }
-            catch(Exception ex) {
-                logger.error(ex.getClass().getName()+ " in InitQueueConsumer.stop(): "+ex.getMessage());
+            } catch (Exception ex) {
+                logger.error(ex.getClass().getName() + " in InitQueueConsumer.stop(): " + ex.getMessage());
             }
         }
 
@@ -119,7 +117,7 @@ public class CloudMQListener {
             try {
                 String productIdRegex = "^(?:[A-Z0-9]{4}-){3}[A-Z0-9]{4}$";
                 if (productId.matches(productIdRegex)) {
-                    logger.info("Connection from NVR "+productId);
+                    logger.info("Connection from NVR " + productId);
                     startNewInstance(session, productId);
                 }
                 Destination replyQ = message.getJMSReplyTo();
@@ -131,15 +129,14 @@ public class CloudMQListener {
                 tMsg.setJMSCorrelationID("initResponseCorrelationId");
                 tMsg.setBooleanProperty("INIT_RESPONSE", true);
                 producer.send(tMsg);
-            }
-            catch(JMSException ex) {
-                logger.error(ex.getClass().getName()+" in CloudMQListener.onMessage: "+ex.getMessage());
+            } catch (JMSException ex) {
+                logger.error(ex.getClass().getName() + " in CloudMQListener.onMessage: " + ex.getMessage());
             }
         }
 
         @Override
         public void onException(JMSException exception) {
-            logger.error(exception.getClass().getName()+ " in InitQueueConsumer: "+exception.getMessage());
+            logger.error(exception.getClass().getName() + " in InitQueueConsumer: " + exception.getMessage());
             stop();
             try {
                 Thread.sleep(2000);
@@ -151,20 +148,21 @@ public class CloudMQListener {
     }
 
     InitQueueConsumer consumer = null;
+
     public void start() {
         logger.setLevel(Level.INFO);
         if (!allRunning) {
             setLogLevel(cloudProperties.getLOG_LEVEL());
             allRunning = true;
-            consumer = new InitQueueConsumer();
-            consumer.start();
             browserReadExecutor = Executors.newCachedThreadPool();
             acceptConnectionsFromBrowserExecutor = Executors.newSingleThreadExecutor();
+            consumer = new InitQueueConsumer();
+            consumer.start();
         }
     }
 
     public void stop() {
-        if(allRunning) {
+        if (allRunning) {
             allRunning = false;
             consumer.stop();
             browserReadExecutor.shutdownNow();
@@ -172,10 +170,19 @@ public class CloudMQListener {
         }
     }
 
+    /**
+     * getSessions: Gets the number of currently active sessions against product ID
+     *
+     * @return: Map of number of sessions by product ID
+     */
+    public Map<String, CloudMQ> getInstances() {
+        return instances.map;
+    }
+
     private String getProductId(Message message) {
         String retVal = "";
-            if (message instanceof BytesMessage) {
-                try {
+        if (message instanceof BytesMessage) {
+            try {
                 byte[] prodId = new byte[1024];
                 int bytesRead;
                 BytesMessage bm = (BytesMessage) message;
@@ -189,12 +196,12 @@ public class CloudMQListener {
                         retVal = decryptedId;
                     }
                 }
-            } catch(Exception ex){
+            } catch (Exception ex) {
                 logger.error(ex.getClass().getName() + " in getProductId: " + ex.getMessage());
             }
 
         }
-         return retVal;
+        return retVal;
     }
 
     public static synchronized int get_nextToken() {
@@ -299,6 +306,7 @@ public class CloudMQListener {
 
     /**
      * sendErrorResponseToBrowser: Returns an error message to the browser where no response was received from the NVR
+     *
      * @param message: The error message to send
      * @param channel: The SocketChannel to send it on
      */
@@ -310,19 +318,16 @@ public class CloudMQListener {
                         "X-Powered-By: Express\n" +
                         "Access-Control-Allow-Origin: *\n" +
                         "vary: Origin, Access-Control-Request-Method, Access-Control-Request-Headers\n" +
-                        "content-length: "+message.length()+"\n" +
-                        "date: "+dateString+"\n" +
-                        "connection: close\n\n"+
-                        message +"\n";
+                        "content-length: " + message.length() + "\n" +
+                        "date: " + dateString + "\n" +
+                        "connection: close\n\n" +
+                        message + "\n";
         ByteBuffer buf = getBuffer();
         buf.put(resp.getBytes());
         buf.flip();
-        try(SocketChannel c = channel)
-        {
+        try (SocketChannel c = channel) {
             c.write(buf);
-        }
-        catch(Exception ex)
-        {
+        } catch (Exception ex) {
             logger.error(ex.getClass().getName() + " in sendErrorResponseToBrowser: " + ex.getMessage());
         }
     }
@@ -382,6 +387,7 @@ public class CloudMQListener {
         buf.clear();
         bufferQueue.add(buf);
     }
+
     void setLogLevel(String level) {
         logger.setLevel(Objects.equals(level, "INFO") ? Level.INFO :
                 Objects.equals(level, "DEBUG") ? Level.DEBUG :

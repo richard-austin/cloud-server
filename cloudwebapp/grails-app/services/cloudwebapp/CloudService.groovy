@@ -171,7 +171,7 @@ class CloudService {
             else if (User.findByUsername(cmd.username) != null)
                 throw new Exception("Username " + cmd.username + " is already registered")
 
-            CloudMQ cloud = cloudListener.getInstances().get(cmd.productId)
+            CloudMQ cloud = cloudListener.getInstances().get(cmd.productId.trim())
 
             if (cloud != null) {
                 User u = new User(username: cmd.username, productid: cmd.productId, password: cmd.password, email: cmd.email)
