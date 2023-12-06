@@ -111,10 +111,6 @@ public class CloudMQ {
         }
     }
 
-    public interface IHandler {
-        Object handler(Message msg);
-    }
-
     private class CloudProxyReaderWriter implements MessageListener {
         private Destination cloudProxyQueue = null;
         private Destination cloudProxyResponseQueue;
@@ -135,7 +131,8 @@ public class CloudMQ {
                 logger.error(ex.getClass().getName() + " in CloudProxyReaderWriter.constructor: " + ex.getMessage());
             }
         }
-         void write(Message bm) {
+
+        void write(Message bm) {
             try {
                 if (bm.getBooleanProperty(REQUEST_RESPONSE.value))
                     responseLock.set(bm.getIntProperty(TOKEN.value));
@@ -313,14 +310,14 @@ public class CloudMQ {
                 }
                 recycle(buf);
                 BytesMessage bm = cloudProxySession.createBytesMessage();
-              //  bm.writeBytes(buf.array(), 0, buf.limit());
+                //  bm.writeBytes(buf.array(), 0, buf.limit());
                 bm.setIntProperty("token", token);
                 bm.setBooleanProperty(CONNECTION_CLOSED.value, true);
                 sendRequestToCloudProxy(bm);  // Signal connection is closed
 
                 removeSocket(token);
             } catch (IOException ignored) {
-                if(tokenSocketMap.containsKey(token))
+                if (tokenSocketMap.containsKey(token))
                     removeSocket(token);
             } catch (Exception ex) {
                 showExceptionDetails(ex, "readFromBrowser");
@@ -328,6 +325,7 @@ public class CloudMQ {
             }
         });
     }
+
     private void respondToBrowser(BytesMessage bm) {
         try {
             browserWriteExecutor.submit(() -> {
@@ -349,7 +347,7 @@ public class CloudMQ {
                                 result = frontEndChannel.write(buf);
                             }
                             while (result != -1 && buf.position() < buf.limit());
-                            if(length <= BUFFER_SIZE)
+                            if (length <= BUFFER_SIZE)
                                 recycle(buf);
                         } catch (IOException ioex) {
                             logger.warn("IOException in respondToBrowser: " + ioex.getMessage());
@@ -406,7 +404,7 @@ public class CloudMQ {
         return productId;
     }
 
-     /**
+    /**
      * getBuffer: Get a new ByteBuffer of BUFFER_SIZE bytes length.
      *
      * @return: The buffer
