@@ -177,7 +177,7 @@ public class CloudMQ {
                     if (message.getBooleanProperty(HEARTBEAT.value)) {
                         logger.debug("Heartbeat received");
                         try {
-                            instances.resetNVRTimeout(getProductId());  // Reset the timeout which would otherwise  remove this Cloud instance from the map
+                            instances.resetNVRTimeout(getProductId());  // Reset the timeout which would otherwise  remove this CloudMQ instance from the map
                         } catch (Exception ex) {
                             logger.error(ex.getClass().getName() + " in handleHeartbeat: " + ex.getMessage());
                         }
@@ -340,7 +340,7 @@ public class CloudMQ {
         @Override
         public Object handler(Message ignore) {
             try {
-                instances.resetNVRTimeout(getProductId());  // Reset the timeout which would otherwise  remove this Cloud instance from the map
+                instances.resetNVRTimeout(getProductId());  // Reset the timeout which would otherwise  remove this CloudMQ instance from the map
             } catch (Exception ex) {
                 logger.error(ex.getClass().getName() + " in handleHeartbeat: " + ex.getMessage());
             }

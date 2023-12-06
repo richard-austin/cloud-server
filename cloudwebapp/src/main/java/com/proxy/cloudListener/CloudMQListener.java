@@ -283,11 +283,11 @@ public class CloudMQListener {
                     if (PRODUCTID.matches(productIdRegex)) {
                         CloudMQ inst = instances.get(PRODUCTID);
                         if (inst != null)
-                            // Call readFromBrowser on the Cloud instance if there is one for this session ID
+                            // Call readFromBrowser on the CloudMQ instance if there is one for this session ID
                             inst.readFromBrowser(channel, buf, token, NVRSESSIONID);
                         else {
-                            recycle(buf);  // No Cloud instance for this product ID, just ignore this message
-                            sendErrorResponseToBrowser("No Cloud instance for this product ID", channel);
+                            recycle(buf);  // No CloudMQ instance for this product ID, just ignore this message
+                            sendErrorResponseToBrowser("No CloudMQ instance for this product ID", channel);
                         }
                     } else {
                         recycle(buf);  // No product ID, just ignore this message
@@ -333,7 +333,7 @@ public class CloudMQListener {
     }
 
     /**
-     * authenticate: Authenticate via the appropriate Cloud instance
+     * authenticate: Authenticate via the appropriate CloudMQ instance
      *
      * @param productId: The users product id
      * @return: The NVRSESSIONID

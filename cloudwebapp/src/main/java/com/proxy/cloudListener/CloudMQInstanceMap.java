@@ -15,7 +15,7 @@ public class CloudMQInstanceMap {
     //   private final Logger logger = (Logger) LoggerFactory.getLogger("CLOUD");
     private final long nvrSessionTimeout = 20 * 1000;  // Remove NVR session references after 20 seconds without a heartbeat.
     ConcurrentHashMap<String, CloudMQ> map;
-    // List of keys by Cloud instance value, used for remove by value
+    // List of keys by CloudMQ instance value, used for remove by value
     Map<String, Timer> timers;
     SimpMessagingTemplate brokerMessagingTemplate;
     final String update = new JSONObject()
@@ -30,11 +30,11 @@ public class CloudMQInstanceMap {
     }
 
     /**
-     * put: Put a Cloud instance into the product key map
+     * put: Put a CloudMQ instance into the product key map
      *
      * @param key:   The key (Session id or product key)
-     * @param cloud: The Cloud instance
-     * @return: The Cloud instance
+     * @param cloud: The CloudMQ instance
+     * @return: The CloudMQ instance
      */
     CloudMQ put(String key, CloudMQ cloud) {
         brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", update);
