@@ -88,7 +88,6 @@ public class CloudMQ {
                 sendToCloudProxyExecutor = Executors.newSingleThreadExecutor();
                 cloudConnectionCheckExecutor = Executors.newSingleThreadScheduledExecutor();
                 readerWriter = new CloudProxyReaderWriter();
-                readerWriter.setHeartbeatHandler(new HeartbeatHandler());
                 startCloudProxyConnectionCheck();
             } catch (Exception ex) {
                 logger.error(ex.getClass().getName() + " in CloudMQ.start: " + ex.getMessage());
@@ -121,7 +120,6 @@ public class CloudMQ {
         private Destination cloudProxyResponseQueue;
         private MessageConsumer cloudProxyConsumer = null;
         private MessageProducer cloudProxyProducer = null;
-        private IHandler _heartbeatHandler = null;
 
         CloudProxyReaderWriter() {
             try {
@@ -137,12 +135,7 @@ public class CloudMQ {
                 logger.error(ex.getClass().getName() + " in CloudProxyReaderWriter.constructor: " + ex.getMessage());
             }
         }
-
-        void setHeartbeatHandler(IHandler value) {
-            _heartbeatHandler = value;
-        }
-
-        void write(Message bm) {
+         void write(Message bm) {
             try {
                 if (bm.getBooleanProperty(REQUEST_RESPONSE.value))
                     responseLock.set(bm.getIntProperty(TOKEN.value));

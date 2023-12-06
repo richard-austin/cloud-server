@@ -6,7 +6,6 @@ import org.grails.web.json.JSONObject;
 import org.springframework.context.ApplicationContext;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Timer;
 import java.util.concurrent.ConcurrentHashMap;
