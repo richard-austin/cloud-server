@@ -7,6 +7,7 @@ import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.*;
+import java.util.Queue;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -27,8 +28,8 @@ public class CloudMQ {
         HEARTBEAT("heartbeat"),
         REQUEST_RESPONSE("requestResponse"),
         TOKEN("token"),
-        CONNECTION_CLOSED("connectionClosed");
-
+        CONNECTION_CLOSED("connectionClosed"),
+        CLOUD_PROXY_CORRELATION_ID("cloudProxy");
         final String value;
 
         MessageMetadata(String value) {
@@ -37,6 +38,8 @@ public class CloudMQ {
     }
 
     private boolean running = false;
+    final private static Queue<ByteBuffer> bufferQueue = new ConcurrentLinkedQueue<>();
+    public static final int BUFFER_SIZE = 16384;
     private ExecutorService browserWriteExecutor = null;
     private ExecutorService browserReadExecutor = null;
     private ExecutorService sendToCloudProxyExecutor = null;
@@ -172,7 +175,7 @@ public class CloudMQ {
             try {
                 if (message instanceof BytesMessage bm) {
                     if (message.getBooleanProperty(HEARTBEAT.value)) {
-                        logger.info("Heartbeat received");
+                        logger.debug("Heartbeat received");
                         try {
                             instances.resetNVRTimeout(getProductId());  // Reset the timeout which would otherwise  remove this Cloud instance from the map
                         } catch (Exception ex) {
@@ -184,7 +187,7 @@ public class CloudMQ {
                             responseMessage = bm;
                             responseLock.notify();
                         }
-                    } else if (Objects.equals(bm.getJMSCorrelationID(), "cloudProxy")) {
+                    } else if (Objects.equals(bm.getJMSCorrelationID(), CLOUD_PROXY_CORRELATION_ID.value)) {
                         respondToBrowser(bm);
                     } else
                         logger.warn("Received unexpected correlation ID " + bm.getJMSCorrelationID());
@@ -304,27 +307,28 @@ public class CloudMQ {
 
                 updateSocketMap(channel, token);
                 ByteBuffer buf = initialBuf;
+                logger.debug("readFromBrowser length: " + buf.limit());
                 // Send the initial message delivered from the CloudMQListener
                 packageAndSendToCloudProxy(buf, token);
-                //splitHttpMessages(buf, token, lastBitOfPreviousHttpMessage);
-
                 // Now read any more that may still come through
                 buf = getBuffer();
-                logger.debug("Into read with token " + token);
                 while (channel.read(buf) != -1) {
+                    logger.debug("readFromBrowser length: " + buf.limit());
                     packageAndSendToCloudProxy(buf, token);
-                    //splitHttpMessages(buf, token, lastBitOfPreviousHttpMessage);
+                    recycle(buf);
                     buf = getBuffer();
                 }
-                logger.debug("Out of read with token " + token);
+                recycle(buf);
                 BytesMessage bm = cloudProxySession.createBytesMessage();
-                bm.writeBytes(buf.array(), 0, buf.limit());
+              //  bm.writeBytes(buf.array(), 0, buf.limit());
                 bm.setIntProperty("token", token);
-                bm.setBooleanProperty("connectionClosed", true);
+                bm.setBooleanProperty(CONNECTION_CLOSED.value, true);
                 sendRequestToCloudProxy(bm);  // Signal connection is closed
+
                 removeSocket(token);
             } catch (IOException ignored) {
-                removeSocket(token);
+                if(tokenSocketMap.containsKey(token))
+                    removeSocket(token);
             } catch (Exception ex) {
                 showExceptionDetails(ex, "readFromBrowser");
                 // reset();
@@ -351,11 +355,12 @@ public class CloudMQ {
                     int token = bm.getIntProperty("token");
                     int length = (int) bm.getBodyLength();
                     SocketChannel frontEndChannel = tokenSocketMap.get(token);  //Select the correct connection to respond to
-                    if (bm.getBooleanProperty("connectionClosed")) {
-                        removeSocket(token);  // Usually already gone
+                    if (bm.getBooleanProperty(CONNECTION_CLOSED.value)) {
+                        removeSocket(token);
                     } else if (frontEndChannel != null && frontEndChannel.isOpen()) {
-                        ByteBuffer buf = ByteBuffer.allocate(length);
+                        ByteBuffer buf = length > BUFFER_SIZE ? ByteBuffer.allocate(length) : getBuffer();
                         bm.readBytes(buf.array());
+                        buf.limit(length);
                         int result;
                         logger.debug("respondToBrowser length: " + length);
 
@@ -364,9 +369,11 @@ public class CloudMQ {
                                 result = frontEndChannel.write(buf);
                             }
                             while (result != -1 && buf.position() < buf.limit());
+                            if(length <= BUFFER_SIZE)
+                                recycle(buf);
                         } catch (IOException ioex) {
                             logger.warn("IOException in respondToBrowser: " + ioex.getMessage());
-                            bm.setBooleanProperty("connectionClosed", true);
+                            bm.setBooleanProperty(CONNECTION_CLOSED.value, true);
                             sendRequestToCloudProxy(bm);
                             frontEndChannel.shutdownOutput().close();
                         }
@@ -382,7 +389,7 @@ public class CloudMQ {
 
     private void removeSocket(int token) {
         try (var ignored = tokenSocketMap.remove(token)) {
-            logger.debug("Removing socket for token " + token);
+            logger.debug("Removing and closing socket for token " + token);
         } catch (IOException ex) {
             showExceptionDetails(ex, "removeSocket");
         }
@@ -419,15 +426,20 @@ public class CloudMQ {
         return productId;
     }
 
-    /**
-     * getBuffer: Get a buffer and place the token at the start.
+     /**
+     * getBuffer: Get a new ByteBuffer of BUFFER_SIZE bytes length.
      *
-     * @return: The byte buffer with the token in place and length reservation set up.
+     * @return: The buffer
      */
-    private ByteBuffer getBuffer() {
-        final int BUFFER_SIZE = 16384;
+    public static ByteBuffer getBuffer() {
+        ByteBuffer buf = Objects.requireNonNullElseGet(bufferQueue.poll(), () -> ByteBuffer.allocate(BUFFER_SIZE));
+        buf.clear();
+        return buf;
+    }
 
-        return ByteBuffer.allocate(BUFFER_SIZE);
+    public static synchronized void recycle(ByteBuffer buf) {
+        buf.clear();
+        bufferQueue.add(buf);
     }
 
     /**
@@ -495,7 +507,7 @@ public class CloudMQ {
     }
 
     /**
-     * packageAndSendToCloudProxy: Set up the message in a buffer wih token and message length to send to the CloudProxy
+     * packageAndSendToCloudProxy: Set up the message in a BytesMessage wih token and message length to send to the CloudProxy
      *
      * @param buf    The raw buffer (no token or other CloudProxy protocol related information
      * @param token: The token (represents the socket to use)
@@ -506,7 +518,6 @@ public class CloudMQ {
             BytesMessage bm = cloudProxySession.createBytesMessage();
             bm.writeBytes(buf.array(), 0, buf.limit());
             bm.setIntProperty("token", token);
-            logger.debug("readFromBrowser length: " + buf.limit());
             sendRequestToCloudProxy(bm);
         } catch (Exception ex) {
             logger.trace(ex.getClass().getName() + " in sendToCloudProxy: " + ex.getMessage());
