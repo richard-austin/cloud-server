@@ -49,15 +49,10 @@ public class CloudMQListener {
                 if (!running) {
                     running = true;
                     int browserFacingPort;
-
-                    ActiveMQSslConnectionFactory connectionFactory = new ActiveMQSslConnectionFactory("failover://ssl://localhost:61617?socket.verifyHostName=false");
-                    connectionFactory.setKeyStore("/home/richard/client.ks");
-                    connectionFactory.setKeyStorePassword("password");
-                    connectionFactory.setTrustStore("/home/richard/client.ts");
-                    connectionFactory.setTrustStorePassword("password");
+                    ActiveMQSslConnectionFactory connectionFactory = getActiveMQSslConnectionFactory();
 
                     browserFacingPort = cloudProperties.getBROWSER_FACING_PORT();
-                    connection = (ActiveMQConnection) connectionFactory.createConnection();
+                    connection = (ActiveMQConnection) connectionFactory.createConnection(cloudProperties.getAMQ_USER(), cloudProperties.getAMQ_PASSWORD());
 
                     TransportListener tl = new TransportListener() {
                         @Override
@@ -147,6 +142,16 @@ public class CloudMQListener {
         }
     }
 
+    private static ActiveMQSslConnectionFactory getActiveMQSslConnectionFactory() throws Exception {
+        CloudProperties cp = CloudProperties.getInstance();
+        ActiveMQSslConnectionFactory connectionFactory = new ActiveMQSslConnectionFactory(cp.getAMQ_URL());
+        connectionFactory.setKeyStore(cp.getAMQ_KEYSTORE_PATH());
+        connectionFactory.setKeyStorePassword(cp.getAMQ_KEYSTORE_PASSWORD());
+        connectionFactory.setTrustStore(cp.getAMQ_TRUSTSTORE_PATH());
+        connectionFactory.setTrustStorePassword(cp.getAMQ_TRUSTSTORE_PASSWORD());
+        return connectionFactory;
+    }
+
     InitQueueConsumer consumer = null;
 
     public void start() {
@@ -170,11 +175,6 @@ public class CloudMQListener {
         }
     }
 
-    /**
-     * getSessions: Gets the number of currently active sessions against product ID
-     *
-     * @return: Map of number of sessions by product ID
-     */
     public Map<String, CloudMQ> getInstances() {
         return instances.map;
     }

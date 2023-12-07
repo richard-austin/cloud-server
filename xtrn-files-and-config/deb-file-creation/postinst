@@ -22,8 +22,8 @@ chmod 640 /etc/tomcat9/tomcat-users.xml
 chown root:tomcat /etc/tomcat9/tomcat-users.xml
 chmod 640 /etc/tomcat9/server.xml
 chown root:tomcat /etc/tomcat9/server.xml
-chown root:grp-cloud /etc/cloud/cacert.jks /etc/cloud/client.jks /etc/cloud/privateKey
-chmod 440 /etc/cloud/cacert.jks /etc/cloud/client.jks /etc/cloud/privateKey
+chown root:grp-cloud /etc/cloud/client.ks /etc/cloud/client.ts /etc/cloud/privateKey
+chmod 440 /etc/cloud/client.ks /etc/cloud/client.ts /etc/cloud/privateKey
 
 #A new group, grp-cloud, is added, then the users tomcat and usr-cloud added to that group.
 # The grp-cloud group is then given group access to usr-cloud and it's subdirectories. The user and group permissions are then set up.
