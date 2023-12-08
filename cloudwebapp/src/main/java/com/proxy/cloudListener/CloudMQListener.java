@@ -110,7 +110,7 @@ public class CloudMQListener {
         public void onMessage(Message message) {
             String productId = getProductId(message);
             try {
-                String productIdRegex = "^(?:[A-Z0-9]{4}-){3}[A-Z0-9]{4}$";
+                final String productIdRegex = "^(?:[A-Z0-9]{4}-){3}[A-Z0-9]{4}$";
                 if (productId.matches(productIdRegex)) {
                     logger.info("Connection from NVR " + productId);
                     startNewInstance(session, productId);
