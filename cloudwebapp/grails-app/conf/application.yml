@@ -128,10 +128,10 @@ environments:
       mqURL: failover://ssl://192.168.1.25:61617?socket.verifyHostName=false
       mqTrustStorePath: ../xtrn-files-and-config/client.ts
       mqKeyStorePath: ../xtrn-files-and-config/client.ks
-      mqKeyStorePassword: password
-      mqTrustStorePassword: password
-      mqUser: user
-      mqPassword: password
+      mqKeyStorePassword: ExPEThINdAvAmpROteRCLEyfI
+      mqTrustStorePassword: CIdERVERiMPLetORThrONVAce
+      mqUser: cloud
+      mqPassword: inelESOLsiONgeOuShEFatIns
       privateKeyPath: ../xtrn-files-and-config/privateKey
       browserFacingPort: 8083
       logLevel: DEBUG
@@ -159,13 +159,13 @@ environments:
       mqURL: failover://ssl://192.168.1.82:61617?socket.verifyHostName=false
       mqTrustStorePath: /etc/cloud/client.ts
       mqKeyStorePath: /etc/cloud/client.ks
-      mqKeyStorePassword: password
-      mqTrustStorePassword: password
-      mqUser: user
-      mqPassword: password
+      mqKeyStorePassword: ExPEThINdAvAmpROteRCLEyfI
+      mqTrustStorePassword: CIdERVERiMPLetORThrONVAce
+      mqUser: cloud
+      mqPassword: inelESOLsiONgeOuShEFatIns
       privateKeyPath: /etc/cloud/privateKey
       browserFacingPort: 8083
-      logLevel: DEBUG
+      logLevel: INFO
 
       #            smtp server details for sending reset password links
       mail:
