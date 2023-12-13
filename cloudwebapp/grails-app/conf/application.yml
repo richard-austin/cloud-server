@@ -125,7 +125,7 @@ environments:
     cloud:
       username: cloud
       password: "DrN3yuFAtSsK2w7AtTf66FFRVveBwtjU"
-      mqURL: failover://ssl://192.168.1.25:61617?socket.verifyHostName=false
+      mqURL: failover://ssl://192.168.1.82:61617?socket.verifyHostName=false
       mqTrustStorePath: ../xtrn-files-and-config/client.ts
       mqKeyStorePath: ../xtrn-files-and-config/client.ks
       mqKeyStorePassword: ExPEThINdAvAmpROteRCLEyfI

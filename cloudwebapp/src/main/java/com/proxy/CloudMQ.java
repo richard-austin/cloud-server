@@ -112,19 +112,19 @@ public class CloudMQ {
     }
 
     private class CloudProxyReaderWriter implements MessageListener {
-        private Destination cloudProxyQueue = null;
-        private Destination cloudProxyResponseQueue;
+        private Destination cloudProxyTopic = null;
+        private Destination cloudProxyResponseTopic;
         private MessageConsumer cloudProxyConsumer = null;
         private MessageProducer cloudProxyProducer = null;
 
         CloudProxyReaderWriter() {
             try {
-                cloudProxyQueue = cloudProxySession.createQueue(productId);   // Create a queue with the NVR product id as the name
-                cloudProxyResponseQueue = cloudProxySession.createTemporaryQueue();
+                cloudProxyTopic = cloudProxySession.createTopic(productId);   // Create a queue with the NVR product id as the name
+                cloudProxyResponseTopic = cloudProxySession.createTemporaryTopic();
 
-                cloudProxyProducer = cloudProxySession.createProducer(cloudProxyQueue);
-                cloudProxyProducer.setTimeToLive(1000);
-                cloudProxyConsumer = cloudProxySession.createConsumer(cloudProxyResponseQueue);
+                cloudProxyProducer = cloudProxySession.createProducer(cloudProxyTopic);
+              //  cloudProxyProducer.setTimeToLive(1000);
+                cloudProxyConsumer = cloudProxySession.createConsumer(cloudProxyResponseTopic);
 
                 cloudProxyConsumer.setMessageListener(this);
             } catch (Exception ex) {
@@ -136,7 +136,7 @@ public class CloudMQ {
             try {
                 if (bm.getBooleanProperty(REQUEST_RESPONSE.value))
                     responseLock.set(bm.getIntProperty(TOKEN.value));
-                bm.setJMSReplyTo(cloudProxyResponseQueue);
+                bm.setJMSReplyTo(cloudProxyResponseTopic);
                 cloudProxyProducer.send(bm);
             } catch (Exception ex) {
                 logger.error(ex.getClass().getName() + " in CloudProxyReaderWriter.write: " + ex.getMessage());
