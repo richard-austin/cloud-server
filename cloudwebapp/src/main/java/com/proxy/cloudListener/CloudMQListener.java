@@ -50,6 +50,9 @@ public class CloudMQListener {
                     running = true;
                     int browserFacingPort;
                     ActiveMQSslConnectionFactory connectionFactory = getActiveMQSslConnectionFactory();
+                    connectionFactory.setUseAsyncSend(true);
+                    connectionFactory.setOptimizeAcknowledge(true);
+                   // connectionFactory.setAlwaysSessionAsync(false);
 
                     browserFacingPort = cloudProperties.getBROWSER_FACING_PORT();
                     connection = (ActiveMQConnection) connectionFactory.createConnection(cloudProperties.getAMQ_USER(), cloudProperties.getAMQ_PASSWORD());
@@ -204,7 +207,7 @@ public class CloudMQListener {
         return retVal;
     }
 
-    public static synchronized int get_nextToken() {
+    public static synchronized int getToken() {
         return ++_nextToken;
     }
 
@@ -238,7 +241,7 @@ public class CloudMQListener {
                             // It will wait for a connection on the local port
                             SocketChannel browser = s.accept();
                             browser.configureBlocking(true);
-                            final int token = get_nextToken();
+                            final int token = getToken();
                             readFromBrowser(browser, token);
                         } catch (Exception ex) {
                             logger.error(ex.getClass().getName() + " in acceptConnectionsFromBrowser:  " + ex.getMessage());
