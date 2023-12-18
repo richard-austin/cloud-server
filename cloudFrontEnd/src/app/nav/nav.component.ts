@@ -1,17 +1,17 @@
 import {AfterViewInit, Component, ElementRef, OnDestroy, OnInit, ViewChild} from '@angular/core';
 import {CameraService, cameraType} from '../cameras/camera.service';
-import {Camera, CameraStream} from "../cameras/Camera";
-import {ReportingComponent} from "../reporting/reporting.component";
-import {HttpErrorResponse} from "@angular/common/http";
-import {Subscription} from "rxjs";
+import {Camera, Stream} from '../cameras/Camera';
+import {ReportingComponent} from '../reporting/reporting.component';
+import {HttpErrorResponse} from '@angular/common/http';
+import {Subscription} from 'rxjs';
 import {IdleTimeoutStatusMessage, Message, messageType, UtilsService} from '../shared/utils.service';
-import {MatDialog} from "@angular/material/dialog";
-import {IdleTimeoutModalComponent} from "../idle-timeout-modal/idle-timeout-modal.component";
-import {MatDialogRef} from "@angular/material/dialog/dialog-ref";
-import {UserIdleConfig} from "../angular-user-idle/angular-user-idle.config";
-import {UserIdleService} from "../angular-user-idle/angular-user-idle.service";
+import {MatDialog} from '@angular/material/dialog';
+import {IdleTimeoutModalComponent} from '../idle-timeout-modal/idle-timeout-modal.component';
+import {MatDialogRef} from '@angular/material/dialog/dialog-ref';
+import {UserIdleConfig} from '../angular-user-idle/angular-user-idle.config';
+import {UserIdleService} from '../angular-user-idle/angular-user-idle.service';
 import {map} from 'rxjs/operators';
-import {Client, StompSubscription} from "@stomp/stompjs";
+import {Client, StompSubscription} from '@stomp/stompjs';
 
 @Component({
   selector: 'app-nav',
@@ -23,8 +23,7 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild(ReportingComponent) errorReporting!: ReportingComponent;
   @ViewChild('navbarCollapse') navbarCollapse!: ElementRef<HTMLDivElement>;
 
-  cameraStreams: CameraStream[] = []; // All camera streams
-  cameras: Camera[] = [];
+//  cameras: Map<string, Camera> = new Map<string, Camera>();
   confirmLogout: boolean = false;
   pingHandle!: Subscription;
   timerHandle!: Subscription;
@@ -40,35 +39,35 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
   private client!: Client;
   talkOffSubscription!: StompSubscription;
 
-  constructor(private cameraSvc: CameraService, public utilsService: UtilsService, private userIdle: UserIdleService, private dialog: MatDialog) {
+  constructor(public cameraSvc: CameraService, public utilsService: UtilsService, private userIdle: UserIdleService, private dialog: MatDialog) {
   }
 
   login() {
-    window.location.href = '#/login'
+    window.location.href = '#/login';
   }
 
   registerAccount() {
-    window.location.href = '#/register'
+    window.location.href = '#/register';
   }
 
-  setVideoStream(camStream: CameraStream): void {
+  setVideoStream(cam: Camera, stream: Stream): void {
     let suuid = 'suuid=';
-    let uri = camStream.stream.uri;
+    let uri = stream.uri;
     let index = uri.indexOf(suuid);
-    let streamName = uri.substring(index+suuid.length)
-    window.location.href = '#/live/'+streamName;
+    let streamName = uri.substring(index + suuid.length);
+    window.location.href = '#/live/' + streamName;
   }
 
-  showRecording(camStream: CameraStream): void {
+  showRecording(cam: Camera, stream: Stream): void {
     let suuid = 'suuid=';
-    let uri = camStream.stream.recording.recording_src_url;
+    let uri = stream.recording.recording_src_url;
     let index = uri.indexOf(suuid);
-    let streamName = uri.substring(index+suuid.length)
-    window.location.href = '#/recording/'+streamName;
+    let streamName = uri.substring(index + suuid.length);
+    window.location.href = '#/recording/' + streamName;
   }
 
   cameraControl(cam: Camera) {
-    window.location.href = '#/cameraparams/'+ btoa(cam.address);
+    window.location.href = '#/cameraparams/' + btoa(cam.address);
   }
 
   getActiveIPAddresses() {
@@ -98,8 +97,9 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
   logOff(logoff: boolean): void {
     this.confirmLogout = false;
 
-    if (logoff)
+    if (logoff) {
       this.utilsService.logoff();
+    }
   }
 
   about() {
@@ -124,15 +124,14 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
           let strTemp: string = temperature.substr(idx1 + 1, idx2 - idx1);
           this.temperature = parseFloat(strTemp);
           this.noTemperature = false;
-          if (this.temperature < 50)
+          if (this.temperature < 50) {
             this.tempAlertClass = 'success';
-          else if (this.temperature < 70)
+          } else if (this.temperature < 70) {
             this.tempAlertClass = 'warning';
-          else
-            this.tempAlertClass = 'danger'
-        }
-        else
-        {
+          } else {
+            this.tempAlertClass = 'danger';
+          }
+        } else {
           this.noTemperature = false;
           this.tempAlertClass = 'danger';
         }
@@ -183,12 +182,13 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
 
   toggleMenu() {
     let navbarCollapse: HTMLDivElement = this.navbarCollapse.nativeElement;
-    let style: string | null = navbarCollapse.getAttribute('style')
+    let style: string | null = navbarCollapse.getAttribute('style');
 
-    if (style === null || style === 'max-height: 0')
+    if (style === null || style === 'max-height: 0') {
       navbarCollapse.setAttribute('style', 'max-height: 200px');
-    else
+    } else {
       navbarCollapse.setAttribute('style', 'max-height: 0');
+    }
   }
 
   menuClosed() {
@@ -196,27 +196,25 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
     navbarCollapse.setAttribute('style', 'max-height: 0');
   }
 
-  initialise(auth: string) : void {
-    switch (auth)
-    {
+  initialise(auth: string): void {
+    switch (auth) {
       case 'ROLE_CLIENT':
-//          this.cameraSvc.initialiseCameras();
-        this.cameraStreams = this.cameraSvc.getCameraStreams();
-        this.cameras = this.cameraSvc.getCameras();
+        this.cameraSvc.initialiseCameras();  // Load the cameras data
         this.idleTimeoutActive = this.callGetTemp = true;
         this.callGetAuthorities = false;
         this.getTemperature();  // Ensure we show the core temperature straight away on refresh
                                 // (rather than wait till the first heartbeat)
-        let serverUrl: string = (window.location.protocol == 'http:' ? 'ws://' : 'wss://') + window.location.host +'/stomp';
+        let serverUrl: string = (window.location.protocol == 'http:' ? 'ws://' : 'wss://') + window.location.host + '/stomp';
         this.client = new Client({
           brokerURL: serverUrl,
           reconnectDelay: 2000,
           heartbeatOutgoing: 120000,
           heartbeatIncoming: 120000,
-          onConnect: ()=> {
+          onConnect: () => {
             this.talkOffSubscription = this.client.subscribe('/topic/talkoff', (message: any) => this.utilsService.talkOff(message));
           },
-          debug: () => {}
+          debug: () => {
+          }
         });
         this.client.activate();
         break;
@@ -231,20 +229,24 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
         this.idleTimeoutActive = this.callGetTemp = this.callGetAuthorities = false;
     }
   }
+
   setUpSMTPClient() {
-    window.location.href = '#/setupsmtpclient'
+    window.location.href = '#/setupsmtpclient';
   }
 
   changeEmail() {
-    window.location.href = '#/changeaccountemail'
+    window.location.href = '#/changeaccountemail';
   }
+
   changePassword() {
     window.location.href = '#/changepassword';
   }
 
   ngOnInit(): void {
     this.utilsService.getUserAuthorities().pipe(
-      map((auths: { authority: string }[]) => {return auths !== null && auths.length > 0 ? auths[0]?.authority : 'ROLE_ANONYMOUS'})
+      map((auths: { authority: string }[]) => {
+        return auths !== null && auths.length > 0 ? auths[0]?.authority : 'ROLE_ANONYMOUS';
+      })
     ).subscribe((auth) => this.initialise(auth));
 
     //Start watching for user inactivity.
@@ -256,14 +258,15 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
         let itos: IdleTimeoutStatusMessage = message as IdleTimeoutStatusMessage;
         this.idleTimeoutActive = itos.active;
         //    console.log("idle active = "+this.idleTimeoutActive)
-      }
-      else if (message.messageType === messageType.loggedIn) {
+      } else if (message.messageType === messageType.loggedIn) {
         console.log('Logged in message received');
-        window.location.href = "#/"
+        window.location.href = '#/';
         this.idleTimeoutActive = true;
 
         this.utilsService.getUserAuthorities().pipe(
-          map((auths: { authority: string }[]) => {return auths !== null && auths.length > 0 ? auths[0]?.authority : 'ROLE_ANONYMOUS'})
+          map((auths: { authority: string }[]) => {
+            return auths !== null && auths.length > 0 ? auths[0]?.authority : 'ROLE_ANONYMOUS';
+          })
         ).subscribe((auth) => this.initialise(auth));
 
 
@@ -280,9 +283,9 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
         //   this.callGetAuthorities = true;
         //   this.callGetTemp = false;
         // }
-      }
-      else if (message.messageType == messageType.loggedOut )
+      } else if (message.messageType == messageType.loggedOut) {
         this.idleTimeoutActive = this.callGetAuthorities = this.callGetTemp = false;
+      }
     });
 
     // Start watching when user idle is starting.
@@ -291,8 +294,9 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
         let config: UserIdleConfig = this.userIdle.getConfigValue();
         // @ts-ignore
         this.openIdleTimeoutDialog(config.idle, config.timeout, count);
-      } else
+      } else {
         this.userIdle.resetTimer();
+      }
     });
 
     // Log off when time is up.
@@ -303,16 +307,11 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
 
     // Gets the core temperature every minute (Raspberry pi only), and keeps the session alive
     this.pingHandle = this.userIdle.ping$.subscribe(() => {
-      if(this.callGetTemp) {
+      if (this.callGetTemp) {
         this.getTemperature();  // Gets temperature and is used as a heartbeat keep-alive call
-      }
-      else if(this.callGetAuthorities)
-        this.utilsService.getUserAuthorities().subscribe();  // Used as a heartbeat keep alive call
-    });
-
-    this.cameraSvc.getConfigUpdates().subscribe(() => {
-      this.cameraStreams = this.cameraSvc.getCameraStreams();
-      this.cameras = this.cameraSvc.getCameras()
+      } else if (this.callGetAuthorities) {
+        this.utilsService.getUserAuthorities().subscribe();
+      }  // Used as a heartbeat keep alive call
     });
   }
 
@@ -326,6 +325,7 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
     this.timerHandle.unsubscribe();
     this.messageSubscription.unsubscribe();
     this.talkOffSubscription?.unsubscribe();
-    this.client?.deactivate({force: false}).then(()=> {});
+    this.client?.deactivate({force: false}).then(() => {
+    });
   }
 }

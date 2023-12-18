@@ -49,7 +49,7 @@ const routes: Routes = [
   {path: 'getlocalwifidetails', component: GetLocalWifiDetailsComponent, canActivate: [OnlyClientUsersService]},
   {path: 'wifisettings', component: WifiSettingsComponent, canActivate: [OnlyClientUsersService]},
   {path: 'setupsmtpclient', component: SetupSMTPClientComponent, canActivate: [OnlyAdminUsersService]},
-  {path: 'changeaccountemail', component: ChangeEmailComponent, canActivate: [OnlyAdminUsersService]},
+  {path: 'changeaccountemail', component: ChangeEmailComponent},
   {path: 'cua', component: CreateUserAccountContainerComponent},
 ];
 

@@ -165,7 +165,7 @@ environments:
       mqPassword: inelESOLsiONgeOuShEFatIns
       privateKeyPath: /etc/cloud/privateKey
       browserFacingPort: 8083
-      logLevel: INFO
+      logLevel: DEBUG
 
       #            smtp server details for sending reset password links
       mail:

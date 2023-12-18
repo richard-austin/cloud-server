@@ -39,7 +39,6 @@ import {MatSortModule} from "@angular/material/sort";
 import {MatTooltipModule} from "@angular/material/tooltip";
 import { ExcludeOwnStreamPipe } from './config-setup/exclude-own-stream.pipe';
 import { DisableControlDirective } from './config-setup/disable-control.directive';
-import { MapToKeyValuePipe } from './config-setup/map-to-key-value.pipe';
 import { CredentialsForCameraAccessComponent } from './credentials-for-camera-access/credentials-for-camera-access.component';
 import { LoginComponent } from './login/login.component';
 import { RegisterAccountComponent } from './register-account/register-account.component';
@@ -89,7 +88,6 @@ import {CreateUserAccountContainerComponent} from './create-user-account-contain
     ConfigSetupComponent,
     ExcludeOwnStreamPipe,
     DisableControlDirective,
-    MapToKeyValuePipe,
     CredentialsForCameraAccessComponent,
     LoginComponent,
     RegisterAccountComponent,

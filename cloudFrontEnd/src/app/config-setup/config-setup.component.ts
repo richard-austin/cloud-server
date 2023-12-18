@@ -648,7 +648,6 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit, OnDestroy {
 
     this.cameraSvc.updateCameras(JSON.stringify(jsonObj)).subscribe(() => {
         this.reporting.successMessage = 'Update Cameras Successful!';
-        this.cameraSvc.configUpdated();  // Tell nav component to reload the camera data
         this.updating = false;
         // Update the saved data hash
         this.savedDataHash = objectHash(this.cameras);
