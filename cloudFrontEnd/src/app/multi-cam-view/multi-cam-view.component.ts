@@ -48,8 +48,9 @@ export class MultiCamViewComponent implements OnInit, AfterViewInit, OnDestroy {
 
   cams: Map<string, Camera> = new Map<string, Camera>();
   showStreamSelector: boolean = false;
+
   toggleStreamSelector() {
-      this.showStreamSelector = !this.showStreamSelector;
+    this.showStreamSelector = !this.showStreamSelector;
   }
 
   setupVideo() {
@@ -66,10 +67,10 @@ export class MultiCamViewComponent implements OnInit, AfterViewInit, OnDestroy {
           let video: VideoComponent | undefined = this.videos?.get(index);
           if (video !== undefined && stream.defaultOnMultiDisplay) {
             video.setSource(cam, stream);
-          video.visible = true;
+            video.visible = true;
             ++index;
-        }
-      });
+          }
+        });
       });
     } else {
       this.showInvalidInput();
@@ -113,14 +114,14 @@ export class MultiCamViewComponent implements OnInit, AfterViewInit, OnDestroy {
    * @param stream: The stream on which the selection is being made
    */
   updateCameras($event: MatCheckboxChange, camera: Camera, stream: Stream) {
-    if(stream.selected) {
+    if (stream.selected) {
       // If clicking on an already checked check box, ensure it remains checked and exit without updating the vids.
       $event.source.checked = true;
       return;
     }
 
     // Ensure all other streams on this camera are deselected, only one is to be selected
-    camera.streams.forEach((stream:Stream) => {
+    camera.streams.forEach((stream: Stream) => {
       stream.selected = false;
     });
 
@@ -133,13 +134,14 @@ export class MultiCamViewComponent implements OnInit, AfterViewInit, OnDestroy {
       this.cams.forEach((cam) => {
         cam.streams.forEach((stream) => {
           if (camera.address === cam.address && stream.selected) {
-            let video: VideoComponent | undefined = this.videos?.get(index++);
+            let video: VideoComponent | undefined = this.videos?.get(index);
             if (video !== undefined) {
               video.setSource(cam, stream);
               video.visible = true;
-  }
+            }
           }
         });
+        ++index;
       });
     });
   }
