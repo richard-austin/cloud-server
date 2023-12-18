@@ -7,6 +7,7 @@ import {VideoComponent} from '../video/video.component';
 import {HttpErrorResponse} from '@angular/common/http';
 import {timer} from 'rxjs';
 import {animate, state, style, transition, trigger} from '@angular/animations';
+import {IdleTimeoutStatusMessage, UtilsService} from '../shared/utils.service';
 
 @Component({
   selector: 'app-multi-cam-view',
@@ -43,7 +44,7 @@ export class MultiCamViewComponent implements OnInit, AfterViewInit, OnDestroy {
   cameraColumns = ['name', 'expand'];
   streamColumns = ['select'];
 
-  constructor(private cameraSvc: CameraService) {
+  constructor(private cameraSvc: CameraService, private utilsService: UtilsService) {
   }
 
   cams: Map<string, Camera> = new Map<string, Camera>();
@@ -148,12 +149,15 @@ export class MultiCamViewComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnInit(): void {
     this.setUpCameraDetails();
+    // Disable the user idle service
+    this.utilsService.sendMessage(new IdleTimeoutStatusMessage(false));
   }
 
   ngAfterViewInit(): void {
   }
 
   ngOnDestroy(): void {
+    // Re-enable the user idle service
+    this.utilsService.sendMessage(new IdleTimeoutStatusMessage(true));
   }
-
 }
