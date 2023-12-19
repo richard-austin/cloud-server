@@ -4,7 +4,8 @@
   </a>
 
   <div>
-    <div *ngIf="!noTemperature && !utilsService.isAdmin" [ngClass]="tempAlertClass">Core Temp: {{temperature}} °C</div>
+    <div *ngIf="!noTemperature && !utilsService.isAdmin" [ngClass]="tempAlertClass">Core Temp: {{ temperature }}°C
+    </div>
   </div>
 
   <button mat-button class="navbar-toggler" type="button" (click)="toggleMenu()"
@@ -21,8 +22,8 @@
         <ng-container *ngFor="let camKV of cameraSvc.cameras | keyvalue">
           <ng-container *ngFor="let streamKV of camKV.value.streams | keyvalue">
             <button mat-menu-item (click)="setVideoStream(camKV.value, streamKV.value);menuClosed()">
-              {{camKV.value.name + " (" + streamKV.value.descr + ")"}}
-          </button>
+              {{ camKV.value.name + " (" + streamKV.value.descr + ")" }}
+            </button>
           </ng-container>
         </ng-container>
         <button mat-menu-item (click)="multiCamView();menuClosed()">Multi Camera View</button>
@@ -34,10 +35,11 @@
       <mat-menu #menuSelectRecording="matMenu">
         <ng-container *ngFor="let camKV of cameraSvc.cameras | keyvalue">
           <ng-container *ngFor="let streamKV of camKV.value.streams | keyvalue">
-            <button mat-menu-item (click)="showRecording(camKV.value, streamKV.value);menuClosed()" *ngIf="streamKV.value.recording.enabled">
-              {{camKV.value.name + " (" + streamKV.value.descr + ")"}}
-          </button>
-        </ng-container>
+            <button mat-menu-item (click)="showRecording(camKV.value, streamKV.value);menuClosed()"
+                    *ngIf="streamKV.value.recording.enabled">
+              {{ camKV.value.name + " (" + streamKV.value.descr + ")" }}
+            </button>
+          </ng-container>
         </ng-container>
       </mat-menu>
     </div>
@@ -46,9 +48,10 @@
       <button mat-button [matMenuTriggerFor]="menuCameraSettings">Camera Settings</button>
       <mat-menu #menuCameraSettings="matMenu">
         <ng-container *ngFor="let camKV of cameraSvc.cameras | keyvalue">
-          <button *ngIf="camKV.value.address!=''&&camKV.value.cameraParamSpecs.camType !== cameraTypes.none" mat-menu-item
+          <button *ngIf="camKV.value.address!=''&&camKV.value.cameraParamSpecs.camType !== cameraTypes.none"
+                  mat-menu-item
                   (click)="cameraControl(camKV.value);menuClosed()">
-            {{camKV.value.name}}
+            {{ camKV.value.name }}
           </button>
         </ng-container>
       </mat-menu>
@@ -71,22 +74,28 @@
     <div class="float-right-on-full-width" *ngIf="utilsService.loggedIn">
       <button mat-button [matMenuTriggerFor]="menuGeneral">General</button>
       <mat-menu #menuGeneral="matMenu">
-        <button *ngIf="!utilsService.isAdmin" mat-menu-item (click)="configSetup();menuClosed()">
+        <button *ngIf="!utilsService.isAdmin" mat-menu-item (click)="configSetup();menuClosed()"
+          matTooltip="Discover and configure the cameras for live view, recording, audio back channel and various other features."
+          matTooltipClass="tooltip">
           Cameras Configuration
         </button>
         <button mat-menu-item (click)="confirmLogoff();menuClosed()">
           Log Off
         </button>
-        <button mat-menu-item (click)="changePassword();menuClosed()">
-          Change {{utilsService.isAdmin ? "Admin " : ""}}Password
+        <button mat-menu-item (click)="changePassword();menuClosed()"
+                matTooltip="Change the password for the {{utilsService.isAdmin ?  'admin' : 'Cloud'}} account. {{!utilsService.isAdmin ? 'To change the password on the NVR, use the Admin Functions menu, and select \'Create or Update User Account\'.' : ''}}"
+                matTooltipClass="tooltip">
+          Change {{ utilsService.isAdmin ? "Admin " : "Cloud " }} AccountPassword
         </button>
         <button mat-menu-item (click)="changeEmail();menuClosed()"
-                matTooltip="{{'Change the email address for the ' + utilsService.isAdmin ?  'admin' : 'client' + ' account'}}"
+                matTooltip="Change the email address for the {{utilsService.isAdmin ?  'admin' : 'Cloud'}} account. {{!utilsService.isAdmin ? 'To change the email address on the NVR, use the Admin Functions menu, and select \'Create or Update User Account\'.' : ''}}"
                 matTooltipClass="tooltip">
-          Change {{utilsService.isAdmin ?  "Admin " : "" }}Account Email
+          Change {{ utilsService.isAdmin ? "Admin " : "Cloud " }}Account Email
         </button>
         <div *ngIf="!utilsService.isAdmin" class="dropdown-divider"></div>
-        <button *ngIf="!utilsService.isAdmin" mat-menu-item (click)="setIp();menuClosed()">
+        <button *ngIf="!utilsService.isAdmin" mat-menu-item (click)="setIp();menuClosed()"
+                matTooltip="Register the current public IP address of your internet account. If that address subsequewntly changes, you will be sent warning emails to your registered email address (on the NVR)"
+                matTooltipClass="tooltip">
           Save Current Public IP
         </button>
         <button *ngIf="utilsService.isAdmin" mat-menu-item (click)="setUpSMTPClient();menuClosed()"
@@ -94,25 +103,37 @@
                 matTooltipClass="tooltip">
           Set Up SMTP Client
         </button>
-        <button *ngIf="!utilsService.isAdmin" mat-menu-item (click)="getActiveIPAddresses(); menuClosed()">
+        <button *ngIf="!utilsService.isAdmin" mat-menu-item (click)="getActiveIPAddresses(); menuClosed()"
+                matTooltip="Get the NVR's active IP addresses and their associated network adapters."
+                matTooltipClass="tooltip">
           Get Active Local IP Address(es)
         </button>
-        <ng-container  *ngIf="!utilsService.isAdmin">
+        <ng-container *ngIf="!utilsService.isAdmin">
           <button mat-menu-item [matMenuTriggerFor]="wifiAdmin">Wifi Admin</button>
           <mat-menu #wifiAdmin="matMenu">
-            <button mat-menu-item (click)="getLocalWifiDetails(); menuClosed()">
+            <button mat-menu-item (click)="getLocalWifiDetails(); menuClosed()"
+              matTooltip="List the WiFi access points and their details in range of the NVR."
+              matTooltipClass="tooltip">
               Local Wifi Details
             </button>
-            <button mat-menu-item (click)="wifiSettings(); menuClosed()">
+            <button mat-menu-item (click)="wifiSettings(); menuClosed()"
+              matTooltip="Configure NVR WiFi (Must be connected through Ethernet to use this)."
+              matTooltipClass="tooltip">
               Wifi Settings
             </button>
           </mat-menu>
         </ng-container>
-        <div *ngIf="!utilsService.isAdmin" matTooltip="Change local NVR user account password/username/email and/or set up local NVR SMTP details" matTooltipClass="tooltip">
+        <div *ngIf="!utilsService.isAdmin"
+             matTooltip="Change local NVR user account password/username/email and/or set up local NVR SMTP details"
+             matTooltipClass="tooltip">
           <button mat-menu-item (click)="localAdminFunctionsForNVR();menuClosed()">Admin Functions</button>
         </div>
-        <button *ngIf="!utilsService.isAdmin && !utilsService.hasLocalAccount" mat-menu-item (click)="registerLocalNVRAccount(); menuClosed()">Register Local NVR Account</button>
-        <button *ngIf="!utilsService.isAdmin && utilsService.hasLocalAccount" mat-menu-item (click)="removeLocalNVRAccount(); menuClosed()">Remove Local NVR Account</button>
+        <button *ngIf="!utilsService.isAdmin && !utilsService.hasLocalAccount" mat-menu-item
+                (click)="registerLocalNVRAccount(); menuClosed()">Register Local NVR Account
+        </button>
+        <button *ngIf="!utilsService.isAdmin && utilsService.hasLocalAccount" mat-menu-item
+                (click)="removeLocalNVRAccount(); menuClosed()">Remove Local NVR Account
+        </button>
         <button *ngIf="!utilsService.isAdmin" mat-menu-item (click)="drawdownCalc();menuClosed()">
           Pension Drawdown Calculator
         </button>
