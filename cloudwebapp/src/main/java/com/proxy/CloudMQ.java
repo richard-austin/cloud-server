@@ -299,13 +299,13 @@ public class CloudMQ {
 
                 updateSocketMap(channel, token);
                 ByteBuffer buf = initialBuf;
-                logger.debug("readFromBrowser length: " + buf.limit());
+                logger.trace("readFromBrowser length: " + buf.limit());
                 // Send the initial message delivered from the CloudMQListener
                 packageAndSendToCloudProxy(buf, token);
                 // Now read any more that may still come through
                 buf = getBuffer();
                 while (channel.read(buf) != -1) {
-                    logger.debug("readFromBrowser length: " + buf.limit());
+                    logger.trace("readFromBrowser length: " + buf.limit());
                     packageAndSendToCloudProxy(buf, token);
                     recycle(buf);
                     buf = getBuffer();
@@ -335,7 +335,7 @@ public class CloudMQ {
                         bm.readBytes(buf.array());
                         buf.limit(length);
                         int result;
-                        logger.debug("respondToBrowser length: " + length);
+                        logger.trace("respondToBrowser length: " + length);
 
                         try {
                             do {

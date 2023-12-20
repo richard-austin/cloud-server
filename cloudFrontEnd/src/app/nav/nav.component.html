@@ -85,7 +85,7 @@
         <button mat-menu-item (click)="changePassword();menuClosed()"
                 matTooltip="Change the password for the {{utilsService.isAdmin ?  'admin' : 'Cloud'}} account. {{!utilsService.isAdmin ? 'To change the password on the NVR, use the Admin Functions menu, and select \'Create or Update User Account\'.' : ''}}"
                 matTooltipClass="tooltip">
-          Change {{ utilsService.isAdmin ? "Admin " : "Cloud " }} AccountPassword
+          Change {{ utilsService.isAdmin ? "Admin " : "Cloud " }} Account Password
         </button>
         <button mat-menu-item (click)="changeEmail();menuClosed()"
                 matTooltip="Change the email address for the {{utilsService.isAdmin ?  'admin' : 'Cloud'}} account. {{!utilsService.isAdmin ? 'To change the email address on the NVR, use the Admin Functions menu, and select \'Create or Update User Account\'.' : ''}}"
