@@ -267,9 +267,9 @@ public class CloudMQListener {
         browserReadExecutor.submit(() -> {
             ByteBuffer buf = getBuffer();
             try {
-                logger.debug("In readFromBrowser: token " + token);
+                logger.trace("In readFromBrowser: token " + token);
                 final int bytesRead = channel.read(buf);
-                logger.debug("Read " + bytesRead + " token " + token);
+                logger.trace("Read " + bytesRead + " token " + token);
                 if (bytesRead > 0) {
                     HttpMessage msg = new HttpMessage(buf);
                     List<String> cookies = msg.get("cookie");
