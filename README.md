@@ -44,6 +44,7 @@ has its own individual proxy interface to its web server backend. The Cloud Serv
 secure access Cloud Account.
 #### Cloud Service Features
 * Hosts multiple NVRs with each one having its own user account
+* Linked to NVRs via ActiveMQ
 * When not logged in
   * Login as admin or to one of the client accounts.
   * Register a new client (NVR) account.
@@ -141,6 +142,11 @@ sudo apt install ./<i>deb_file_name</i>.deb
     ```
     sudo systemctl restart nginx
     ```
+## ActiveMQ
+Messages between the Cloud Service and the NVRs pass through an <a href="https://github.com/richard-austin/activemq-for-cloud-service">ActiveMQ</a> service.
+The mqURL for the Cloud service and cloudActiveMQUrl on the NVRs (both in application.yml) should be set to where ActiveMQ is installed.
+The truststore and keystore on Cloud and NVRs as well as the ActiveMQ credentials should all tie up. The default configurations 
+in the three projects will work (but with mqURL and cloudActiveMQUrl needing setting for your network environment).
 ## Initial Setup
 #### Set up admin user account password
 The admin account is set up with the default password *elementary*, this should be changed first of all.
