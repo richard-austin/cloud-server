@@ -6,10 +6,9 @@ import cloudservice.commands.RegisterUserCommand
 import cloudservice.enums.PassFail
 import cloudservice.interfaceobjects.ObjectCommandResponse
 import cloudservice.interfaceobjects.RestfulResponse
-import com.proxy.Cloud
-import com.proxy.cloudListener.CloudListener
+import com.proxy.CloudMQ
+import com.proxy.cloudListener.CloudMQListener
 import grails.gorm.transactions.Transactional
-import grails.plugin.springsecurity.SpringSecurityService
 import org.grails.web.json.JSONObject
 import org.springframework.core.io.Resource
 import org.springframework.messaging.simp.SimpMessagingTemplate
@@ -52,7 +51,7 @@ class Account {
 @Transactional
 class CloudService {
     LogService logService
-    CloudListener cloudListener = null
+    CloudMQListener cloudListener = null
     UserService userService
     UserRoleService userRoleService
     RoleService roleService
@@ -68,7 +67,7 @@ class CloudService {
 
     def start() {
         if (cloudListener == null)
-            cloudListener = new CloudListener()
+            cloudListener = new CloudMQListener()
 
         ObjectCommandResponse response = new ObjectCommandResponse()
         try {
@@ -172,7 +171,7 @@ class CloudService {
             else if (User.findByUsername(cmd.username) != null)
                 throw new Exception("Username " + cmd.username + " is already registered")
 
-            Cloud cloud = cloudListener.getInstances().get(cmd.productId)
+            CloudMQ cloud = cloudListener.getInstances().get(cmd.productId.trim())
 
             if (cloud != null) {
                 User u = new User(username: cmd.username, productid: cmd.productId, password: cmd.password, email: cmd.email)
@@ -203,7 +202,7 @@ class CloudService {
 
             if (cloudListener != null) {
                 List<User> users = User.getAll()
-                Map<String, Cloud> instances = cloudListener.getInstances()
+                Map<String, CloudMQ> instances = cloudListener.getInstances()
 
                 users.forEach((User user) -> {
                     if(user.getProductid() != "0000-0000-0000-0000") {   // Don't include the admin account

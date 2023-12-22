@@ -38,6 +38,9 @@ bootRun {
 }
 
 dependencies {
+    implementation 'javax.jms:javax.jms-api:2.0.1'
+    implementation 'org.apache.activemq:activemq-pool:5.18.2'
+
     developmentOnly("org.springframework.boot:spring-boot-devtools")
 //    compileOnly "io.micronaut:micronaut-inject-groovy"
     console "org.grails:grails-console"

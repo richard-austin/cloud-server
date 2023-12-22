@@ -7,8 +7,7 @@ rm -r cloud_*_arm64
 
 mkdir -p cloud_"${VERSION}"_arm64/etc/cloud
 
-cp ../cacert.jks ../client.jks ../cloud.jks ../privateKey \
- cloud_"${VERSION}"_arm64/etc/cloud
+cp ../client.ks ../client.ts ../privateKey cloud_"${VERSION}"_arm64/etc/cloud
 
 mkdir -p cloud_"${VERSION}"_arm64/DEBIAN
 cp preinst postinst prerm postrm cloud_"${VERSION}"_arm64/DEBIAN

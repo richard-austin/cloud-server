@@ -1,7 +1,6 @@
-import {cameraType} from "./camera.service";
+import {cameraType} from './camera.service';
 
-export class CameraParams
-{
+export class CameraParams {
   hardVersion!: string;
   infraredstat!: string;
   name_0!: string;
@@ -22,12 +21,13 @@ export class CameraParams
   sdfreespace!: number;
 
 }
+
 export class Motion {
   enabled: boolean = false;
-  mask_file:string = '';  // Mask file which defines area used in motion sensing
-  trigger_recording_on: string ='';  // The name of the camera stream on which recordings will be triggered following
-                                     // Motion events on this camera stream (usually another stream on the same physical
-                                     // camera).
+  mask_file: string = '';  // Mask file which defines area used in motion sensing
+  trigger_recording_on: string = '';  // The name of the camera stream on which recordings will be triggered following
+                                      // Motion events on this camera stream (usually another stream on the same physical
+                                      // camera).
   threshold: number = 1500;  //Threshold for declaring motion.
                              // The threshold is the number of changed pixels counted after noise filtering, masking, despeckle, and labelling.
                              // The 'threshold' option is the most important detection setting.
@@ -46,25 +46,24 @@ export class Motion {
                              // Practical values would be from a few hundred to thousands.
 }
 
-export class Recording
-{
-  enabled: boolean = false
-  recording_src_url: string = "";
-  uri: string = "";
-  location: string = "";
+export class Recording {
+  enabled: boolean = false;
+  recording_src_url: string = '';
+  uri: string = '';
+  location: string = '';
 }
 
 export class Stream {
-  descr: string = "";
+  descr: string = '';
   defaultOnMultiDisplay: boolean = false;
   selected: boolean = false;
-  netcam_uri: string = "";
-  uri: string = "";
-  media_server_input_uri: string = "";
+  netcam_uri: string = '';
+  uri: string = '';
+  media_server_input_uri: string = '';
   audio: boolean = false;
-  audio_bitrate: string="0";
-  audio_encoding:string = "";
-  audio_sample_rate:string = "0";
+  audio_bitrate: string = '0';
+  audio_encoding: string = '';
+  audio_sample_rate: string = '0';
 
   motion: Motion = new Motion();
   video_width: number = 0;
@@ -72,6 +71,7 @@ export class Stream {
   recording: Recording = new Recording();
   rec_num: number = 0;  // Used to give a rec number for the recording URI with motion triggered recordings
 }
+
 export class CameraParamSpec {
   constructor(camType: cameraType, params: string, uri: string, name: string) {
     this.camType = camType;
@@ -91,29 +91,23 @@ export class AudioEncoding {
     this.name = name;
     this.value = value;
   }
-  name: string="";
-  value: string=";"
+
+  name: string = '';
+  value: string = ';';
 }
 
-export class Camera
-{
-  name: string = "";
-  address: string="";
+export class Camera {
+  name: string = '';
+  address: string = '';
   cameraParamSpecs!: CameraParamSpec;
-  snapshotUri: string="";
+  snapshotUri: string = '';
   ptzControls: boolean = false;
   ftp: boolean = false;
   streams: Map<string, Stream> = new Map<string, Stream>();
-  onvifHost: string="";
-  backchannelAudioSupported: boolean = false
-  rtspTransport: string = "tcp";
-    useRtspAuth: boolean = false;
-    retriggerWindow: number = 30;
+  onvifHost: string = '';
+  backchannelAudioSupported: boolean = false;
+  rtspTransport: string = 'tcp';
+  useRtspAuth: boolean = false;
+  retriggerWindow: number = 30;
 
-}
-
-export class CameraStream
-{
-  camera: Camera = new Camera();
-  stream: Stream = new Stream();
 }

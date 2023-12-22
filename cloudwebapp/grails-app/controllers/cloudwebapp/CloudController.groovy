@@ -162,7 +162,7 @@ class CloudController {
             render(status: 200, text: response.responseObject as JSON)
     }
 
-    @Secured(['ROLE_ADMIN'])
+    @Secured(['ROLE_ADMIN', 'ROLE_CLIENT'])
     def getEmail() {
         ObjectCommandResponse result = userAdminService.getEmail()
         if (result.status != PassFail.PASS) {
@@ -173,7 +173,7 @@ class CloudController {
         }
     }
 
-    @Secured(['ROLE_ADMIN'])
+    @Secured(['ROLE_ADMIN', 'ROLE_CLIENT'])
     def changeEmail(ChangeEmailCommand cmd) {
         ObjectCommandResponse result
 

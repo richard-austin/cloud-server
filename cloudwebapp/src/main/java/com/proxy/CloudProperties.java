@@ -24,49 +24,54 @@ public final class CloudProperties {
         setupConfigParams();
     }
 
+    static final int REQUEST_TIMEOUT_SECS = 300;
+    private String USERNAME;
+    private String PASSWORD;
+    private String AMQ_URL;
+    private String AMQ_TRUSTSTORE_PATH;
+    private String AMQ_KEYSTORE_PATH;
+    private String AMQ_KEYSTORE_PASSWORD;
+    private String AMQ_TRUSTSTORE_PASSWORD;
+    private String AMQ_USER;
+    private String AMQ_PASSWORD;
+    private String PRIVATE_KEY_PATH;
+    private int BROWSER_FACING_PORT;
+    private String LOG_LEVEL;
+
+
     private void setupConfigParams()
     {
         Config config = grailsApplication.getConfig();
         USERNAME = config.getProperty("cloud.username");
         PASSWORD = config.getProperty("cloud.password");
-        TRUSTSTORE_PATH = config.getProperty("cloud.trustStorePath");
-        CLOUD_KEYSTORE_PATH = config.getProperty("cloud.keyStorePath");
-        TRUSTSTORE_PASSWORD = config.getProperty("cloud.trustStorePassword");
-        CLOUD_KEYSTORE_PASSWORD = config.getProperty("cloud.keyStorePassword");
+        AMQ_URL = config.getProperty("cloud.mqURL");
+        AMQ_TRUSTSTORE_PATH = config.getProperty("cloud.mqTrustStorePath");
+        AMQ_KEYSTORE_PATH = config.getProperty("cloud.mqKeyStorePath");
+        AMQ_TRUSTSTORE_PASSWORD = config.getProperty("cloud.mqTrustStorePassword");
+        AMQ_KEYSTORE_PASSWORD = config.getProperty("cloud.mqKeyStorePassword");
+        AMQ_USER = config.getProperty("cloud.mqUser");
+        AMQ_PASSWORD = config.getProperty("cloud.mqPassword");
         PRIVATE_KEY_PATH = config.getProperty("cloud.privateKeyPath");
-        CLOUD_PROXY_FACING_PORT = Integer.parseInt(Objects.requireNonNull(config.getProperty("cloud.cloudProxyFacingPort")));
         BROWSER_FACING_PORT = Integer.parseInt(Objects.requireNonNull(config.getProperty("cloud.browserFacingPort")));
         LOG_LEVEL = config.getProperty("cloud.logLevel");
     }
 
-    static final int REQUEST_TIMEOUT_SECS = 300;
-    private String USERNAME;
-    private String PASSWORD;
-    private String TRUSTSTORE_PATH;
-    private String CLOUD_KEYSTORE_PATH;
-    private String CLOUD_KEYSTORE_PASSWORD;
-    private String TRUSTSTORE_PASSWORD;
-    private String PRIVATE_KEY_PATH;
-    private int CLOUD_PROXY_FACING_PORT;
-    private int BROWSER_FACING_PORT;
-    private String LOG_LEVEL;
-
-    public String getTRUSTSTORE_PATH() {
-        return TRUSTSTORE_PATH;
+    public String getAMQ_URL(){return AMQ_URL;}
+    public String getAMQ_TRUSTSTORE_PATH() {
+        return AMQ_TRUSTSTORE_PATH;
     }
-    public String getCLOUD_KEYSTORE_PATH() {
-        return CLOUD_KEYSTORE_PATH;
+    public String getAMQ_KEYSTORE_PATH() {
+        return AMQ_KEYSTORE_PATH;
     }
-    public String getCLOUD_KEYSTORE_PASSWORD() {
-        return CLOUD_KEYSTORE_PASSWORD;
+    public String getAMQ_KEYSTORE_PASSWORD() {return AMQ_KEYSTORE_PASSWORD;}
+    public String getAMQ_TRUSTSTORE_PASSWORD() {
+        return AMQ_TRUSTSTORE_PASSWORD;
     }
-    public String getTRUSTSTORE_PASSWORD() {
-        return TRUSTSTORE_PASSWORD;
-    }
+    public String getAMQ_USER() {return AMQ_USER;}
+    public String getAMQ_PASSWORD() {return AMQ_PASSWORD;}
     public String getUSERNAME() { return USERNAME;}
     public String getPASSWORD() {return PASSWORD;}
     public String getPRIVATE_KEY_PATH() { return PRIVATE_KEY_PATH; }  // Private key to decrypt the product ID
-    public int getCLOUD_PROXY_FACING_PORT() { return CLOUD_PROXY_FACING_PORT; }
     public int getBROWSER_FACING_PORT() { return BROWSER_FACING_PORT; }
     public String getLOG_LEVEL() { return LOG_LEVEL; }
 }

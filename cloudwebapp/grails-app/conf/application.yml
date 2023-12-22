@@ -125,12 +125,14 @@ environments:
     cloud:
       username: cloud
       password: "DrN3yuFAtSsK2w7AtTf66FFRVveBwtjU"
-      trustStorePath: ../xtrn-files-and-config/cacert.jks
-      keyStorePath: ../xtrn-files-and-config/cloud.jks
-      keyStorePassword: B0331e
+      mqURL: failover://ssl://192.168.1.82:61617?socket.verifyHostName=false
+      mqTrustStorePath: ../xtrn-files-and-config/client.ts
+      mqKeyStorePath: ../xtrn-files-and-config/client.ks
+      mqKeyStorePassword: ExPEThINdAvAmpROteRCLEyfI
+      mqTrustStorePassword: CIdERVERiMPLetORThrONVAce
+      mqUser: cloud
+      mqPassword: inelESOLsiONgeOuShEFatIns
       privateKeyPath: ../xtrn-files-and-config/privateKey
-      trustStorePassword: B0331e
-      cloudProxyFacingPort: 8081
       browserFacingPort: 8083
       logLevel: DEBUG
 
@@ -154,14 +156,16 @@ environments:
     cloud:
       username: cloud
       password: "DrN3yuFAtSsK2w7AtTf66FFRVveBwtjU"
-      trustStorePath: /etc/cloud/cacert.jks
-      keyStorePath: /etc/cloud/cloud.jks
-      keyStorePassword: B0331e
+      mqURL: failover://ssl://192.168.1.82:61617?socket.verifyHostName=false
+      mqTrustStorePath: /etc/cloud/client.ts
+      mqKeyStorePath: /etc/cloud/client.ks
+      mqKeyStorePassword: ExPEThINdAvAmpROteRCLEyfI
+      mqTrustStorePassword: CIdERVERiMPLetORThrONVAce
+      mqUser: cloud
+      mqPassword: inelESOLsiONgeOuShEFatIns
       privateKeyPath: /etc/cloud/privateKey
-      trustStorePassword: B0331e
-      cloudProxyFacingPort: 8081
       browserFacingPort: 8083
-      logLevel: INFO
+      logLevel: DEBUG
 
       #            smtp server details for sending reset password links
       mail:
