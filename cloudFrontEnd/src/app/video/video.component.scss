@@ -52,7 +52,7 @@ div.latency-limit-selector {
       > mat-icon {
         padding-left: 0.2rem;
       }
-    }
+     }
     > label {
       margin-right: 5px;
       position: relative;
@@ -94,3 +94,19 @@ div.latency-limit-selector {
   }
 }
 
+@keyframes flash {
+  0% {
+    color: #650303;
+  }
+  50% {
+    color: red;
+  }
+  100% {
+    color: #650303;
+  }
+}
+.latency-chasing {
+  > mat-icon {
+    animation:  flash 2000ms steps(3, start) forwards;
+  }
+}
