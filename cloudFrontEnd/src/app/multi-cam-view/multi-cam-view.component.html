@@ -9,12 +9,12 @@
     <div class="setting_item">
       <div>
       </div>
-    <mat-card class="camera-select mat-elevation-z8 hide-background">
-      <mat-card-title>
+      <mat-card class="camera-select mat-elevation-z8 hide-background">
+        <mat-card-title>
           Select Camera streams
-      </mat-card-title>
+        </mat-card-title>
 
-      <mat-card-content>
+        <mat-card-content>
           <table mat-table [dataSource]="cams | keyvalue" multiTemplateDataRows class="mat-elevation-z8">
             <ng-container matColumnDef="name">
               <th mat-header-cell *matHeaderCellDef>Camera</th>
@@ -47,14 +47,14 @@
                         <mat-checkbox [color]="'primary'" [checked]="stream.value.selected"
                                       (change)="updateCameras($event, cam.value,  stream.value)">
                           {{stream.value.descr}}
-                </mat-checkbox>
+                        </mat-checkbox>
                     </ng-container>
                     <tr mat-header-row *matHeaderRowDef="streamColumns"></tr>
                     <tr mat-row *matRowDef="let stream; columns: streamColumns"></tr>
                   </table>
                 </div>
               </td>
-        </ng-container>
+            </ng-container>
 
             <tr mat-header-row *matHeaderRowDef="cameraColumns"></tr>
             <tr mat-row *matRowDef="let cam; columns: cameraColumns;"
@@ -64,17 +64,17 @@
             <tr mat-row *matRowDef="let e; columns: ['expandedStreamDetail']" class="detail-row">
               <!--          <tr mat-footer-row *matFooterRowDef="cameraFooterColumns"></tr>-->
           </table>
-      </mat-card-content>
+        </mat-card-content>
         <button color="default" mat-flat-button (click)="showStreamSelector=false"
                 matTooltip="Close this form"
                 matTooltipClass="tooltip">
           Done
         </button>
-    </mat-card>
-  </div>
+      </mat-card>
+    </div>
   </div>
 </div>
-  <app-reporting></app-reporting>
+<app-reporting></app-reporting>
 <div class="flex-container-vid">
   <ng-container *ngFor="let cam of cams | keyvalue">
     <app-video [isfmp4]="true"></app-video>
