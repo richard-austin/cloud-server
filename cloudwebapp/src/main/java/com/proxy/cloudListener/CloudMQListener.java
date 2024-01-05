@@ -33,64 +33,71 @@ public class CloudMQListener {
     final private CloudMQInstanceMap instances = new CloudMQInstanceMap();
     private ExecutorService browserReadExecutor = null;
     private ExecutorService acceptConnectionsFromBrowserExecutor = null;
+    private ExecutorService startActiveMQClientExecutor = Executors.newSingleThreadExecutor();
 
     private static int _nextToken = 0;
     private ServerSocketChannel _sc = null;
     private boolean allRunning = false;
 
     private class InitQueueConsumer implements MessageListener, ExceptionListener {
-        ActiveMQConnection connection = null;
-        Session session = null;
-        MessageConsumer consumer = null;
-        boolean running = false;
+        private ActiveMQConnection connection = null;
+        private Session session = null;
+        private MessageConsumer consumer = null;
+        private boolean running = false;
 
         void start() {
-            try {
-                if (!running) {
-                    running = true;
-                    int browserFacingPort;
-                    ActiveMQSslConnectionFactory connectionFactory = getActiveMQSslConnectionFactory();
-                    connectionFactory.setUseAsyncSend(true);
-                    connectionFactory.setOptimizeAcknowledge(true);
-                   // connectionFactory.setAlwaysSessionAsync(false);
+            startActiveMQClientExecutor.submit(() -> {
+                try {
+                    if (!running) {
+                        running = true;
+                        int browserFacingPort;
+                        ActiveMQSslConnectionFactory connectionFactory = getActiveMQSslConnectionFactory();
+                        connectionFactory.setUseAsyncSend(true);
+                        connectionFactory.setOptimizeAcknowledge(true);
+                        // connectionFactory.setAlwaysSessionAsync(false);
 
-                    browserFacingPort = cloudProperties.getBROWSER_FACING_PORT();
-                    connection = (ActiveMQConnection) connectionFactory.createConnection(cloudProperties.getAMQ_USER(), cloudProperties.getAMQ_PASSWORD());
+                        browserFacingPort = cloudProperties.getBROWSER_FACING_PORT();
+                        connection = (ActiveMQConnection) connectionFactory.createConnection(cloudProperties.getAMQ_USER(), cloudProperties.getAMQ_PASSWORD());
 
-                    TransportListener tl = new TransportListener() {
-                        @Override
-                        public void onCommand(Object command) {
-                            //   logger.info("Command");
-                        }
+                        TransportListener tl = new TransportListener() {
+                            @Override
+                            public void onCommand(Object command) {
+                                //   logger.info("Command");
+                            }
 
-                        @Override
-                        public void onException(IOException error) {
-                            logger.info(error.getClass().getName() + " received in InitQueueConsumer transport listener: " + error.getMessage());
-                        }
+                            @Override
+                            public void onException(IOException error) {
+                                logger.info(error.getClass().getName() + " received in InitQueueConsumer transport listener: " + error.getMessage());
+                            }
 
-                        @Override
-                        public void transportInterupted() {
-                            logger.info("Transport interrupted");
-                            instances.clear();
-                        }
+                            @Override
+                            public void transportInterupted() {
+                                logger.info("Transport interrupted");
+                                instances.clear();
+                            }
 
-                        @Override
-                        public void transportResumed() {
-                            logger.info("Transport resumed");
-                        }
-                    };
-                    connection.addTransportListener(tl);
-                    connection.start();
-                    connection.setExceptionListener(this);
-                    session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
-                    Destination dest = session.createQueue("INIT");
-                    consumer = session.createConsumer(dest);
-                    consumer.setMessageListener(this);
-                    allRunning = true;
-                    acceptConnectionsFromBrowser(browserFacingPort);
+                            @Override
+                            public void transportResumed() {
+                                logger.info("Transport resumed");
+                            }
+                        };
+                        connection.addTransportListener(tl);
+                        connection.start();
+                        connection.setExceptionListener(this);
+                        session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+                        Destination dest = session.createQueue("INIT");
+                        consumer = session.createConsumer(dest);
+                        consumer.setMessageListener(this);
+                        allRunning = true;
+                        acceptConnectionsFromBrowser(browserFacingPort);
+                    }
+                } catch (Exception ex) {
+                    logger.error(ex.getClass().getName() + " in InitQueueConsumer.start: " + ex.getMessage());
                 }
-            } catch (Exception ex) {
-                logger.error(ex.getClass().getName() + " in InitQueueConsumer.start: " + ex.getMessage());
+            });
+            try {
+                Thread.sleep(2000);
+            } catch (InterruptedException ignore) {
             }
         }
 
@@ -98,7 +105,8 @@ public class CloudMQListener {
             try {
                 if (running) {
                     running = false;
-                    session.close();
+                    if(session != null)
+                        session.close();
                     connection.stop();
                     connection.close();
                     if (_sc != null)
@@ -107,6 +115,9 @@ public class CloudMQListener {
             } catch (Exception ex) {
                 logger.error(ex.getClass().getName() + " in InitQueueConsumer.stop(): " + ex.getMessage());
             }
+        }
+        public boolean isConnected() {
+            return connection.isStarted() && !connection.isClosed();
         }
 
         @Override
@@ -177,6 +188,11 @@ public class CloudMQListener {
             acceptConnectionsFromBrowserExecutor.shutdownNow();
         }
     }
+
+    public boolean isConnected() {
+        return consumer.isConnected();
+    }
+
 
     public Map<String, CloudMQ> getInstances() {
         return instances.map;

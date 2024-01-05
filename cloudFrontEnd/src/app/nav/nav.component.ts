@@ -3,8 +3,8 @@ import {CameraService, cameraType} from '../cameras/camera.service';
 import {Camera, Stream} from '../cameras/Camera';
 import {ReportingComponent} from '../reporting/reporting.component';
 import {HttpErrorResponse} from '@angular/common/http';
-import {Subscription} from 'rxjs';
-import {IdleTimeoutStatusMessage, Message, messageType, UtilsService} from '../shared/utils.service';
+import {Subscription, timer} from 'rxjs';
+import {IdleTimeoutStatusMessage, IsMQConnected, Message, messageType, UtilsService} from '../shared/utils.service';
 import {MatDialog} from '@angular/material/dialog';
 import {IdleTimeoutModalComponent} from '../idle-timeout-modal/idle-timeout-modal.component';
 import {MatDialogRef} from '@angular/material/dialog/dialog-ref';
@@ -38,6 +38,8 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
   cameraTypes: typeof cameraType = cameraType;
   private client!: Client;
   talkOffSubscription!: StompSubscription;
+  connectedTestSubscription!: Subscription;
+  IsMQConnected: boolean = false;
 
   constructor(public cameraSvc: CameraService, public utilsService: UtilsService, private userIdle: UserIdleService, private dialog: MatDialog) {
   }
@@ -313,6 +315,11 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
         this.utilsService.getUserAuthorities().subscribe();
       }  // Used as a heartbeat keep alive call
     });
+    this.connectedTestSubscription = timer(0, 60000).subscribe(() => {
+      this.utilsService.isConnectedToMQ().subscribe((status: IsMQConnected) => {
+        this.IsMQConnected = status.isConnected;
+      });
+    });
   }
 
   ngAfterViewInit(): void {
@@ -327,5 +334,6 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
     this.talkOffSubscription?.unsubscribe();
     this.client?.deactivate({force: false}).then(() => {
     });
+    this.connectedTestSubscription.unsubscribe();
   }
 }

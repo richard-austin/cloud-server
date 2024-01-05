@@ -157,4 +157,7 @@
     <button mat-flat-button color="default" (click)="logOff(false)">Cancel</button>
   </mat-card-content>
 </mat-card>
+<mat-card *ngIf="!IsMQConnected" style="background-color: #c7cef3">
+  <mat-card-title style="color: red; background-color: #c7cef3">Not Connected To Transport</mat-card-title>
+</mat-card>
 <router-outlet></router-outlet>
