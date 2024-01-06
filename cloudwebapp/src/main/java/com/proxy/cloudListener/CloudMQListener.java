@@ -33,7 +33,7 @@ public class CloudMQListener {
     final private CloudMQInstanceMap instances = new CloudMQInstanceMap();
     private ExecutorService browserReadExecutor = null;
     private ExecutorService acceptConnectionsFromBrowserExecutor = null;
-    private ExecutorService startActiveMQClientExecutor = Executors.newSingleThreadExecutor();
+    private final ExecutorService startActiveMQClientExecutor = Executors.newSingleThreadExecutor();
 
     private static int _nextToken = 0;
     private ServerSocketChannel _sc = null;
