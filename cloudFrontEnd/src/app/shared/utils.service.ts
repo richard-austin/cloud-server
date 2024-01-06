@@ -9,7 +9,10 @@ import {SMTPData} from '../setup-smtpclient/setup-smtpclient.component';
 
 export class Temperature {
   temp: string = "";
-  isAdmin: boolean = false;
+}
+
+export class IsMQConnected {
+  isConnected: boolean = false;
 }
 
 export class Version {
@@ -156,6 +159,12 @@ export class UtilsService {
   getTemperature(): Observable<Temperature> {
     return this.http.post<Temperature>(this._baseUrl.getLink("cloud", "getTemperature"), '', this.httpJSONOptions).pipe(
        catchError((err: HttpErrorResponse) => throwError(err))
+    );
+  }
+
+  isConnectedToMQ():Observable<IsMQConnected> {
+    return this.http.post<IsMQConnected>(this._baseUrl.getLink("cloud", "isConnected"), '', this.httpJSONOptions).pipe(
+      catchError((err: HttpErrorResponse) => throwError(err))
     );
   }
 

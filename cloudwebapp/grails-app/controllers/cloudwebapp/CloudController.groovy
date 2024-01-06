@@ -81,6 +81,14 @@ class CloudController {
         }
     }
 
+    def isConnected() {
+        ObjectCommandResponse result = cloudService.isConnected()
+        if(result.status != PassFail.PASS)
+            render(status: 500, text: result.error)
+        else
+            render(status: 200, text:['isConnected': result.responseObject] as JSON)
+    }
+
     def resetPassword(ResetPasswordCommand cmd) {
         ObjectCommandResponse result
 
