@@ -42,6 +42,8 @@ public class CloudMQListener {
     private class InitQueueConsumer implements MessageListener, ExceptionListener {
         private ActiveMQConnection connection = null;
         private Session session = null;
+
+        private boolean transportActive = false;
         private MessageConsumer consumer = null;
         private boolean running = false;
 
@@ -62,7 +64,7 @@ public class CloudMQListener {
                         TransportListener tl = new TransportListener() {
                             @Override
                             public void onCommand(Object command) {
-                                //   logger.info("Command");
+                          //      logger.info("Command: "+command);
                             }
 
                             @Override
@@ -72,12 +74,14 @@ public class CloudMQListener {
 
                             @Override
                             public void transportInterupted() {
+                                transportActive = false;
                                 logger.info("Transport interrupted");
                                 instances.clear();
                             }
 
                             @Override
                             public void transportResumed() {
+                                transportActive = true;
                                 logger.info("Transport resumed");
                             }
                         };
@@ -119,6 +123,7 @@ public class CloudMQListener {
         public boolean isConnected() {
             return connection.isStarted() && !connection.isClosed();
         }
+        public boolean isTransportActive() { return transportActive;}
 
         @Override
         public void onMessage(Message message) {
@@ -190,9 +195,8 @@ public class CloudMQListener {
     }
 
     public boolean isConnected() {
-        return consumer.isConnected();
+        return consumer.isConnected() && consumer.isTransportActive();
     }
-
 
     public Map<String, CloudMQ> getInstances() {
         return instances.map;

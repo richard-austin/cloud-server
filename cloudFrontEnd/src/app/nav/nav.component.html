@@ -12,7 +12,6 @@
           aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
     <mat-icon>menu</mat-icon>
   </button>
-
   <div #navbarCollapse class="collapse" id="navbarSupportedContent">
     <div [style]="'display:'+ ((utilsService.loggedIn && !utilsService.isAdmin) ? 'inherit' : 'none')">
       <button mat-button [matMenuTriggerFor]="menuSelectCamera" id="cameraDropdown">
@@ -75,8 +74,8 @@
       <button mat-button [matMenuTriggerFor]="menuGeneral">General</button>
       <mat-menu #menuGeneral="matMenu">
         <button *ngIf="!utilsService.isAdmin" mat-menu-item (click)="configSetup();menuClosed()"
-          matTooltip="Discover and configure the cameras for live view, recording, audio back channel and various other features."
-          matTooltipClass="tooltip">
+                matTooltip="Discover and configure the cameras for live view, recording, audio back channel and various other features."
+                matTooltipClass="tooltip">
           Cameras Configuration
         </button>
         <button mat-menu-item (click)="confirmLogoff();menuClosed()">
@@ -112,13 +111,13 @@
           <button mat-menu-item [matMenuTriggerFor]="wifiAdmin">Wifi Admin</button>
           <mat-menu #wifiAdmin="matMenu">
             <button mat-menu-item (click)="getLocalWifiDetails(); menuClosed()"
-              matTooltip="List the WiFi access points and their details in range of the NVR."
-              matTooltipClass="tooltip">
+                    matTooltip="List the WiFi access points and their details in range of the NVR."
+                    matTooltipClass="tooltip">
               Local Wifi Details
             </button>
             <button mat-menu-item (click)="wifiSettings(); menuClosed()"
-              matTooltip="Configure NVR WiFi (Must be connected through Ethernet to use this)."
-              matTooltipClass="tooltip">
+                    matTooltip="Configure NVR WiFi (Must be connected through Ethernet to use this)."
+                    matTooltipClass="tooltip">
               Wifi Settings
             </button>
           </mat-menu>
@@ -157,7 +156,9 @@
     <button mat-flat-button color="default" (click)="logOff(false)">Cancel</button>
   </mat-card-content>
 </mat-card>
-<mat-card *ngIf="!IsMQConnected" style="background-color: #c7cef3">
-  <mat-card-title style="color: red; background-color: #c7cef3">Not Connected To Transport</mat-card-title>
-</mat-card>
+<div *ngIf="!IsMQConnected" class="no-transport-warning">
+  <div>
+    <mat-card-title>Not Connected To Transport</mat-card-title>
+  </div>
+</div>
 <router-outlet></router-outlet>

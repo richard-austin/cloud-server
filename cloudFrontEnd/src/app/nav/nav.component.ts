@@ -39,7 +39,7 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
   private client!: Client;
   talkOffSubscription!: StompSubscription;
   connectedTestSubscription!: Subscription;
-  IsMQConnected: boolean = false;
+  IsMQConnected: boolean = true;
 
   constructor(public cameraSvc: CameraService, public utilsService: UtilsService, private userIdle: UserIdleService, private dialog: MatDialog) {
   }
@@ -318,6 +318,9 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
     this.connectedTestSubscription = timer(0, 60000).subscribe(() => {
       this.utilsService.isConnectedToMQ().subscribe((status: IsMQConnected) => {
         this.IsMQConnected = status.isConnected;
+      }, (reason) => {
+        this.IsMQConnected = false;
+        this.errorReporting.errorMessage=reason;
       });
     });
   }
