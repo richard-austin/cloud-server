@@ -101,7 +101,6 @@ export class AccountAdminComponent implements OnInit {
   initializeWebSocketConnection() {
     let serverUrl: string = (window.location.protocol == 'http:' ? 'ws://' : 'wss://') + window.location.host +'/cloudstomp';
 
-
     this.client = new Client({
       brokerURL: serverUrl,
       reconnectDelay: 2000,
@@ -276,5 +275,4 @@ export class AccountAdminComponent implements OnInit {
     this.changePasswordForm.markAllAsTouched();
     this.changeEmailForm.markAllAsTouched();
   }
-
 }

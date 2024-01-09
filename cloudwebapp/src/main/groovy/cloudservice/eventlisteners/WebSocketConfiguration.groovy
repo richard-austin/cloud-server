@@ -13,9 +13,6 @@ class WebSocketConfiguration implements WebSocketMessageBrokerConfigurer{
     void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/cloudstomp")
                 .setAllowedOriginPatterns("*")
-                .withSockJS()
-        registry.addEndpoint("/cloudstomp").setAllowedOriginPatterns("*")
-       //
     }
 
     @Override

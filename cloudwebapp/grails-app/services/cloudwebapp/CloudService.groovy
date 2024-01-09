@@ -67,7 +67,7 @@ class CloudService {
 
     def start() {
         if (cloudListener == null)
-            cloudListener = new CloudMQListener()
+            cloudListener = new CloudMQListener(brokerMessagingTemplate)
 
         ObjectCommandResponse response = new ObjectCommandResponse()
         try {
@@ -84,19 +84,6 @@ class CloudService {
     def stop() {
         if (cloudListener)
             cloudListener.stop()
-    }
-
-    def isConnected() {
-        ObjectCommandResponse result = new ObjectCommandResponse()
-        try {
-            result.responseObject = cloudListener.isConnected()
-        }
-        catch(Exception ex) {
-            logService.cloud.error("Exception in isConnected: " + ex.getCause() + ' ' + ex.getMessage())
-            result.status = PassFail.FAIL
-            result.error = ex.getMessage()
-        }
-        return result
     }
 
     /**
@@ -273,4 +260,18 @@ class CloudService {
     {
         return _authenticatedNVRs.remove(productId)
     }
+
+    ObjectCommandResponse isTransportActive() {
+        ObjectCommandResponse response = new ObjectCommandResponse()
+        try {
+            response.responseObject = cloudListener == null ? false : cloudListener.isTransportActive()
+        }
+        catch (Exception ex) {
+            response.status = PassFail.FAIL
+            response.error = "Exception in CloudService.isTransportActive: " + ex.getClass().getName() + ": " + ex.getMessage()
+            logService.cloud.error(response.error)
+        }
+        return response
+    }
+
 }

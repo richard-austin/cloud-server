@@ -37,9 +37,9 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
   private messageSubscription!: Subscription;
   cameraTypes: typeof cameraType = cameraType;
   private client!: Client;
+  private cloudClient!: Client;
   talkOffSubscription!: StompSubscription;
-  connectedTestSubscription!: Subscription;
-  IsMQConnected: boolean = true;
+  transportWarningSubscription!: StompSubscription;
 
   constructor(public cameraSvc: CameraService, public utilsService: UtilsService, private userIdle: UserIdleService, private dialog: MatDialog) {
   }
@@ -199,6 +199,7 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   initialise(auth: string): void {
+    this.utilsService.isTransportActive().subscribe();  // Sets the status flag in utils service
     switch (auth) {
       case 'ROLE_CLIENT':
         this.cameraSvc.initialiseCameras();  // Load the cameras data
@@ -230,6 +231,20 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
       default:
         this.idleTimeoutActive = this.callGetTemp = this.callGetAuthorities = false;
     }
+
+    let serverUrl: string = (window.location.protocol == 'http:' ? 'ws://' : 'wss://') + window.location.host + '/cloudstomp';
+    this.cloudClient = new Client({
+      brokerURL: serverUrl,
+      reconnectDelay: 2000,
+      heartbeatOutgoing: 120000,
+      heartbeatIncoming: 120000,
+      onConnect: () => {
+        this.transportWarningSubscription = this.cloudClient.subscribe('/topic/transportStatus', (message: any) => this.utilsService.setTransportStatus(message));
+      },
+      debug: () => {
+      }
+    });
+    this.cloudClient.activate();
   }
 
   setUpSMTPClient() {
@@ -315,14 +330,6 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
         this.utilsService.getUserAuthorities().subscribe();
       }  // Used as a heartbeat keep alive call
     });
-    this.connectedTestSubscription = timer(0, 60000).subscribe(() => {
-      this.utilsService.isConnectedToMQ().subscribe((status: IsMQConnected) => {
-        this.IsMQConnected = status.isConnected;
-      }, (reason) => {
-        this.IsMQConnected = false;
-        this.errorReporting.errorMessage=reason;
-      });
-    });
   }
 
   ngAfterViewInit(): void {
@@ -337,6 +344,5 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
     this.talkOffSubscription?.unsubscribe();
     this.client?.deactivate({force: false}).then(() => {
     });
-    this.connectedTestSubscription.unsubscribe();
   }
 }

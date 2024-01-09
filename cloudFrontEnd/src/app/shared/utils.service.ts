@@ -6,13 +6,14 @@ import {catchError, tap} from "rxjs/operators";
 import {CameraParams, Stream} from '../cameras/Camera';
 import {cameraType} from '../cameras/camera.service';
 import {SMTPData} from '../setup-smtpclient/setup-smtpclient.component';
+import {IMessage} from '@stomp/stompjs';
 
 export class Temperature {
   temp: string = "";
 }
 
 export class IsMQConnected {
-  isConnected: boolean = false;
+  transportActive: boolean = false;
 }
 
 export class Version {
@@ -113,6 +114,7 @@ export class UtilsService {
   private _hasLocalAccount: boolean = false;
   public readonly passwordRegex: RegExp = new RegExp(/^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,64}$/);
   speakActive: boolean = true;
+  private _activeMQTransportActive: boolean = false;
   readonly isGuestAccount: boolean = false;
   get loggedIn(): boolean {
     return this._loggedIn;
@@ -159,12 +161,6 @@ export class UtilsService {
   getTemperature(): Observable<Temperature> {
     return this.http.post<Temperature>(this._baseUrl.getLink("cloud", "getTemperature"), '', this.httpJSONOptions).pipe(
        catchError((err: HttpErrorResponse) => throwError(err))
-    );
-  }
-
-  isConnectedToMQ():Observable<IsMQConnected> {
-    return this.http.post<IsMQConnected>(this._baseUrl.getLink("cloud", "isConnected"), '', this.httpJSONOptions).pipe(
-      catchError((err: HttpErrorResponse) => throwError(err))
     );
   }
 
@@ -393,6 +389,14 @@ export class UtilsService {
       }),
       catchError((err: HttpErrorResponse) => throwError(err)));
   }
+  isTransportActive():Observable<IsMQConnected> {
+    return this.http.post<IsMQConnected>(this._baseUrl.getLink("cloud", "isTransportActive"), '', this.httpJSONOptions).pipe(
+      tap((status: IsMQConnected) => {
+        this.activeMQTransportActive = status.transportActive;
+        }),
+      catchError((err: HttpErrorResponse) => throwError(err))
+    );
+  }
 
   /**
    * talkOff: Called on receipt of the talkOff websocket message. This disables audio out to any camera while the channel is in use and
@@ -407,5 +411,21 @@ export class UtilsService {
       }
     }
   }
+  setTransportStatus(message: IMessage) {
+    let strMsg: string;
+    if (message.isBinaryBody)
+      strMsg = new TextDecoder().decode(message.binaryBody);
+    else
+      strMsg = message.body;
+    let status: { transportActive: boolean } = JSON.parse(strMsg)
+    this._activeMQTransportActive = status.transportActive;
+  }
 
+  get activeMQTransportActive(): boolean {
+    return this._activeMQTransportActive
+  }
+
+  set activeMQTransportActive(value: boolean) {
+    this._activeMQTransportActive = value;
+  }
 }

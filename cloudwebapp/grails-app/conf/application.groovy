@@ -37,7 +37,7 @@ grails.plugin.springsecurity.controllerAnnotations.staticRules = [
 	[pattern: '/cloud/sendResetPasswordLink', access: ['permitAll']],
 	[pattern: '/cloud/getUserAuthorities', access: ['permitAll']],
 	[pattern: '/cloud/resetPassword', access: ['permitAll']],
-	[pattern: '/cloud/isConnected', access: ['permitAll']]
+	[pattern: '/cloud/isTransportActive', access: ['permitAll']]
 ]
 
 grails.plugin.springsecurity.filterChain.chainMap = [

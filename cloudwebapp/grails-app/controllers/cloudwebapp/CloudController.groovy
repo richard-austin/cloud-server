@@ -81,14 +81,6 @@ class CloudController {
         }
     }
 
-    def isConnected() {
-        ObjectCommandResponse result = cloudService.isConnected()
-        if(result.status != PassFail.PASS)
-            render(status: 500, text: result.error)
-        else
-            render(status: 200, text:['isConnected': result.responseObject] as JSON)
-    }
-
     def resetPassword(ResetPasswordCommand cmd) {
         ObjectCommandResponse result
 
@@ -177,7 +169,7 @@ class CloudController {
             render(status: 500, text: result.error)
         } else {
             logService.cloud.info("getEmail: success")
-            render (text: result.responseObject as JSON)
+            render(text: result.responseObject as JSON)
         }
     }
 
@@ -286,5 +278,13 @@ class CloudController {
             logService.cloud.info("getUserAuthorities: success")
             render result.responseObject as JSON
         }
+    }
+
+    def isTransportActive() {
+        ObjectCommandResponse resp = cloudService.isTransportActive()
+        if (resp.status == PassFail.PASS)
+            render(status: 200, text: [transportActive: resp.responseObject] as JSON)
+        else
+            render(status: 500, text: resp.error)
     }
 }

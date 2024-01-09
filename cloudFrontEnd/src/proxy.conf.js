@@ -30,7 +30,7 @@ const PROXY_CONFIG = [
       "/cloudstomp"
     ],
     ws: true,
-    target: "http://localhost:8086",
+    target: "http://localhost:8086/",
     changeOrigin: false,
     secure: false
   }

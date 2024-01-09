@@ -9,7 +9,9 @@ import com.proxy.HttpMessage;
 import org.apache.activemq.ActiveMQConnection;
 import org.apache.activemq.ActiveMQSslConnectionFactory;
 import org.apache.activemq.transport.TransportListener;
+import org.grails.web.json.JSONObject;
 import org.slf4j.LoggerFactory;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import javax.jms.*;
 import java.io.IOException;
@@ -38,7 +40,11 @@ public class CloudMQListener {
     private static int _nextToken = 0;
     private ServerSocketChannel _sc = null;
     private boolean allRunning = false;
+    SimpMessagingTemplate brokerMessagingTemplate;
 
+    CloudMQListener(SimpMessagingTemplate brokerMessagingTemplate) {
+        this.brokerMessagingTemplate = brokerMessagingTemplate;
+    }
     private class InitQueueConsumer implements MessageListener, ExceptionListener {
         private ActiveMQConnection connection = null;
         private Session session = null;
@@ -64,7 +70,7 @@ public class CloudMQListener {
                         TransportListener tl = new TransportListener() {
                             @Override
                             public void onCommand(Object command) {
-                          //      logger.info("Command: "+command);
+                                //      logger.info("Command: "+command);
                             }
 
                             @Override
@@ -74,6 +80,11 @@ public class CloudMQListener {
 
                             @Override
                             public void transportInterupted() {
+                                final String transportActiveMsg = new JSONObject()
+                                        .put("transportActive", false)
+                                        .toString();
+                                // Disable audio out on clients except the initiator
+                                brokerMessagingTemplate.convertAndSend("/topic/transportStatus", transportActiveMsg);
                                 transportActive = false;
                                 logger.info("Transport interrupted");
                                 instances.clear();
@@ -81,6 +92,11 @@ public class CloudMQListener {
 
                             @Override
                             public void transportResumed() {
+                                final String transportActiveMsg = new JSONObject()
+                                        .put("transportActive", true)
+                                        .toString();
+                                // Disable audio out on clients except the initiator
+                                brokerMessagingTemplate.convertAndSend("/topic/transportStatus", transportActiveMsg);
                                 transportActive = true;
                                 logger.info("Transport resumed");
                             }
@@ -99,17 +115,17 @@ public class CloudMQListener {
                     logger.error(ex.getClass().getName() + " in InitQueueConsumer.start: " + ex.getMessage());
                 }
             });
-            try {
-                Thread.sleep(2000);
-            } catch (InterruptedException ignore) {
-            }
+//            try {
+//                Thread.sleep(2000);
+//            } catch (InterruptedException ignore) {
+//            }
         }
 
         void stop() {
             try {
                 if (running) {
                     running = false;
-                    if(session != null)
+                    if (session != null)
                         session.close();
                     connection.stop();
                     connection.close();
@@ -120,10 +136,10 @@ public class CloudMQListener {
                 logger.error(ex.getClass().getName() + " in InitQueueConsumer.stop(): " + ex.getMessage());
             }
         }
-        public boolean isConnected() {
-            return connection.isStarted() && !connection.isClosed();
+
+        public boolean isTransportActive() {
+            return connection != null &&  !connection.isClosed() && connection.isStarted() && transportActive;
         }
-        public boolean isTransportActive() { return transportActive;}
 
         @Override
         public void onMessage(Message message) {
@@ -160,6 +176,9 @@ public class CloudMQListener {
             start();
         }
     }
+    public boolean isTransportActive() {
+        return consumer != null && consumer.isTransportActive();
+    }
 
     private static ActiveMQSslConnectionFactory getActiveMQSslConnectionFactory() throws Exception {
         CloudProperties cp = CloudProperties.getInstance();
@@ -192,10 +211,6 @@ public class CloudMQListener {
             browserReadExecutor.shutdownNow();
             acceptConnectionsFromBrowserExecutor.shutdownNow();
         }
-    }
-
-    public boolean isConnected() {
-        return consumer.isConnected() && consumer.isTransportActive();
     }
 
     public Map<String, CloudMQ> getInstances() {
