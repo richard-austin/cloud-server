@@ -21,13 +21,13 @@ well as enable/disable or delete NVR Cloud accounts.
 The <a href="https://github.com/richard-austin/security-cam">Security Cam</a> (NVR, Network Video Recorder) project is primarily 
 designed to run without the need for a cloud service, inside a secure LAN, with access from WAN being made available 
 with port forwarding. The Cloud Service can be used to provide access to a number of NVR instances
-without the port forwarding set up, as the NVR makes a client connection to the Cloud Service through
-which the web interactions are multiplexed.
+without the port forwarding set up, as the NVR makes a client connection to the ActiveMQ service which is the
+bridge between one or more NVRs and the Cloud Service.
 
 The Cloud Service is intended to be run at a public internet address, to which instances of Security Cam
-are configured to make client connections. 
-The NVR does not need to have a local user account set up to connect to the Cloud Service. Instead
-a user account is created on the Cloud Service for each NVR connected to it. When the user account is created,
+are configured to connect via an <a href="https://github.com/richard-austin/activemq-for-cloud-service">ActiveMQ</a> 
+server to the Cloud Server. The NVR does not need to have a local user account set up to connect to the Cloud Service. 
+Instead a user account is created on the Cloud Service for each NVR connected to it. When the user account is created,
 the required username, password and email address are entered along with the NVR's unique product ID
 by which the Cloud Service identifies the specific NVR, 
 When an NVR has no local account, it will attempt to connect to the Cloud Service by default.
@@ -82,6 +82,16 @@ To get more help on the Angular CLI use `ng help` or go check out the [Angular C
 The Web Back End (server) is a Grails application (https://grails.org/), which provides
 a Restful API for the Angular Web Front End in admin mode. In client mode, the Restful API is mainly from
 the NVR via the account proxy.
+### ActiveMQ
+ActiveMQ is deployed separately from the Cloud Service.
+The ActiveMQ service is configured to use a protocol, credentials and certificates known to both the
+NVRs and the Cloud Service. It can be co hosted with the Cloud Service or run separately. In either case,
+both the NVRs and Cloud Service must be configured to connect to the ActiveMQ host address. The ActiveMQ project
+<a href="https://github.com/richard-austin/activemq-for-cloud-service">here</a> is configured for
+use with the NVR and Cloud projects, though you will need to edit the cloudActiveMQUrl in the NVRs
+application.yml and mqURL in the Cloud Service application.yml file for those to point to the host on which ActiveMQ
+is running.
+
 ## Building the project
 Ready built .deb files are included in the Releases section, otherwise read the directions below.
 #### The project is verified to build with the following:-
