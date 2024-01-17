@@ -1,4 +1,4 @@
-import {AfterViewInit, Component, OnDestroy, OnInit, ViewChild} from '@angular/core';
+import {AfterViewInit, ChangeDetectorRef, Component, OnDestroy, OnInit, ViewChild} from '@angular/core';
 import {VideoComponent} from '../video/video.component';
 import {Camera, Stream} from '../cameras/Camera';
 import {CameraService, DateSlot, LocalMotionEvent, LocalMotionEvents} from '../cameras/camera.service';
@@ -9,7 +9,9 @@ import {ReportingComponent} from '../reporting/reporting.component';
 import {HttpErrorResponse} from '@angular/common/http';
 import {ActivatedRoute} from '@angular/router';
 import {MatSelect} from '@angular/material/select/select';
+import {UtilsService} from '../shared/utils.service';
 import {MatDatepickerInputEvent} from '@angular/material/datepicker';
+
 
 declare let saveAs: (blob: Blob, name?: string, type?: string) => {};
 
@@ -19,7 +21,7 @@ declare global {
   }
 }
 
-Date.prototype.addDays = function (days: number): Date {
+Date.prototype.addDays = function(days: number): Date {
   let date: Date = new Date(this.valueOf());
   date.setDate(date.getDate() + days);
   return date;
@@ -44,15 +46,15 @@ export class RecordingControlComponent implements OnInit, AfterViewInit, OnDestr
   confirmDelete: boolean = false;
   downloading: boolean = false;
   paused: boolean = true;
-  selectedPlaybackMode: string = "startPause";
+  selectedPlaybackMode: string = 'startPause';
+  isGuest: boolean = true;
   dateSlots: DateSlot[] = [];
   _selectedDate!: Date | null;
   _minDate!: Date;
   _maxDate!: Date;
-  //cs!: CameraStream;
   initialised: boolean;
 
-  constructor(private route: ActivatedRoute, private cameraSvc: CameraService, private motionService: MotionService) {
+  constructor(private route: ActivatedRoute, private cameraSvc: CameraService, private motionService: MotionService, private utilsService: UtilsService, private cd: ChangeDetectorRef) {
     // route.url.subscribe((u:UrlSegment[]) => {
     // });
     this.initialised = false;
@@ -63,12 +65,12 @@ export class RecordingControlComponent implements OnInit, AfterViewInit, OnDestr
           if (stream.media_server_input_uri.endsWith(streamName)) {
             this.cam = cam;
             this.stream = stream;
-          if (this.initialised) {
-            this.setupRecording();
+            if (this.initialised) {
+              this.setupRecording();
+            }
           }
-        }
+        });
       });
-    });
     });
   }
 
@@ -166,7 +168,7 @@ export class RecordingControlComponent implements OnInit, AfterViewInit, OnDestr
       }
     } else {
       this.showInvalidInput(false);
-  }
+    }
   }
 
   /**
@@ -213,7 +215,7 @@ export class RecordingControlComponent implements OnInit, AfterViewInit, OnDestr
       this.downloading = true;
       let blob: Blob = await this.motionService.downloadRecording(this.stream, this.manifest);
       saveAs(blob, this.manifest.replace('_.m3u8', '.mp4'));
-    } catch (error) {
+    } catch (error: any) {
       let reader: FileReader = new FileReader();
       reader.onload = () => {
         this.reporting.errorMessage = new HttpErrorResponse({
@@ -347,8 +349,11 @@ export class RecordingControlComponent implements OnInit, AfterViewInit, OnDestr
   }
 
   ngAfterViewInit(): void {
+    this.isGuest = this.utilsService.isGuestAccount;
     this.initialised = true;
-    this.setupRecording();  }
+    this.setupRecording();
+    this.cd.detectChanges();
+  }
 
   ngOnDestroy(): void {
   }
