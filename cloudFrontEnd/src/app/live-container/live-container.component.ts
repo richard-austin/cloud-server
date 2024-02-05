@@ -1,4 +1,5 @@
-import {AfterViewInit, Component, OnDestroy, OnInit, ViewChild} from '@angular/core';
+/**/
+import {AfterViewInit, ChangeDetectorRef, Component, OnDestroy, OnInit, ViewChild} from '@angular/core';
 import {CameraService} from '../cameras/camera.service';
 import {Camera, Stream} from '../cameras/Camera';
 import {Subscription, timer} from 'rxjs';
@@ -21,37 +22,38 @@ export class LiveContainerComponent implements OnInit, AfterViewInit, OnDestroy 
   camera!: Camera;
   stream!: Stream;
 
-  constructor(private route: ActivatedRoute, public cameraSvc: CameraService, private utilsService: UtilsService) {
+  constructor(private route: ActivatedRoute, public cameraSvc: CameraService, private utilsService: UtilsService, private cd: ChangeDetectorRef) {
     // Use route.paramMap to get the stream name correctly if we switch directly between live streams
     this.route.paramMap.subscribe((paramMap) => {
       let streamName: string = paramMap.get('streamName') as string;
-        cameraSvc.cameras.forEach((cam) => {
-          cam.streams.forEach((stream, k) => {
-            if (stream.media_server_input_uri.endsWith(streamName)) {
-              this.camera = cam;
-              this.stream = stream;
-              timer(100).subscribe( () => {
-          this.setupVideo();
-              });
+      cameraSvc.cameras.forEach((cam) => {
+        cam.streams.forEach((stream, k) => {
+          if (stream.media_server_input_uri.endsWith(streamName)) {
+            this.camera = cam;
+            this.stream = stream;
+            const subscription = timer(100).subscribe(() => {
+              this.setupVideo();
+              subscription.unsubscribe();
+            });
           }
         });
-       });
-    })
+      });
+    });
   }
 
   setupVideo() {
     this.reporting.dismiss();
 
     this.video.visible = false;
-        this.timerHandle?.unsubscribe();
+    this.timerHandle?.unsubscribe();
     if (this.camera !== undefined && this.stream !== undefined) {
       if (this.video !== undefined) {
         this.video.setSource(this.camera, this.stream);
         this.video.visible = true;
-          }
-        }
-    else
+      }
+    } else {
       this.showInvalidInput();
+    }
   }
 
 
@@ -79,6 +81,7 @@ export class LiveContainerComponent implements OnInit, AfterViewInit, OnDestroy 
   }
 
   ngAfterViewInit(): void {
+      this.cd.detectChanges();
   }
 
 

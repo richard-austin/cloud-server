@@ -35,6 +35,8 @@ export class VideoComponent implements OnInit, AfterViewInit, OnDestroy {
   buffering_sec: number = 1.2;
   audioBackchannel!: AudioBackchannel
   vt!: VideoTransformations;
+  currentTime: string = "";
+  totalTime: string = "";
 
   constructor(public utilsService: UtilsService) {
     this.videoFeeder = new MediaFeeder(this.buffering_sec)
@@ -100,12 +102,31 @@ export class VideoComponent implements OnInit, AfterViewInit, OnDestroy {
     this.video.addEventListener('fullscreenchange', () => {
       this.vt.reset();  // Set to normal scale for if the mouse wheel was turned while full screen showing
     });
-
+    this.video.ontimeupdate = () => {
+      if (this.video.currentTime !== null && !isNaN(this.video.currentTime))
+        this.currentTime = new Date(this.video.currentTime * 1000).toISOString().substring(11, 19);
+      if (this.video.duration !== null && !isNaN(this.video.duration))
+        this.totalTime = new Date(this.video.duration * 1000).toISOString().substring(11, 19);
+    };
     window.screen.orientation.onchange =(ev: Event) => {
       // Set up VideoTransformations again to take account of viewport dimension changes
       this.vt = new VideoTransformations(this.video, this.vcEL.nativeElement);
-      this.vt.reset(true);
-    };
+      if (ev.currentTarget instanceof ScreenOrientation) {
+        let target: ScreenOrientation = ev.currentTarget;
+        if (!this.multi) {
+          this.vt.reset();
+          // Timer to ensure screen is settled before scrolling to position
+          const sub = timer(60).subscribe(() => {
+            sub.unsubscribe();
+            if (target.type.toString().includes('portrait'))
+              document.body.scrollTop = document.documentElement.scrollTop = 0;  // Scroll to top of page
+            else
+              // Scroll to fit video in screen
+              window.scrollTo({left: 0, top: this.video.getBoundingClientRect().y + window.scrollY});
+          });
+        }
+      }
+    }
   }
 
   ngOnDestroy(): void {
