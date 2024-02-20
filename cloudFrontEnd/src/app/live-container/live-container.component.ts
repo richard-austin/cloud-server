@@ -1,4 +1,3 @@
-/**/
 import {AfterViewInit, ChangeDetectorRef, Component, OnDestroy, OnInit, ViewChild} from '@angular/core';
 import {CameraService} from '../cameras/camera.service';
 import {Camera, Stream} from '../cameras/Camera';
@@ -26,7 +25,7 @@ export class LiveContainerComponent implements OnInit, AfterViewInit, OnDestroy 
     // Use route.paramMap to get the stream name correctly if we switch directly between live streams
     this.route.paramMap.subscribe((paramMap) => {
       let streamName: string = paramMap.get('streamName') as string;
-      cameraSvc.cameras.forEach((cam) => {
+        cameraSvc.getCameras().forEach((cam) => {
         cam.streams.forEach((stream, k) => {
           if (stream.media_server_input_uri.endsWith(streamName)) {
             this.camera = cam;
@@ -38,7 +37,7 @@ export class LiveContainerComponent implements OnInit, AfterViewInit, OnDestroy 
           }
         });
       });
-    });
+    })
   }
 
   setupVideo() {
@@ -51,10 +50,9 @@ export class LiveContainerComponent implements OnInit, AfterViewInit, OnDestroy 
         this.video.setSource(this.camera, this.stream);
         this.video.visible = true;
       }
-    } else {
+    } else
       this.showInvalidInput();
     }
-  }
 
 
   hasPTZControls() {

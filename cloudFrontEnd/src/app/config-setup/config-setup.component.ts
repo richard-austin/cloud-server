@@ -1,6 +1,15 @@
-import {AfterViewInit, Component, ElementRef, OnDestroy, OnInit, ViewChild} from '@angular/core';
+import {
+  AfterViewInit,
+  ChangeDetectorRef,
+  Component,
+  ElementRef,
+  isDevMode,
+  OnDestroy,
+  OnInit,
+  ViewChild
+} from '@angular/core';
 import {CameraService} from '../cameras/camera.service';
-import {Camera, CameraParamSpec, Stream} from '../cameras/Camera';
+import {Camera, CameraParamSpec, Stream} from "../cameras/Camera";
 import {ReportingComponent} from '../reporting/reporting.component';
 import {animate, state, style, transition, trigger} from '@angular/animations';
 import {
@@ -11,11 +20,11 @@ import {
   ValidationErrors,
   ValidatorFn,
   Validators
-} from '@angular/forms';
+} from "@angular/forms";
 import {BehaviorSubject} from 'rxjs';
-import {MatCheckboxChange} from '@angular/material/checkbox';
+import {MatCheckboxChange} from "@angular/material/checkbox";
 import {MatSelectChange} from '@angular/material/select/select';
-import {HttpErrorResponse} from '@angular/common/http';
+import {HttpErrorResponse} from "@angular/common/http";
 import {DomSanitizer, SafeResourceUrl} from '@angular/platform-browser';
 import {KeyValue} from '@angular/common';
 import {UtilsService} from '../shared/utils.service';
@@ -39,23 +48,22 @@ export function isValidMaskFileName(cameras: Map<string, Camera>): ValidatorFn {
     cameras.forEach((cam: Camera) => {
       cam.streams.forEach((stream: Stream) => {
         if (stream.motion.enabled && stream.motion.mask_file !== '') {
-          if (allFiles.has(stream.motion.mask_file)) {
+          if (allFiles.has(stream.motion.mask_file))
             duplicateMaskFile = true;
-          } else {
+          else
             allFiles.add(stream.motion.mask_file);
           }
-        }
-      });
-    });
+      })
+    })
     return !fileNameValid || duplicateMaskFile ? {mask_file: !fileNameValid, duplicate: duplicateMaskFile} : null;
-  };
+  }
 }
 
 export function validateTrueOrFalse(fieldCondition: {}): ValidatorFn {
   return (control: AbstractControl): ValidationErrors | null => {
     let invalidValue: boolean = control.value != true && control.value !== false;
     return invalidValue ? fieldCondition : null;
-  };
+  }
 }
 
 @Component({
@@ -87,7 +95,8 @@ export function validateTrueOrFalse(fieldCondition: {}): ValidatorFn {
 })
 export class ConfigSetupComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('errorReporting') reporting!: ReportingComponent;
-  @ViewChild('outputframeid') snapshotImage!: ElementRef<HTMLImageElement>;
+  @ViewChild('outputframeid') snapshotImage!: ElementRef<HTMLImageElement>
+  @ViewChild('scrollable_content') scrollableContent!: ElementRef<HTMLElement>
   downloading: boolean = true;
   updating: boolean = false;
   discovering: boolean = false;
@@ -96,8 +105,8 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit, OnDestroy {
   cameraFooterColumns = ['buttons'];
 
   expandedElement!: Camera | null;
-  streamColumns = ['stream_id', 'delete', 'descr', 'audio', 'audio_encoding', 'netcam_uri', 'defaultOnMultiDisplay', 'motion', 'threshold', 'trigger_recording_on', 'mask_file', 'video_width', 'video_height'];
-  streamFooterColumns = ['buttons'];
+  streamColumns = ['stream_id', 'delete', 'descr', 'audio', 'audio_encoding', 'netcam_uri', 'defaultOnMultiDisplay', 'motion', 'threshold', 'trigger_recording_on', 'preambleFrames', 'mask_file', 'video_width', 'video_height'];
+  streamFooterColumns = ['buttons']
 //  camSetupFormGroup!: FormGroup;
   camControls!: FormArray;
   streamControls: FormArray[] = [];
@@ -110,12 +119,12 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit, OnDestroy {
   snapShotKey: string = '';
   showPasswordDialogue: boolean = false;
   showAddCameraDialogue: boolean = false;
-  readonly isGuest: boolean = false;
+  isGuest: boolean = true;
   gettingCameraDetails: boolean = false;
   savedDataHash: string = "";
   haveCameraCredentials: boolean = false;
 
-  constructor(public cameraSvc: CameraService, private utils: UtilsService, private sanitizer: DomSanitizer) {
+  constructor(public cameraSvc: CameraService, private utils: UtilsService, private sanitizer: DomSanitizer, private cd: ChangeDetectorRef) {
   }
 
   getCamControl(index: number, fieldName: string): FormControl {
@@ -125,15 +134,16 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit, OnDestroy {
   setPTZControlsCheckboxDisabledState(index: number): boolean {
     let ptzc: FormControl = this.getCamControl(index, 'ptzControls');
 
-    let ovhc: FormControl = this.getCamControl(index, 'onvifHost');
-    if (ovhc.value == '') {
-      ptzc.setValue(false);
-    }  // Ensure PTZ is set to "off" if onvifHost has the (valid) value empty
+    let ovhc: FormControl = this.getCamControl(index, 'onvifHost')
+    if (ovhc.value == '')
+      ptzc.setValue(false);  // Ensure PTZ is set to "off" if onvifHost has the (valid) value empty
     return ovhc.value == '' || !ovhc.valid;
+  }
+  getPreambleFramesDisabledState(cam: Camera, stream: Stream): boolean {
+    return !stream?.motion?.enabled && !cam?.ftp;
   }
 
   updateCam(index: number, field: string, value: any) {
-    console.log(index, field, value);
     Array.from(this.cameras.values()).forEach((cam: Camera, i) => {
       if (i === index) { // @ts-ignore
         cam[field] = value;
@@ -171,7 +181,7 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit, OnDestroy {
 
   updateAudioEncoding($event: MatSelectChange, stream: Stream) {
     stream.audio_encoding = $event.value;
-    stream.audio = $event.value !== 'None';
+    stream.audio = $event.value !== "None";
 
   }
 
@@ -182,13 +192,11 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit, OnDestroy {
    * call. If we don't do this, the selector won't show the correct setting.
    */
   getCameraParamSpecsReferenceCopy(camera: Camera): CameraParamSpec {
-    if (camera?.cameraParamSpecs?.camType === undefined) {
-      return this.cameraSvc.cameraParamSpecs[0];
-    }// Return the Not Listed option
-    else {
+    if (camera?.cameraParamSpecs?.camType === undefined)
+      return this.cameraSvc.cameraParamSpecs[0];  // Return the Not Listed option
+    else
       return this.cameraSvc.cameraParamSpecs.find((spec) => camera.cameraParamSpecs.camType === spec.camType) as CameraParamSpec;
     }
-  }
 
   getCameraAddressDisabledState(camera: Camera): boolean {
     return false; // Never disabled now
@@ -199,12 +207,11 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   getFTPDisabledState(camera: Camera): boolean {
-    if (camera?.cameraParamSpecs?.camType === undefined) {
+    if (camera?.cameraParamSpecs?.camType === undefined)
       return true;
-    } else {
+    else
       return this.motionSet(camera);
     }
-  }
 
   /**
    * setUpTableFormControls: Associate a FormControl with each editable field on the table
@@ -241,6 +248,10 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit, OnDestroy {
             value: stream.motion.trigger_recording_on,
             disabled: !stream.motion.enabled
           }, [Validators.nullValidator]),
+          preambleFrames: new FormControl({
+            value: stream.preambleFrames,
+            disabled: this.getPreambleFramesDisabledState(camera, stream),
+          }, [Validators.min(0), Validators.max(400)]),
           mask_file: new FormControl({
             value: stream.motion.mask_file,
             disabled: !stream.motion.enabled
@@ -260,9 +271,10 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit, OnDestroy {
           disabled: false
         }, [Validators.maxLength(55)]),
         ftp: new FormControl({
-          value: camera.ftp,
-          disabled: this.getFTPDisabledState(camera),
-        }, [validateTrueOrFalse({ftp: true})]),
+            value: camera?.ftp != undefined ? camera.ftp : 'none',
+            disabled: false,
+          }, [Validators.pattern(/^none|stream[1-9]+$/)]
+        ),
         retriggerWindow: new FormControl({
             value: camera?.retriggerWindow != undefined ? camera.retriggerWindow : 30,
             disabled: false,
@@ -331,7 +343,7 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit, OnDestroy {
       if (retVal) {
         let enableFirstAsMultiDisplayDefault: boolean = (cam.streams.get(streamKey) as Stream).defaultOnMultiDisplay;
         cam.streams.delete(streamKey);
-        cam.streams.forEach((stream: Stream) => {
+        cam.streams.forEach((stream) => {
           // Ensure we don't land up with none selected as default stream to show on multi cameras display
           if (enableFirstAsMultiDisplayDefault) {
             stream.defaultOnMultiDisplay = enableFirstAsMultiDisplayDefault;
@@ -359,73 +371,67 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit, OnDestroy {
     let recNo: number = 1;  // Recording number to be set in the stream object
     this.cameras.forEach((camera: Camera) => {
       let streamMap: Map<string, Stream> = new Map<string, Stream>();
-      if (camera.cameraParamSpecs === undefined || camera.cameraParamSpecs === null) {
+      if (camera.cameraParamSpecs === undefined || camera.cameraParamSpecs === null)
         camera.cameraParamSpecs = this.cameraSvc._cameraParamSpecs[0];
-      }
 
       // First clear the recording objects in all the streams as we will set them up in the stream processing which follows.
       // Also set the absolute stream number
       camera.streams.forEach((stream: Stream) => {
-        stream.recording.enabled = false;
+        stream.recording.enabled = false
         stream.rec_num = recNo++;
       });
-      let streamKeyNum: number = 1;
       // Process the streams
-      camera.streams.forEach((stream) => {
-        if (stream.audio_encoding === '') {
-          stream.audio_encoding = 'None';
-        }
+      camera.streams.forEach((stream, streamKey) => {
+        if (stream.audio_encoding === "")
+          stream.audio_encoding = "None";
 
-        // if (isDevMode()) {  // Development mode
-        //   stream.media_server_input_uri = "http://localhost:8085/live/stream?suuid=stream" + streamNum;
-        //   stream.uri = "ws://localhost:8085/ws/stream?suuid=stream" + streamNum;
-        //   if (stream.netcam_uri === '')
-        //     stream.netcam_uri = 'rtsp://';
-        //
-        //   if (camera.ftp && streamKeyNum++ == 1) {
-        //     stream.recording.enabled = true
-        //     stream.recording.recording_src_url = 'http://localhost:8085/h/stream?suuid=stream' + streamNum;
-        //     stream.recording.uri = 'http://localhost:8084/recording/rec' + streamNum + '/';
-        //     stream.recording.location = 'rec' + streamNum;
-        //     stream.motion.trigger_recording_on = '';
-        //   } else if (stream.motion.enabled) {
-        //     // stream.recording = new Recording();
-        //     stream.recording.enabled = true;
-        //     stream.recording.recording_src_url = 'http://localhost:8085/h/stream?suuid=stream' + streamNum;
-        //     stream.recording.uri = 'http://localhost:8084/recording/rec' + streamNum + '/';
-        //     stream.recording.location = 'rec' + streamNum;
-        //     if (stream.motion.trigger_recording_on !== '') {
-        //       let recStreamKey: string[] = stream.motion.trigger_recording_on.split('.');
-        //       if (recStreamKey.length === 2) {
-        //         // Get the key of the stream on which recordings are to be triggered
-        //         let recStream: Stream = camera.streams.get(recStreamKey[1]) as Stream;
-        //         // Set up the recording
-        //         if (recStream !== undefined) {
-        //           recStream.recording.enabled = true;
-        //           recStream.recording.recording_src_url = 'http://localhost:8085/h/stream?suuid=stream' + recStream.rec_num;
-        //           recStream.recording.uri = 'http://localhost:8084/recording/rec' + recStream.rec_num + '/';
-        //           recStream.recording.location = 'rec' + recStream.rec_num;
-        //         }
-        //       }
-        // }
-        //   }
-        // } else {  // Production mode
-
-        stream.media_server_input_uri = 'http://localhost:8085/live/stream?suuid=stream' + streamNum;
-        stream.uri = '/ws/stream?suuid=stream' + streamNum;
-        if (stream.netcam_uri === '') {
+        if (isDevMode()) {  // Development mode
+          stream.media_server_input_uri = "http://localhost:8085/live/stream?suuid=stream" + streamNum;
+          stream.uri = "ws://localhost:8085/ws/stream?suuid=stream" + streamNum;
+          if (stream.netcam_uri === '')
           stream.netcam_uri = 'rtsp://';
-        }
 
-        if (camera.ftp && streamKeyNum++ === 1) {
+          if (camera.ftp !== 'none' && camera.ftp === streamKey) {
+            stream.recording.enabled = true
+            stream.recording.recording_src_url = 'http://localhost:8085/h/stream?suuid=stream' + streamNum;
+            stream.recording.uri = 'http://localhost:8084/recording/rec' + streamNum + '/';
+            stream.recording.location = 'rec' + streamNum;
+            stream.motion.trigger_recording_on = '';
+          } else if (stream.motion.enabled) {
+            // stream.recording = new Recording();
           stream.recording.enabled = true;
           stream.recording.recording_src_url = 'http://localhost:8085/h/stream?suuid=stream' + streamNum;
+            stream.recording.uri = 'http://localhost:8084/recording/rec' + streamNum + '/';
+            stream.recording.location = 'rec' + streamNum;
+            if (stream.motion.trigger_recording_on !== '') {
+              let recStreamKey: string[] = stream.motion.trigger_recording_on.split('.');
+              if (recStreamKey.length === 2) {
+                // Get the key of the stream on which recordings are to be triggered
+                let recStream: Stream = camera.streams.get(recStreamKey[1]) as Stream;
+                // Set up the recording
+                if (recStream !== undefined) {
+                  recStream.recording.enabled = true;
+                  recStream.recording.recording_src_url = 'http://localhost:8085/h/stream?suuid=stream' + recStream.rec_num;
+                  recStream.recording.uri = 'http://localhost:8084/recording/rec' + recStream.rec_num + '/';
+                  recStream.recording.location = 'rec' + recStream.rec_num;
+                }
+              }
+            }
+          }
+        } else {  // Production mode
+          stream.media_server_input_uri = "http://localhost:8085/live/stream?suuid=stream" + streamNum;
+          stream.uri = "/ws/stream?suuid=stream" + streamNum;
+          if (stream.netcam_uri === '')
+            stream.netcam_uri = 'rtsp://';
+          if (camera.ftp !== 'none' && camera.ftp === streamKey) {
+            stream.recording.enabled = true
+            stream.recording.recording_src_url = 'http://localhost:8085/h/stream?suuid=stream' + streamNum;
           stream.recording.uri = '/recording/rec' + streamNum + '/';
           stream.recording.location = 'rec' + streamNum;
           stream.motion.trigger_recording_on = '';
         } else if (stream.motion.enabled) {
           // stream.recording = new Recording();
-          stream.recording.enabled = true;
+            stream.recording.enabled = true
           stream.recording.recording_src_url = 'http://localhost:8085/h/stream?suuid=stream' + streamNum;
           stream.recording.uri = '/recording/rec' + streamNum + '/';
           stream.recording.location = 'rec' + streamNum;
@@ -445,15 +451,15 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit, OnDestroy {
             }
           }
         }
-
+        }
         streamMap.set('stream' + streamNum, stream);
         ++streamNum;
-      });
+      })
       camera.streams = streamMap;
       let newKey = 'camera' + camNum;
       retVal.set(newKey, camera);
       ++camNum;
-    });
+    })
 
 // Renumber trigger_recording_on references so that the camera number is always the same as the camera key
 // Deleting a camera other than the last will cause the camera keys not to tie up with any previously set
@@ -465,11 +471,12 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit, OnDestroy {
           fields[0] = camKey;
           stream.motion.trigger_recording_on = fields[0] + '.' + fields[1];
         }
-      });
-    });
+      })
+    })
 
     this.cameras = retVal;
     this.setUpTableFormControls();
+    this.cd.detectChanges();  // Fixes bug where the doorbell would come up with the wrong stream selected for motion after onvif discovery
   }
 
   toggle(el: { key: string, value: Camera }) {
@@ -482,16 +489,14 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   moveUp(cam: KeyValue<string, Camera>) {
-    let prevKey: string = '';
+    let prevKey: string = "";
     let gotPrevKey = false;
     this.cameras.forEach((v, k) => {
-      if (k == cam.key) {
+      if (k == cam.key)
         gotPrevKey = true;
-      }
 
-      if (!gotPrevKey) {
+      if (!gotPrevKey)
         prevKey = k;
-      }
     });
     let temp = this.cameras.get(prevKey);
     if (temp != undefined) {
@@ -502,16 +507,15 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   moveDown(cam: KeyValue<string, Camera>) {
-    let nextKey: string = '';
+    let nextKey: string = "";
     let getNextKey = false;
     this.cameras.forEach((v, k) => {
       if (getNextKey) {
         nextKey = k;
         getNextKey = false;
       }
-      if (k == cam.key) {
+      if (k == cam.key)
         getNextKey = true;
-      }
     });
     let temp = this.cameras.get(nextKey);
     if (temp != undefined) {
@@ -534,7 +538,7 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit, OnDestroy {
         stream.motion.enabled = false;
         stream.recording.enabled = false;
         stream.motion.trigger_recording_on = '';
-      });
+      })
     } else {
       stream.recording.enabled = false;
     }
@@ -553,10 +557,9 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit, OnDestroy {
       });
       // Now set the selected one
       stream.defaultOnMultiDisplay = true;
-    } else {
+    } else
       $event.source.checked = true;
     }
-  }
 
   setAudioInEnabledStatus($event: MatCheckboxChange, stream: Stream) {
     stream.audio = $event.checked;
@@ -588,7 +591,7 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   addStream(cam: Camera) {
-    cam.streams.set('stream' + (cam.streams.size + 1), new Stream());
+    cam.streams.set('stream' + (cam.streams.size + 1), new Stream())
     this.FixUpCamerasData();
   }
 
@@ -596,20 +599,15 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit, OnDestroy {
     let retVal: boolean = false;
 
     this.camControls.controls.forEach((camControlFormGroup: AbstractControl) => {
-      if (camControlFormGroup.invalid) {
+      if (camControlFormGroup.invalid)
         retVal = true;
-      }
-    });
+    })
 
-    if (retVal) {
-      return retVal;
-    }
-
+    if (!retVal)
     for (let streamFormArrayKey in this.streamControls) {
       this.streamControls[streamFormArrayKey].controls.forEach((streamControlFormGroup: AbstractControl) => {
-        if (streamControlFormGroup.invalid) {
+          if (streamControlFormGroup.invalid)
           retVal = true;
-        }
       });
     }
 
@@ -629,34 +627,35 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit, OnDestroy {
     let jsonObj: {} = {};
 
     cams.forEach((cam, key: string) => {
-      let newCam: Camera = JSON.parse(JSON.stringify(cam));
+      let newCam: Camera = JSON.parse(JSON.stringify(cam))
       let jsonStreams: {} = {};
       cam.streams.forEach((strValue, strKey: string) => {
-        let newStream: Stream = JSON.parse(JSON.stringify(strValue));
+        let newStream: Stream = JSON.parse(JSON.stringify(strValue))
         // @ts-ignore
         delete newStream.selected;
         // @ts-ignore
         delete newStream.rec_num;
         // @ts-ignore
         jsonStreams[strKey] = newStream;
-      });
+      })
       // @ts-ignore
       newCam.streams = jsonStreams;
       // @ts-ignore
       jsonObj[key] = newCam;
-    });
+    })
 
     this.cameraSvc.updateCameras(JSON.stringify(jsonObj)).subscribe(() => {
-        this.reporting.successMessage = 'Update Cameras Successful!';
+        this.reporting.successMessage = "Update Cameras Successful!";
         this.updating = false;
         // Update the saved data hash
         this.savedDataHash = objectHash(this.cameras);
+        this.cd.detectChanges();
       },
       reason => {
-        this.reporting.errorMessage = reason;
+        this.reporting.errorMessage = reason
         this.updating = false;
       }
-    );
+    )
   }
 
   /**
@@ -675,8 +674,8 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit, OnDestroy {
     this.discovering = true;
     this.cameraSvc.discover().subscribe((cams: Map<string, Camera>) => {
         this.cameras = cams;
-        this.FixUpCamerasData();
         this.discovering = false;
+        this.FixUpCamerasData();
       },
       reason => {
         this.reporting.errorMessage = reason;
@@ -688,11 +687,10 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit, OnDestroy {
     let totalStreams = 0;
     this.cameras.forEach((cam: Camera) => {
       cam.streams.forEach((stream: Stream) => {
-        if (stream.recording.enabled) {
+        if (stream.recording.enabled)
           ++totalStreams;
-        }
-      });
-    });
+      })
+    })
     return totalStreams;
   }
 
@@ -711,21 +709,20 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit, OnDestroy {
         // Upload file to server
         this.cameraSvc.uploadMaskFile(fileUploadInput?.files[0])
           .subscribe(() => {
-              this.reporting.successMessage = stream.motion.mask_file + ' uploaded successfully';
+              this.reporting.successMessage = stream.motion.mask_file + ' uploaded successfully'
             },
             (reason) => {
-              this.reporting.errorMessage = reason;
+              this.reporting.errorMessage = reason
             });
-      } else {
+      } else
         this.reporting.errorMessage = new HttpErrorResponse({
-          error: 'The file ' + stream.motion.mask_file + (control.errors?.mask_file ? ' is not a valid mask file'
-            : control.errors?.duplicate ? ' is used with more than one stream'
-              : ' has an unspecified error'),
+          error: "The file " + stream.motion.mask_file + (control.errors?.mask_file ? " is not a valid mask file"
+            : control.errors?.duplicate ? " is used with more than one stream"
+              : " has an unspecified error"),
           status: 0,
-          statusText: '',
+          statusText: "",
           url: undefined
         });
-      }
 
       // Clear the input so that selecting the same file again still triggers an onchange event
       fileUploadInput.value = '';
@@ -734,9 +731,9 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit, OnDestroy {
 
   getSnapshot(cam: KeyValue<string, Camera>) {
     this.snapshotLoading = true;
-    if (this.snapShotKey === cam.key) {
+    if (this.snapShotKey === cam.key)
       this.snapShotKey = '';
-    } else if (cam.value.snapshotUri !== '') {
+    else if (cam.value.snapshotUri !== '') {
       this.snapShotKey = cam.key;
       this.cameraSvc.getSnapshot(cam.value.snapshotUri).subscribe(result => {
           this.snapshot = this.sanitizer.bypassSecurityTrustResourceUrl('data:image/jpeg;base64,' + this.toBase64(result));
@@ -752,12 +749,12 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit, OnDestroy {
           }
           this.snapshotLoading = false;
           this.snapShotKey = '';
-        });
+        })
     }
   }
 
   ftpSet(cam: Camera): boolean {
-    return cam.ftp;
+    return cam.ftp !== 'none' && typeof cam.ftp !== 'boolean';
   }
 
   motionSet(cam: Camera): boolean {
@@ -782,6 +779,7 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit, OnDestroy {
     }
     return window.btoa(binary);
   }
+
   private checkIfCameraCredentialsPresent() {
     this.cameraSvc.haveCameraCredentials().subscribe(result => {
         this.haveCameraCredentials = result == "true";
@@ -826,19 +824,36 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit, OnDestroy {
     cam.backchannelAudioSupported = !cam.backchannelAudioSupported;
   }
 
+  getScrollableContentStyle():string {
+    const scrollableContent = this.scrollableContent?.nativeElement;
+    // Calculated scrollbar height, don't use or we Expression changed after it was checked error will occur
+    //   scrollableContent?.offsetHeight - scrollableContent?.clientHeight;
+    const scrollbarHeight = 20; //Should be the same as height in ::-webkit-scrollbar
+    const extraBit = 1;  // To make browser window vertical scrollbar disappear
+
+    if(scrollableContent !== undefined ) {
+      const boundingRect = scrollableContent.getBoundingClientRect()
+      return `height: calc(100dvh - ${boundingRect.top+scrollbarHeight+extraBit}px);`
+    }
+    else return ""
+  }
+
   ngOnInit(): void {
     // Set up the available streams/cameras for selection by the checkboxes
     this.cameraSvc.loadCameras().subscribe(cameras => {
         this.cameras = cameras;
-        this.FixUpCamerasData();
-        this.savedDataHash = objectHash(this.cameras);
+
         this.downloading = false;
+        this.FixUpCamerasData()
+        this.savedDataHash = objectHash(this.cameras);
       },
       () => {
         this.createNew();
         this.reporting.errorMessage = new HttpErrorResponse({error: 'The configuration file is absent, empty or corrupt. Please set up the configuration for your cameras and save it.'});
         this.downloading = false;
-      });
+      })
+    this.checkIfCameraCredentialsPresent();
+    this.isGuest = this.utils.isGuestAccount;
   }
 
   ngAfterViewInit(): void {
