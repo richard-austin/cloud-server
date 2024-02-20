@@ -1,11 +1,12 @@
 import {EventEmitter, Injectable} from '@angular/core';
 import {HttpClient, HttpErrorResponse, HttpHeaders} from "@angular/common/http";
 import {BaseUrl} from "../shared/BaseUrl/BaseUrl";
-import {Observable, Subject, throwError} from "rxjs";
+import {Observable, throwError} from "rxjs";
 import {catchError, map, tap} from "rxjs/operators";
 import {AudioEncoding, Camera, CameraParamSpec, Stream} from "./Camera";
 import {CameraAdminCredentials} from "../credentials-for-camera-access/credentials-for-camera-access.component";
 import {NativeDateAdapter} from '@angular/material/core';
+import {KeyValue} from "@angular/common";
 
 
 /**
@@ -66,7 +67,7 @@ export class CameraService {
     })
   };
 
-  private _cameras: Map<string, Camera> = new Map();
+  private cameras: Map<string, Camera> = new Map();
 
   errorEmitter: EventEmitter<HttpErrorResponse> = new EventEmitter<HttpErrorResponse>();
 
@@ -108,6 +109,9 @@ export class CameraService {
     {name: "100", value: 100}
   ];
 
+  private _preambleFrameValues: number[] = [
+    0, 25, 50, 75, 100, 125, 150, 175, 200, 225, 250, 275, 300, 325, 350, 375, 400
+  ]
   get cameraParamSpecs() {
     return this._cameraParamSpecs;
   };
@@ -119,21 +123,24 @@ export class CameraService {
   get ftpRetriggerWindows() {
     return this._ftpRetriggerWindows;
   }
+  get preambleFrameValues() {
+    return this._preambleFrameValues;
+  }
   constructor(private http: HttpClient, private _baseUrl: BaseUrl) {
     this.loadCameras().subscribe((cams) => {
-      this._cameras = cams;
+      this.cameras = cams;
+
     })
   }
 
   /**
-   * cameras: Returns an array of cameras
+   * getCameras: Returns an array of cameras
    */
-  public get cameras(): Map<string, Camera> {
-    return this._cameras;
+  public getCameras(): Map<string, Camera> {
+    return this.cameras;
   }
-
   initialiseCameras() {
-    this.loadCameras().subscribe((cam) => this._cameras = cam);
+    this.loadCameras().subscribe((cam) => this.cameras = cam);
   }
 
   private static convertCamsObjectToMap(cams: Object): Map<string, Camera> {
@@ -155,6 +162,19 @@ export class CameraService {
     return cameras;
   }
 
+  /**
+   * compareFn: Compare function for use with the keyvalue pipe. This compares string with numbers (such as stream9, stream10)
+   *            and sorts the numeric parts numerically rather than alphabetically. This was added to fix a bug which
+   *            occurred when there are 10 or more streams in total (like with 5 cameras, each having two streams).
+   * @param kv1 key1 camera1/stream1
+   * @param kv2 key2, camera2/stream2
+   */
+  compareFn(kv1: KeyValue<string, any>, kv2: KeyValue<string, any>): number {
+    return kv1.key.localeCompare(kv2.key, undefined, {
+      numeric: true,
+      sensitivity: 'base'
+    });
+  }
   /**
    * loadCameras: Get camera set up details from the server
    * @private
@@ -178,10 +198,10 @@ export class CameraService {
     let cameras = {camerasJSON: camerasJON};
     return this.http.post<any>(this._baseUrl.getLink("cam", "updateCameras"), JSON.stringify(cameras), this.httpJSONOptions).pipe(
       tap((cams) => {
-        this._cameras = new Map();
+        this.cameras = new Map();
 
         for (const key in cams)
-          this._cameras.set(key, cams[key]);
+          this.cameras.set(key, cams[key]);
       }),
       map(cams => {
         return CameraService.convertCamsObjectToMap(cams);

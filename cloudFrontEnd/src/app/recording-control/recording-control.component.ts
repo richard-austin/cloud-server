@@ -60,7 +60,7 @@ export class RecordingControlComponent implements OnInit, AfterViewInit, OnDestr
     this.initialised = false;
     this.route.paramMap.subscribe((paramMap) => {
       let streamName: string = paramMap.get('streamName') as string;
-      cameraSvc.cameras.forEach((cam) => {
+      cameraSvc.getCameras().forEach((cam) => {
         cam.streams.forEach((stream, k) => {
           if (stream.media_server_input_uri.endsWith(streamName)) {
             this.cam = cam;
