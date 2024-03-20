@@ -1,7 +1,7 @@
 import {EventEmitter, Injectable} from '@angular/core';
 import {HttpClient, HttpErrorResponse, HttpHeaders} from "@angular/common/http";
 import {BaseUrl} from "../shared/BaseUrl/BaseUrl";
-import {Observable, throwError} from "rxjs";
+import {Observable, throwError, timer} from 'rxjs';
 import {catchError, map, tap} from "rxjs/operators";
 import {AudioEncoding, Camera, CameraParamSpec, Stream} from "./Camera";
 import {NativeDateAdapter} from '@angular/material/core';
@@ -73,7 +73,7 @@ export class CameraService {
     })
   };
 
-  private cameras: Map<string, Camera> = new Map();
+  cameras: Map<string, Camera> = new Map();
 
   errorEmitter: EventEmitter<HttpErrorResponse> = new EventEmitter<HttpErrorResponse>();
  private _publicKey!: Uint8Array;
@@ -138,10 +138,6 @@ export class CameraService {
     return this._publicKey;
   }
   constructor(private http: HttpClient, private _baseUrl: BaseUrl) {
-    this.loadCameras().subscribe((cams) => {
-      this.cameras = cams;
-    });
-    this.getPublicKey();
   }
 
   /**
@@ -149,6 +145,10 @@ export class CameraService {
    */
   public getCameras(): Map<string, Camera> {
     return this.cameras;
+  }
+
+  initialiseCameras() {
+    this.loadCameras().subscribe((cam) => this.cameras = cam);
   }
 
   private static convertCamsObjectToMap(cams: Object): Map<string, Camera> {

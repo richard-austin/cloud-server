@@ -23,7 +23,6 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild(ReportingComponent) errorReporting!: ReportingComponent;
   @ViewChild('navbarCollapse') navbarCollapse!: ElementRef<HTMLDivElement>;
 
-//  cameras: Map<string, Camera> = new Map<string, Camera>();
   confirmLogout: boolean = false;
   pingHandle!: Subscription;
   timerHandle!: Subscription;
@@ -198,14 +197,12 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
     navbarCollapse.setAttribute('style', 'max-height: 0');
   }
 
-  get cameras(): Map<string, Camera> {
-    return this.cameraSvc.getCameras();
-  }
-
-  initialise(auth: string): void {
+   initialise(auth: string): void {
     this.utilsService.isTransportActive().subscribe();  // Sets the status flag in utils service
     switch (auth) {
       case 'ROLE_CLIENT':
+        this.cameraSvc.initialiseCameras();  // Load the cameras data
+        this.cameraSvc.getPublicKey();
         this.idleTimeoutActive = this.callGetTemp = true;
         this.callGetAuthorities = false;
         this.getTemperature();  // Ensure we show the core temperature straight away on refresh
@@ -260,6 +257,10 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
 
   changePassword() {
     window.location.href = '#/changepassword';
+  }
+
+  get cameras(): Map<string, Camera> {
+    return this.cameraSvc.cameras;
   }
 
   ngOnInit(): void {
