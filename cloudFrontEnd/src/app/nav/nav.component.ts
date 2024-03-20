@@ -198,11 +198,14 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
     navbarCollapse.setAttribute('style', 'max-height: 0');
   }
 
+  get cameras(): Map<string, Camera> {
+    return this.cameraSvc.getCameras();
+  }
+
   initialise(auth: string): void {
     this.utilsService.isTransportActive().subscribe();  // Sets the status flag in utils service
     switch (auth) {
       case 'ROLE_CLIENT':
-        this.cameraSvc.initialiseCameras();  // Load the cameras data
         this.idleTimeoutActive = this.callGetTemp = true;
         this.callGetAuthorities = false;
         this.getTemperature();  // Ensure we show the core temperature straight away on refresh

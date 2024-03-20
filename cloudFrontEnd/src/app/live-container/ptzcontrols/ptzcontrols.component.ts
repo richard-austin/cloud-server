@@ -13,7 +13,7 @@ import {PTZPresetsInfoCommand, PTZPresetsInfoResponse, PTZService} from "../ptz.
   styleUrls: ['./ptzcontrols.component.scss']
 })
 export class PTZControlsComponent implements OnInit {
-  @Input() camera!:Camera | null;
+  @Input() camera!: Camera;
   @Input() reporting!: ReportingComponent;
   @ViewChildren(MatSlideToggle) slideToggles!: QueryList<MatSlideToggle>;
   eMoveDirections: any = eMoveDirections;
@@ -64,7 +64,7 @@ export class PTZControlsComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.ptzService.ptzPresetsInfo(new PTZPresetsInfoCommand(this.camera?.onvifHost as string)).subscribe((result) => {
+    this.ptzService.ptzPresetsInfo(new PTZPresetsInfoCommand(this.camera)).subscribe((result) => {
         this.presetsInfo = result;
         this.maxPresets = result.maxPresets > 32 ? 32 : this.presetsInfo.maxPresets;
     },

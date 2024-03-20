@@ -39,7 +39,6 @@ import {MatSortModule} from "@angular/material/sort";
 import {MatTooltipModule} from "@angular/material/tooltip";
 import { ExcludeOwnStreamPipe } from './config-setup/exclude-own-stream.pipe';
 import { DisableControlDirective } from './shared/disable-control.directive';
-import { CredentialsForCameraAccessComponent } from './credentials-for-camera-access/credentials-for-camera-access.component';
 import { LoginComponent } from './login/login.component';
 import { RegisterAccountComponent } from './register-account/register-account.component';
 import { ProductIdInputComponent } from './register-account/product-id-input/product-id-input.component';
@@ -54,7 +53,6 @@ import { GetActiveIPAddressesComponent } from './get-active-ipaddresses/get-acti
 import { GetLocalWifiDetailsComponent } from './get-local-wifi-details/get-local-wifi-details.component';
 import { WifiSettingsComponent } from './wifi-settings/wifi-settings.component';
 import { PTZControlsComponent } from './live-container/ptzcontrols/ptzcontrols.component';
-import { PTZButtonComponent } from './live-container/ptzcontrols/ptzbutton/ptzbutton.component';
 import { PresetButtonComponent } from './live-container/ptzcontrols/preset-button/preset-button.component';
 import {MatDividerModule} from "@angular/material/divider";
 import {MatSlideToggleModule} from "@angular/material/slide-toggle";
@@ -68,6 +66,10 @@ import {SetupSMTPClientComponent} from './setup-smtpclient/setup-smtpclient.comp
 import {ChangeEmailComponent} from './change-email/change-email.component';
 import {MatAutocompleteModule} from '@angular/material/autocomplete';
 import {CreateUserAccountContainerComponent} from './create-user-account-container/create-user-account-container.component';
+import {OnvifCredentialsComponent} from './config-setup/camera-credentials/onvif-credentials.component';
+import {OnvifFailuresComponent} from './config-setup/onvif-failures/onvif-failures.component';
+import {SafeHtmlPipe} from './shared/safe-html.pipe';
+import {PTZButtonComponent} from './live-container/ptzcontrols/ptzbutton/ptzbutton.component';
 
 @NgModule({
   declarations: [
@@ -88,7 +90,7 @@ import {CreateUserAccountContainerComponent} from './create-user-account-contain
     ConfigSetupComponent,
     ExcludeOwnStreamPipe,
     DisableControlDirective,
-    CredentialsForCameraAccessComponent,
+    OnvifCredentialsComponent,
     LoginComponent,
     RegisterAccountComponent,
     ProductIdInputComponent,
@@ -109,7 +111,9 @@ import {CreateUserAccountContainerComponent} from './create-user-account-contain
     AddAsOnvifDeviceComponent,
     SetupSMTPClientComponent,
     ChangeEmailComponent,
-    CreateUserAccountContainerComponent
+    CreateUserAccountContainerComponent,
+    SafeHtmlPipe,
+    OnvifFailuresComponent
   ],
     imports: [
         BrowserModule,
@@ -130,6 +134,7 @@ import {CreateUserAccountContainerComponent} from './create-user-account-contain
         MatIconModule,
         MatProgressSpinnerModule,
         FormsModule,
+        ReactiveFormsModule,
         // Optionally you can set time for `idle`, `timeout` and `ping` in seconds.
         // Default values: `idle` is 600 (10 minutes), `timeout` is 300 (5 minutes)
         // and `ping` is 60 (1 minutes).
