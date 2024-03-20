@@ -3,7 +3,6 @@ import { Component, OnInit } from '@angular/core';
 import {Preset, PTZPresetCommand, PTZService} from "../../ptz.service";
 import {Camera} from "../../../cameras/Camera";
 import {ReportingComponent} from "../../../reporting/reporting.component";
-import {falseIfMissing} from 'protractor/built/util';
 
 export enum ePresetOperations {moveTo, saveTo, clearFrom}
 

@@ -60,7 +60,6 @@ import {MatDatepickerModule} from "@angular/material/datepicker";
 import {DateAdapter, MAT_DATE_LOCALE, MatNativeDateModule} from '@angular/material/core';
 import {Platform} from "@angular/cdk/platform";
 import {CustomDateAdapter} from "./cameras/camera.service";
-import {AddAsOnvifDeviceComponent} from './cameras/add-as-onvif-device/add-as-onvif-device.component';
 import {AudioInputPipe} from './video/audio-input.pipe';
 import {SetupSMTPClientComponent} from './setup-smtpclient/setup-smtpclient.component';
 import {ChangeEmailComponent} from './change-email/change-email.component';
@@ -70,6 +69,7 @@ import {OnvifCredentialsComponent} from './config-setup/camera-credentials/onvif
 import {OnvifFailuresComponent} from './config-setup/onvif-failures/onvif-failures.component';
 import {SafeHtmlPipe} from './shared/safe-html.pipe';
 import {PTZButtonComponent} from './live-container/ptzcontrols/ptzbutton/ptzbutton.component';
+import {AddAsOnvifDeviceComponent} from './config-setup/add-as-onvif-device/add-as-onvif-device.component';
 
 @NgModule({
   declarations: [
