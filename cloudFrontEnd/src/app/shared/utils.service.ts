@@ -3,7 +3,7 @@ import {HttpClient, HttpErrorResponse, HttpHeaders} from "@angular/common/http";
 import {BaseUrl} from "./BaseUrl/BaseUrl";
 import {Observable, Subject, throwError} from "rxjs";
 import {catchError, tap} from "rxjs/operators";
-import {CameraParams, Stream} from '../cameras/Camera';
+import {Camera, CameraParams} from '../cameras/Camera';
 import {cameraType} from '../cameras/camera.service';
 import {SMTPData} from '../setup-smtpclient/setup-smtpclient.component';
 import {IMessage} from '@stomp/stompjs';
@@ -370,8 +370,25 @@ export class UtilsService {
     return this._messaging.asObservable();
   }
 
-  startAudioOut(stream: Stream) {
-    return this.http.post<void>(this._baseUrl.getLink("utils", "startAudioOut"), JSON.stringify({stream: stream}), this.httpJSONOptions).pipe(
+  getScrollableContentStyle(scrollableContent: HTMLElement | null | undefined, setMaxHeight: boolean = false): string {
+    // Calculated scrollbar height, don't use or we Expression changed after it was checked error will occur
+    //   scrollableContent?.offsetHeight - scrollableContent?.clientHeight;
+    const scrollbarHeight = 20; //Should be the same as height in ::-webkit-scrollbar
+    const extraBit = 1;  // To make browser window vertical scrollbar disappear
+
+    if (scrollableContent !== null && scrollableContent !== undefined) {
+      const boundingRect = scrollableContent.getBoundingClientRect()
+      return (setMaxHeight ? 'max-' : '') + `height: calc(100dvh - ${boundingRect.top + scrollbarHeight + extraBit}px);`
+    }
+    else return ""
+  }
+
+
+  startAudioOut(cam: Camera, netcam_uri: string) {
+    return this.http.post<void>(this._baseUrl.getLink("utils", "startAudioOut"), JSON.stringify({
+      cam: cam,
+      netcam_uri: netcam_uri
+    }), this.httpJSONOptions).pipe(
       catchError((err: HttpErrorResponse) => throwError(err))
     );
   }
