@@ -22,8 +22,29 @@ chmod 640 /etc/tomcat9/tomcat-users.xml
 chown root:tomcat /etc/tomcat9/tomcat-users.xml
 chmod 640 /etc/tomcat9/server.xml
 chown root:tomcat /etc/tomcat9/server.xml
-chown root:tomcat /etc/cloud/client.ks /etc/cloud/client.ts /etc/cloud/privateKey
-chmod 440 /etc/cloud/client.ks /etc/cloud/client.ts /etc/cloud/privateKey
+chown root:tomcat /etc/cloud/privateKey
+chmod 440 /etc/cloud/privateKey
+
+# Create the client keystore for connection to the NVRs via ActiveMQ
+MQ_CREDS_FILE=/etc/cloud/cloud-creds.json
+if ! test -f "$MQ_CREDS_FILE"; then
+  kspassword_client=$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 40)
+  keytool -genkey -alias client -dname "cn=NVR USER, ou=Private, o=Private, c=Unknown st=Unknown" -keypass "$kspassword_client" -storepass "$kspassword_client" -keyalg RSA -keystore /etc/cloud/client.ks
+  chown tomcat:tomcat /etc/cloud/client.ks
+  chmod 400 /etc/cloud/client.ks
+  cat > $MQ_CREDS_FILE << EOF
+{
+   "mqClientKSPath": "/etc/cloud/client.ks",
+   "mqClientKSPW": "${kspassword_client}",
+   "mqUser": "cloud",
+   "mqPw": "inelESOLsiONgeOuShEFatIns"
+}
+EOF
+  chmod 400 $MQ_CREDS_FILE
+  chown tomcat:tomcat $MQ_CREDS_FILE
+fi
+
+
 
 #A new group, grp-cloud, is added, then the users tomcat and usr-cloud added to that group.
 # The grp-cloud group is then given group access to usr-cloud and it's subdirectories. The user and group permissions are then set up.
