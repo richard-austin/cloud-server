@@ -127,6 +127,11 @@ environments:
     cloud:
       username: cloud
       password: "DrN3yuFAtSsK2w7AtTf66FFRVveBwtjU"
+      mqTrustStorePath: /etc/cloud/client.ts
+      mqKeyStorePath: /etc/cloud/client.ks
+      mqKeyStorePassword: ExPEThINdAvAmpROteRCLEyfI
+      mqUser: cloud
+      mqPassword: inelESOLsiONgeOuShEFatIns
       mqURL: failover://ssl://192.168.1.83:61617?socket.verifyHostName=false
       privateKeyPath: ../xtrn-files-and-config/privateKey
       browserFacingPort: 8083
@@ -154,6 +159,11 @@ environments:
     cloud:
       username: cloud
       password: "DrN3yuFAtSsK2w7AtTf66FFRVveBwtjU"
+      mqTrustStorePath: /etc/cloud/client.ts
+      mqKeyStorePath: /etc/cloud/client.ks
+      mqKeyStorePassword: ExPEThINdAvAmpROteRCLEyfI
+      mqUser: cloud
+      mqPassword: inelESOLsiONgeOuShEFatIns
       mqURL: failover://ssl://192.168.1.83:61617?socket.verifyHostName=false
       privateKeyPath: /etc/cloud/privateKey
       browserFacingPort: 8083

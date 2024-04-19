@@ -182,8 +182,8 @@ public class CloudMQListener {
         ActiveMQSslConnectionFactoryNoTrustStore connectionFactory = new ActiveMQSslConnectionFactoryNoTrustStore(cp.getAMQ_URL());
         connectionFactory.setKeyStore(cp.getAMQ_KEYSTORE_PATH());
         connectionFactory.setKeyStorePassword(cp.getAMQ_KEYSTORE_PASSWORD());
-        connectionFactory.setTrustStore(cp.getAMQ_TRUSTSTORE_PATH());
-        connectionFactory.setTrustStorePassword(cp.getAMQ_TRUSTSTORE_PASSWORD());
+//        connectionFactory.setTrustStore(cp.getAMQ_TRUSTSTORE_PATH());
+//        connectionFactory.setTrustStorePassword(cp.getAMQ_TRUSTSTORE_PASSWORD());
         return connectionFactory;
     }
 
