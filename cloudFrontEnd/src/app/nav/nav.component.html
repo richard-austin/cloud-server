@@ -91,6 +91,12 @@
                 matTooltipClass="tooltip">
           Change {{ utilsService.isAdmin ? "Admin " : "Cloud " }}Account Email
         </button>
+        <button mat-menu-item *ngIf="utilsService.isAdmin"
+                (click)="setActiveMQCreds();menuClosed()"
+                matTooltip="Set up ActiveMQ credentials and host"
+                matTooltipClass="tooltip">
+          Set ActiveMQ Credentials
+        </button>
         <div *ngIf="!utilsService.isAdmin" class="dropdown-divider"></div>
         <button *ngIf="!utilsService.isAdmin" mat-menu-item (click)="setIp();menuClosed()"
                 matTooltip="Register the current public IP address of your internet account. If that address subsequewntly changes, you will be sent warning emails to your registered email address (on the NVR)"

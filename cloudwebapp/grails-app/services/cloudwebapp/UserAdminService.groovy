@@ -2,6 +2,7 @@ package cloudwebapp
 
 import cloudservice.User
 import cloudservice.UserRole
+import cloudservice.commands.AddOrUpdateActiveMQCredsCmd
 import cloudservice.commands.AdminChangeEmailCommand
 import cloudservice.commands.AdminChangePasswordCommand
 import cloudservice.commands.ChangeEmailCommand
@@ -12,8 +13,8 @@ import cloudservice.commands.SendResetPasswordLinkCommand
 import cloudservice.commands.SetAccountEnabledStatusCommand
 import cloudservice.enums.PassFail
 import cloudservice.interfaceobjects.ObjectCommandResponse
-import grails.config.Config
-import grails.core.GrailsApplication
+import com.google.gson.JsonObject
+import com.proxy.CloudProperties
 import grails.gorm.transactions.Transactional
 import grails.plugin.springsecurity.SpringSecurityService
 import org.grails.web.json.JSONObject
@@ -30,14 +31,13 @@ import javax.mail.internet.InternetAddress
 import javax.mail.internet.MimeBodyPart
 import javax.mail.internet.MimeMessage
 import javax.mail.internet.MimeMultipart
-import java.util.concurrent.ConcurrentHashMap
-
+import java.util.concurrent.*
 
 @Transactional()
 class UserAdminService {
     SpringSecurityService springSecurityService
     LogService logService
-    GrailsApplication grailsApplication
+    CloudService cloudService
     UserService userService
     UtilsService utilsService
     SimpMessagingTemplate brokerMessagingTemplate
@@ -66,9 +66,8 @@ class UserAdminService {
             user.setPassword(cmd.getNewPassword())
             user.save()
         }
-        catch(Exception ex)
-        {
-            logService.cloud.error("Exception in changePassword: "+ex.getCause()+ ' ' + ex.getMessage())
+        catch (Exception ex) {
+            logService.cloud.error("Exception in changePassword: " + ex.getCause() + ' ' + ex.getMessage())
             result.status = PassFail.FAIL
             result.error = ex.getMessage()
         }
@@ -85,33 +84,28 @@ class UserAdminService {
         ObjectCommandResponse result = new ObjectCommandResponse()
         try {
             String email = passwordResetParameterMap.get(cmd.getUniqueId())
-            if(email != null) {
+            if (email != null) {
                 User user = User.findByEmail(email)
-                if(user != null) {
+                if (user != null) {
                     user.setPassword(cmd.newPassword)
                     user.save()
                     passwordResetParameterMap.remove(cmd.uniqueId)
                     Timer timer = timerMap.get(cmd.uniqueId)
                     timer.cancel()
                     timerMap.remove(cmd.uniqueId)
-                }
-                else
-                {
+                } else {
                     logService.cloud.error "No user for email address ${email}"
                     result.status = PassFail.FAIL
                     result.error = "Invalid email for this password reset link"
                 }
-            }
-            else
-            {
+            } else {
                 logService.cloud.error "No email address for uniqueId ${cmd.uniqueId}"
                 result.status = PassFail.FAIL
                 result.error = "Invalid password reset link"
             }
         }
-        catch(Exception ex)
-        {
-            logService.cloud.error("Exception in resetPassword: "+ex.getCause()+ ' ' + ex.getMessage())
+        catch (Exception ex) {
+            logService.cloud.error("Exception in resetPassword: " + ex.getCause() + ' ' + ex.getMessage())
             result.status = PassFail.FAIL
             result.error = ex.getMessage()
         }
@@ -120,30 +114,26 @@ class UserAdminService {
 
     /**
      * setAccountEnabledStatus: Enable/disable a user account
-     * @param cmd: Command object containing the username and the enabled status
+     * @param cmd : Command object containing the username and the enabled status
      * @return: Response object
      */
     ObjectCommandResponse setAccountEnabledStatus(SetAccountEnabledStatusCommand cmd) {
         ObjectCommandResponse response = new ObjectCommandResponse()
         try {
             User user = userService.findByUsername(cmd.username)
-            if(user != null)
-            {
+            if (user != null) {
                 user.setEnabled(cmd.accountEnabled)
                 userService.save(user)
                 brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", update)
-            }
-            else
-            {
+            } else {
                 response.status = PassFail.FAIL
-                response.error ="Could not find user ${cmd.username}"
+                response.error = "Could not find user ${cmd.username}"
                 logService.cloud.error("Error in setAccountEnabledStatus: ${response.error}")
             }
         }
-        catch(Exception ex)
-        {
+        catch (Exception ex) {
             response.status = PassFail.FAIL
-            response.error ="${ex.getClass().getName()} in setAccountEnabledStatus: ${ex.getMessage()}"
+            response.error = "${ex.getClass().getName()} in setAccountEnabledStatus: ${ex.getMessage()}"
             logService.cloud.error("Error in setAccountEnabledStatus: ${response.error}")
         }
         return response
@@ -156,9 +146,8 @@ class UserAdminService {
             user.setPassword(cmd.password)
             user.save()
         }
-        catch(Exception ex)
-        {
-            logService.cloud.error("Exception in adminChangePassword: "+ex.getCause()+ ' ' + ex.getMessage())
+        catch (Exception ex) {
+            logService.cloud.error("Exception in adminChangePassword: " + ex.getCause() + ' ' + ex.getMessage())
             result.status = PassFail.FAIL
             result.error = ex.getMessage()
         }
@@ -173,8 +162,7 @@ class UserAdminService {
             user.save()
             brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", update)
         }
-        catch(Exception ex)
-        {
+        catch (Exception ex) {
             logService.cloud.error("${ex.getClass().getName()} in adminChangeEmail: ${ex.getCause()} ${ex.getMessage()}")
             result.status = PassFail.FAIL
             result.error = ex.getMessage()
@@ -236,8 +224,7 @@ class UserAdminService {
             user.delete(flush: true)
             brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", update)
         }
-        catch(Exception ex)
-        {
+        catch (Exception ex) {
             logService.cloud.error("${ex.getClass().getName()} in adminDeleteAccount: ${ex.getCause()} ${ex.getMessage()}")
             result.status = PassFail.FAIL
             result.error = ex.getMessage()
@@ -257,8 +244,7 @@ class UserAdminService {
 
             sendEmail(cmd.getEmail(), uniqueId, cmd.getClientUri())
         }
-        catch(Exception ex)
-        {
+        catch (Exception ex) {
             logService.cloud.error("${ex.getClass().getName()} in sendResetPasswordLink: ${ex.getCause()} ${ex.getMessage()}")
             result.status = PassFail.FAIL
             result.error = ex.getMessage()
@@ -271,8 +257,7 @@ class UserAdminService {
         try {
             result.responseObject = SecurityContextHolder.getContext().getAuthentication().getAuthorities()
         }
-        catch (Exception ex)
-        {
+        catch (Exception ex) {
             logService.cloud.error("${ex.getClass().getName()} in getUserAuthorities: ${ex.getCause()} ${ex.getMessage()}")
             result.status = PassFail.FAIL
             result.error = ex.getMessage()
@@ -296,8 +281,47 @@ class UserAdminService {
         return generatedString
     }
 
-    private def sendEmail(String email, String idStr, String clientUri)
-    {
+    ObjectCommandResponse addOrUpdateActiveMQCreds(AddOrUpdateActiveMQCredsCmd cmd) {
+        ObjectCommandResponse result = new ObjectCommandResponse()
+        try {
+            CloudProperties props = CloudProperties.getInstance()
+            props.setCloudCreds(cmd.username, cmd.password, cmd.mqHost)
+
+            // Stop and start the ActiveMQ connection so it picks up the new credentials
+            cloudService.stop()
+            final ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(1)
+            executor.schedule(new Runnable() {
+                @Override
+                void run() {
+                    cloudService.start()
+                }
+            }, 3, TimeUnit.SECONDS)
+        }
+        catch (Exception ex) {
+            logService.cloud.error("Exception in createAccount: " + ex.getCause() + ' ' + ex.getMessage())
+            result.status = PassFail.FAIL
+            result.error = ex.getMessage()
+        }
+        return result
+    }
+
+    ObjectCommandResponse hasActiveMQCreds() {
+        ObjectCommandResponse result = new ObjectCommandResponse()
+        try {
+            CloudProperties props = CloudProperties.getInstance()
+            JsonObject creds = props.getCloudCreds()
+            final String mqHost = creds.get("mqHost")?.getAsString()
+            result.responseObject = "{\"hasActiveMQCreds\": ${creds.get("mqUser").getAsString() != ""}, \"mqHost\": ${mqHost == null ? "\"<none>\"" : "\"$mqHost\""}}"
+        }
+        catch (Exception ex) {
+            logService.cloud.error("Exception in hasActiveMQCreds: " + ex.getCause() + ' ' + ex.getMessage())
+            result.status = PassFail.FAIL
+            result.error = ex.getMessage()
+        }
+        return result
+    }
+
+    private def sendEmail(String email, String idStr, String clientUri) {
         def smtpData = utilsService.getSMTPConfigData()
 
         def auth = smtpData.auth
@@ -311,7 +335,7 @@ class UserAdminService {
         def fromaddress = smtpData.fromAddress
 
         User user = User.findByEmail(email)
-        if(user != null) {
+        if (user != null) {
             Properties prop = new Properties()
             prop.put("mail.smtp.auth", auth.toBoolean())
             prop.put("mail.smtp.starttls.enable", enable)
@@ -335,7 +359,7 @@ class UserAdminService {
 
             String msg = "Dear ${user.username}." +
                     "<h2>Reset Password</h2>" +
-                    "A Cloud Service password reset link was requested. If this was not you, please ignore this email.<br>"+
+                    "A Cloud Service password reset link was requested. If this was not you, please ignore this email.<br>" +
                     "Please click <a href=\"" + clientUri + "/#/resetpassword/${idStr}\">here</a> to open your browser and reset your password."
 
             MimeBodyPart mimeBodyPart = new MimeBodyPart()

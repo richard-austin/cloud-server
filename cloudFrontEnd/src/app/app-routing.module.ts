@@ -26,11 +26,13 @@ import {WifiSettingsComponent} from './wifi-settings/wifi-settings.component';
 import {SetupSMTPClientComponent} from './setup-smtpclient/setup-smtpclient.component';
 import {ChangeEmailComponent} from './change-email/change-email.component';
 import {CreateUserAccountContainerComponent} from './create-user-account-container/create-user-account-container.component';
+import {ActivemqCredentialsComponent} from './activemq-credentials/activemq-credentials.component';
 
 const routes: Routes = [
   {path: 'live/:streamName', component: LiveContainerComponent},
   {path: 'recording/:streamName', component: RecordingControlComponent},
   {path: 'multicam', component: MultiCamViewComponent, canActivate: [OnlyClientUsersService]},
+  {path: 'registerActiveMQAccount', component: ActivemqCredentialsComponent},
   {path: 'changepassword', component: ChangePasswordComponent, canActivate: [OnlyLoggedInService]},  // Change password while logged in
   {path: 'about/:isLocal', component: AboutComponent, canActivate: [OnlyAdminUsersService]},
   {path: 'about', component: AboutComponent, canActivate: [OnlyClientUsersService]},

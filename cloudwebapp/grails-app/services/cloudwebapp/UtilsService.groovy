@@ -26,7 +26,7 @@ class UtilsService {
                     .create()
 
             String res = gson.toJson(cmd.getData())
-            def writer = new BufferedWriter(new FileWriter("/var/cloud/smtp.json"))
+            def writer = new BufferedWriter(new FileWriter("/var/cloud-server/smtp.json"))
             writer.write(res)
             writer.close()
         }

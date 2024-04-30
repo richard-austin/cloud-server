@@ -39,7 +39,7 @@ public class CloudMQListener {
     private boolean allRunning = false;
     SimpMessagingTemplate brokerMessagingTemplate;
 
-    CloudMQListener(SimpMessagingTemplate brokerMessagingTemplate) {
+    public CloudMQListener(SimpMessagingTemplate brokerMessagingTemplate) {
         this.brokerMessagingTemplate = brokerMessagingTemplate;
     }
     private class InitQueueConsumer implements MessageListener, ExceptionListener {
@@ -62,7 +62,7 @@ public class CloudMQListener {
                         // connectionFactory.setAlwaysSessionAsync(false);
 
                         browserFacingPort = cloudProperties.getBROWSER_FACING_PORT();
-                        connection = (ActiveMQConnection) connectionFactory.createConnection(cloudProperties.getAMQ_USER(), cloudProperties.getAMQ_PASSWORD());
+                        connection = (ActiveMQConnection) connectionFactory.createConnection(cloudProperties.getMQ_USER(), cloudProperties.getMQ_PASSWORD());
 
                         TransportListener tl = new TransportListener() {
                             @Override
@@ -179,7 +179,7 @@ public class CloudMQListener {
 
     private static ActiveMQSslConnectionFactory getActiveMQSslConnectionFactory() throws Exception {
         CloudProperties cp = CloudProperties.getInstance();
-        ActiveMQSslConnectionFactoryNoTrustStore connectionFactory = new ActiveMQSslConnectionFactoryNoTrustStore(cp.getAMQ_URL());
+        ActiveMQSslConnectionFactoryNoTrustStore connectionFactory = new ActiveMQSslConnectionFactoryNoTrustStore(cp.getACTIVE_MQ_URL());
         connectionFactory.setKeyStore(cp.getAMQ_KEYSTORE_PATH());
         connectionFactory.setKeyStorePassword(cp.getAMQ_KEYSTORE_PASSWORD());
 //        connectionFactory.setTrustStore(cp.getAMQ_TRUSTSTORE_PATH());

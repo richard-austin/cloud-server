@@ -12,32 +12,33 @@ groupadd grp-cloud
 usermod -a -G grp-cloud tomcat
 usermod -a -G grp-cloud usr-cloud
 
-chown -R usr-cloud:grp-cloud /var/cloud
+chown -R usr-cloud:grp-cloud /var/cloud-server
 chown -R usr-cloud:grp-cloud /var/log/cloud
 
 chown tomcat:grp-cloud /var/log/cloud/cloud.log* || true # To prevent access denied errors on first starting tomcat
-chown -R tomcat:grp-cloud /var/cloud/ || true
+chown -R tomcat:grp-cloud /var/cloud-server/ || true
 chown tomcat:tomcat /var/lib/tomcat9/webapps/ROOT.war
 chmod 640 /etc/tomcat9/tomcat-users.xml
 chown root:tomcat /etc/tomcat9/tomcat-users.xml
 chmod 640 /etc/tomcat9/server.xml
 chown root:tomcat /etc/tomcat9/server.xml
-chown root:tomcat /etc/cloud/privateKey
-chmod 440 /etc/cloud/privateKey
+chown root:tomcat /etc/cloud-server/privateKey
+chmod 440 /etc/cloud-server/privateKey
 
 # Create the client keystore for connection to the NVRs via ActiveMQ
-MQ_CREDS_FILE=/etc/cloud/cloud-creds.json
+MQ_CREDS_FILE=/var/cloud-server/cloud-creds.json
 if ! test -f "$MQ_CREDS_FILE"; then
   kspassword_client=$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 40)
-  keytool -genkey -alias client -dname "cn=NVR USER, ou=Private, o=Private, c=Unknown st=Unknown" -keypass "$kspassword_client" -storepass "$kspassword_client" -keyalg RSA -keystore /etc/cloud/client.ks
-  chown tomcat:tomcat /etc/cloud/client.ks
-  chmod 400 /etc/cloud/client.ks
+  keytool -genkey -alias client -dname "cn=NVR USER, ou=Private, o=Private, c=Unknown st=Unknown" -keypass "$kspassword_client" -storepass "$kspassword_client" -keyalg RSA -keystore /etc/cloud-server/client.ks
+  chown tomcat:tomcat /etc/cloud-server/client.ks
+  chmod 400 /etc/cloud-server/client.ks
   cat > $MQ_CREDS_FILE << EOF
 {
-   "mqClientKSPath": "/etc/cloud/client.ks",
+   "mqClientKSPath": "/etc/cloud-server/client.ks",
    "mqClientKSPW": "${kspassword_client}",
    "mqUser": "cloud",
-   "mqPw": "inelESOLsiONgeOuShEFatIns"
+   "mqPw": "",
+   "mqHost": "192.168.1.82"
 }
 EOF
   chmod 400 $MQ_CREDS_FILE
@@ -50,15 +51,15 @@ fi
 # The grp-cloud group is then given group access to usr-cloud and it's subdirectories. The user and group permissions are then set up.
 
 # Give directories only permission 775
-find /var/cloud -type d -print0 | xargs -0 chmod 775
+find /var/cloud-server -type d -print0 | xargs -0 chmod 775
 # Give files permission 664
-find /var/cloud -type f -print0 | xargs -0 chmod 664
+find /var/cloud-server -type f -print0 | xargs -0 chmod 664
 
-mv /tmp/install-cert.sh /var/cloud/
-chown root:root /var/cloud/install-cert.sh
+mv /tmp/install-cert.sh /var/cloud-server/
+chown root:root /var/cloud-server/install-cert.sh
 mv /tmp/tomcat9 /etc/default/  # Updated tomcat9 default file to enable use of Java 17
 
-chgrp -R grp-cloud /var/cloud/
+chgrp -R grp-cloud /var/cloud-server/
 
 #
 # AddToTomcatUnitFileIfNotPresent: Add ReadWriteFilePaths to the tomcat unit file to enable access to /etc/security-cam
@@ -77,7 +78,7 @@ AddToTomcatUnitFileIfNotPresent() {
 }
 
 # Give tomcat permission to write to some additional directories
-lineToWrite="ReadWritePaths=/var/cloud/"
+lineToWrite="ReadWritePaths=/var/cloud-server/"
 lineToWrite2="ReadWritePaths=/var/log/cloud/"
 lineToWriteUnder="ReadWritePaths=/var/lib/tomcat9/webapps/"
 unitFile="/usr/lib/systemd/system/tomcat9.service"

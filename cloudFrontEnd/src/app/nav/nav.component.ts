@@ -259,6 +259,9 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
     window.location.href = '#/changepassword';
   }
 
+  setActiveMQCreds() {
+    window.location.href = '#/registerActiveMQAccount';
+  }
   get cameras(): Map<string, Camera> {
     return this.cameraSvc.cameras;
   }

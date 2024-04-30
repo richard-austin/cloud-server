@@ -70,10 +70,12 @@ import {OnvifFailuresComponent} from './config-setup/onvif-failures/onvif-failur
 import {SafeHtmlPipe} from './shared/safe-html.pipe';
 import {PTZButtonComponent} from './live-container/ptzcontrols/ptzbutton/ptzbutton.component';
 import {AddAsOnvifDeviceComponent} from './config-setup/add-as-onvif-device/add-as-onvif-device.component';
+import {ActivemqCredentialsComponent} from './activemq-credentials/activemq-credentials.component';
 
 @NgModule({
   declarations: [
     AppComponent,
+    ActivemqCredentialsComponent,
     CamerasComponent,
     NavComponent,
     VideoComponent,

@@ -116,6 +116,12 @@ export class UtilsService {
   speakActive: boolean = true;
   private _activeMQTransportActive: boolean = false;
   readonly isGuestAccount: boolean = false;
+
+  public readonly activeMQPasswordRegex: RegExp = new RegExp(/^$|^[A-Za-z0-9]{20}$/);
+  public readonly hostNameRegex =  /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/
+  public readonly ipV4RegEx = /^([0-9]|[1-9][0-9]|1([0-9][0-9])|2([0-4][0-9]|5[0-5]))\.([0-9]|[1-9][0-9]|1([0-9][0-9])|2([0-4][0-9]|5[0-5]))\.([0-9]|[1-9][0-9]|1([0-9][0-9])|2([0-4][0-9]|5[0-5]))\.([0-9]|[1-9][0-9]|1([0-9][0-9])|2([0-4][0-9]|5[0-5]))$/
+  public readonly ipV6RegEx = /^s*((([0-9A-Fa-f]{1,4}:){7}([0-9A-Fa-f]{1,4}|:))|(([0-9A-Fa-f]{1,4}:){6}(:[0-9A-Fa-f]{1,4}|((25[0-5]|2[0-4]d|1dd|[1-9]?d)(.(25[0-5]|2[0-4]d|1dd|[1-9]?d)){3})|:))|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){1,2})|:((25[0-5]|2[0-4]d|1dd|[1-9]?d)(.(25[0-5]|2[0-4]d|1dd|[1-9]?d)){3})|:))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){1,3})|((:[0-9A-Fa-f]{1,4})?:((25[0-5]|2[0-4]d|1dd|[1-9]?d)(.(25[0-5]|2[0-4]d|1dd|[1-9]?d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){1,4})|((:[0-9A-Fa-f]{1,4}){0,2}:((25[0-5]|2[0-4]d|1dd|[1-9]?d)(.(25[0-5]|2[0-4]d|1dd|[1-9]?d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){1,5})|((:[0-9A-Fa-f]{1,4}){0,3}:((25[0-5]|2[0-4]d|1dd|[1-9]?d)(.(25[0-5]|2[0-4]d|1dd|[1-9]?d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){1,6})|((:[0-9A-Fa-f]{1,4}){0,4}:((25[0-5]|2[0-4]d|1dd|[1-9]?d)(.(25[0-5]|2[0-4]d|1dd|[1-9]?d)){3}))|:))|(:(((:[0-9A-Fa-f]{1,4}){1,7})|((:[0-9A-Fa-f]{1,4}){0,5}:((25[0-5]|2[0-4]d|1dd|[1-9]?d)(.(25[0-5]|2[0-4]d|1dd|[1-9]?d)){3}))|:)))(%.+)?s*(\/([0-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8]))?$/
+
   get loggedIn(): boolean {
     return this._loggedIn;
   }
@@ -428,6 +434,29 @@ export class UtilsService {
       }
     }
   }
+
+  addOrUpdateActiveMQCreds(username: string, password: string, confirmPassword: string, mqHost: string, updateExisting: boolean = false) : Observable<void> {
+    let details: { username: string, password: string, confirmPassword: string, mqHost: string, updateExisting: boolean} =
+      {
+        username: username,
+        password: password,
+        confirmPassword: confirmPassword,
+        mqHost: mqHost,
+        updateExisting: updateExisting
+      };
+    return this.http.post<void>(this._baseUrl.getLink("cloud", "addOrUpdateActiveMQCreds"), details, this.httpJSONOptions).pipe(
+      catchError((err: HttpErrorResponse) => throwError(err))
+    );
+  }
+
+  checkForActiveMQCreds(): Observable<{hasActiveMQCreds: boolean, mqHost: string}> {
+    return this.http.post<{hasActiveMQCreds: boolean, mqHost: string}>(this._baseUrl.getLink('cloud', 'hasActiveMQCreds'), '', this.httpJSONOptions).pipe(
+      tap(() => {
+      }),
+      catchError((err: HttpErrorResponse) => throwError(err))
+    )
+  }
+
   setTransportStatus(message: IMessage) {
     let strMsg: string;
     if (message.isBinaryBody)
