@@ -120,25 +120,23 @@ environments:
 
     dataSource:
       dbCreate: update
-      url: jdbc:h2:/var/cloud/db/prodDb;LOCK_TIMEOUT=10000;DB_CLOSE_ON_EXIT=FALSE
+      url: jdbc:h2:/var/cloud-server/db/prodDb;LOCK_TIMEOUT=10000;DB_CLOSE_ON_EXIT=FALSE
+
+    appHomeDirectory: /etc/cloud-server
+    varHomeDirectory: /var/cloud-server
 
     cloud:
-      username: cloud
-      password: "DrN3yuFAtSsK2w7AtTf66FFRVveBwtjU"
-      mqURL: failover://ssl://192.168.1.82:61617?socket.verifyHostName=false
-      mqTrustStorePath: ../xtrn-files-and-config/client.ts
-      mqKeyStorePath: ../xtrn-files-and-config/client.ks
-      mqKeyStorePassword: ExPEThINdAvAmpROteRCLEyfI
-      mqTrustStorePassword: CIdERVERiMPLetORThrONVAce
+      mqTrustStorePath: /etc/cloud-server/client.ts
       mqUser: cloud
       mqPassword: inelESOLsiONgeOuShEFatIns
+      mqURL: failover://ssl://192.168.1.83:61617?socket.verifyHostName=false
       privateKeyPath: ../xtrn-files-and-config/privateKey
       browserFacingPort: 8083
       logLevel: DEBUG
 
       mail:
         smtp:
-          configFile: /var/cloud/smtp.json
+          configFile: /var/cloud-server/smtp.json
 
       quartz:
       autoStartup: false
@@ -153,31 +151,29 @@ environments:
         springsecurity:
           active: true
 
+    appHomeDirectory: /etc/cloud-server
+    varHomeDirectory: /var/cloud-server
+
     cloud:
       username: cloud
       password: "DrN3yuFAtSsK2w7AtTf66FFRVveBwtjU"
-      mqURL: failover://ssl://192.168.1.82:61617?socket.verifyHostName=false
-      mqTrustStorePath: /etc/cloud/client.ts
-      mqKeyStorePath: /etc/cloud/client.ks
-      mqKeyStorePassword: ExPEThINdAvAmpROteRCLEyfI
-      mqTrustStorePassword: CIdERVERiMPLetORThrONVAce
-      mqUser: cloud
-      mqPassword: inelESOLsiONgeOuShEFatIns
-      privateKeyPath: /etc/cloud/privateKey
+      mqTrustStorePath: /etc/cloud-server/client.ts
+      mqURL: failover://ssl://192.168.1.83:61617?socket.verifyHostName=false
+      privateKeyPath: /etc/cloud-server/privateKey
       browserFacingPort: 8083
       logLevel: DEBUG
 
       #            smtp server details for sending reset password links
       mail:
         smtp:
-          configFile: /var/cloud/smtp.json
+          configFile: /var/cloud-server/smtp.json
 
       quartz:
       autoStartup: false
 
     dataSource:
       dbCreate: update
-      url: jdbc:h2:/var/cloud/db/prodDb;LOCK_TIMEOUT=10000;DB_CLOSE_ON_EXIT=FALSE
+      url: jdbc:h2:/var/cloud-server/db/prodDb;LOCK_TIMEOUT=10000;DB_CLOSE_ON_EXIT=FALSE
     properties:
       jmxEnabled: true
       initialSize: 5

@@ -1,5 +1,6 @@
 package cloudwebapp
 
+import cloudservice.commands.AddOrUpdateActiveMQCredsCmd
 import cloudservice.commands.AdminChangeEmailCommand
 import cloudservice.commands.AdminChangePasswordCommand
 import cloudservice.commands.ChangeEmailCommand
@@ -99,6 +100,36 @@ class CloudController {
             }
         }
     }
+    @Secured(['ROLE_ADMIN'])
+    def hasActiveMQCreds() {
+        ObjectCommandResponse result = userAdminService.hasActiveMQCreds()
+
+        if (result.status != PassFail.PASS) {
+            render(status: 500, text: result.error)
+        } else {
+            logService.cloud.info("hasActiveMQCreds: (= ${result.responseObject}) success")
+            render(text: result.responseObject) as JSON
+        }
+    }
+
+    @Secured(['ROLE_ADMIN'])
+    def addOrUpdateActiveMQCreds(AddOrUpdateActiveMQCredsCmd cmd) {
+        ObjectCommandResponse result
+        if (cmd.hasErrors()) {
+            def errorsMap = validationErrorService.commandErrors(cmd.errors as ValidationErrors, 'addOrUpdateActiveMQCreds')
+            logService.cloud.error "addOrUpdateActiveMQCreds: Validation error: " + errorsMap.toString()
+            render(status: 400, text: errorsMap as JSON)
+        } else {
+            result = userAdminService.addOrUpdateActiveMQCreds(cmd)
+            if (result.status != PassFail.PASS) {
+                render(status: 500, text: result.error)
+            } else {
+                logService.cloud.info("addOrUpdateActiveMQCreds: success")
+                render ""
+            }
+        }
+    }
+
 
     @Secured(['ROLE_ADMIN'])
     def getAccounts() {

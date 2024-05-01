@@ -143,7 +143,7 @@ sudo apt install ./<i>deb_file_name</i>.deb
 * <i>If this is the first installation on the Raspberry pi..</i>
   * <i>Generate the site certificate..</i>
     ```
-    cd /var/cloud
+    cd /var/cloud-server
     sudo ./install-cert.sh
     ```
     Fill in the details it requests (don't put in any information you are not happy with being publicly visible, for
