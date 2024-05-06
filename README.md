@@ -49,6 +49,7 @@ secure access Cloud Account.
   * Login as admin or to one of the client accounts.
   * Register a new client (NVR) account.
 * Admin Access
+  * Set up or modify host, username and password for ActiveMQ connection.
   * Change admin account password.
   * Show list of connected NVRs
   * Indicate which NVRs have Cloud accounts
@@ -172,6 +173,7 @@ The admin account is set up with the default password *elementary*, this should 
 * Enter you new password and again in the confirm box.
 * Click on *Change Password*
 * The new password is now set up.
+
 ## Admin Mode
 To enter administrator mode: -
 * Set a browser to https://cloud-server_ip_addr (ip address of the Cloud Service).
@@ -179,6 +181,26 @@ To enter administrator mode: -
 * Enter *admin* as the username and the admin password you set above as the password.
 * On the menu bar, select *Admin -> Accounts Admin*. A table listing connected NVRs and NVR Cloud
   Service accounts will be shown.
+#### Set ActiveMQ user name and password
+To connect to ActiveMQ, the correct credentials and ActiveMQ host have to be entered. This should be done when
+you log onto the Cloud Server as admin for the first time: -
+* Open the General menu and select "Set ActiveMQ Credentials"
+* Enter the username (usually cloud) given on initial installation of **activemq-for-cloud-service**
+* Enter the password given on initial installation of **activemq-for-cloud-service** (this will be a 20 character
+  string consisting of upper and lower case letters and numbers).
+* Enter the password again in the **Confirm Password** field
+* Enter the ActiveMQ host (this can be an IP address or hostname).
+* Click the **Update Creds** button, the new settings will be applied.
+##### Updating the ActiveMQ username and password
+* Open the General menu and select **Set ActiveMQ Credentials**
+* The credentials can be changed by the admin user at any time by repeating the above procedure, the current ActiveMQ
+  host will appear as the default in the ActiveMQ Host field.
+* Click the **Update Creds** button, the new settings will be applied.
+##### Changing the ActiveMQ Host
+* Open the General menu and select "Set ActiveMQ Credentials"
+* To change the host without changing the username and password, leave the username and password fields blank
+  and update the ActiveMQ host field only.
+* Click the **Update Creds** button, the new settings will be applied.
 ## Client Mode
 In client mode you are connected to your NVR and can use the functions of that NVR. This includes viewing live CCTV streams, selecting
 recordings by date and time and viewing them, set certain camera parameters and configure camera setup including Wi-Fi.
