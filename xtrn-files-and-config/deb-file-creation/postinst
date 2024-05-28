@@ -1,12 +1,13 @@
 #!/bin/bash
 
 mv /tmp/nginx.conf /etc/nginx
-mv /tmp/server.xml /etc/tomcat9/
-mv /tmp/tomcat-users.xml /etc/tomcat9
-mv /tmp/cloudwebapp-7.3.war /var/lib/tomcat9/webapps/ROOT.war
+mv /tmp/server.xml /var/lib/tomcat9/conf
+mv /tmp/tomcat-users.xml /var/lib/tomcat9/conf
 rm -r /var/lib/tomcat9/webapps/ROOT
+mv /tmp/cloudwebapp-7.3.war /var/lib/tomcat9/webapps/ROOT.war
 
 deb-systemd-invoke stop tomcat9.service  # Stop tomcat before
+useradd tomcat
 useradd usr-cloud
 groupadd grp-cloud
 usermod -a -G grp-cloud tomcat
@@ -17,6 +18,10 @@ chown -R usr-cloud:grp-cloud /var/log/cloud
 
 chown tomcat:grp-cloud /var/log/cloud/cloud.log* || true # To prevent access denied errors on first starting tomcat
 chown -R tomcat:grp-cloud /var/cloud-server/ || true
+chown -R tomcat:tomcat /var/lib/tomcat9
+chown tomcat:tomcat /var/log/tomcat9
+chown tomcat:grp-cloud /var/log/security-cam
+
 chown tomcat:tomcat /var/lib/tomcat9/webapps/ROOT.war
 chmod 640 /etc/tomcat9/tomcat-users.xml
 chown root:tomcat /etc/tomcat9/tomcat-users.xml
@@ -30,8 +35,6 @@ MQ_CREDS_FILE=/var/cloud-server/cloud-creds.json
 if ! test -f "$MQ_CREDS_FILE"; then
   kspassword_client=$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 40)
   keytool -genkey -alias client -dname "cn=NVR USER, ou=Private, o=Private, c=Unknown st=Unknown" -keypass "$kspassword_client" -storepass "$kspassword_client" -keyalg RSA -keystore /etc/cloud-server/client.ks
-  chown tomcat:tomcat /etc/cloud-server/client.ks
-  chmod 400 /etc/cloud-server/client.ks
   cat > $MQ_CREDS_FILE << EOF
 {
    "mqClientKSPath": "/etc/cloud-server/client.ks",
@@ -41,6 +44,8 @@ if ! test -f "$MQ_CREDS_FILE"; then
    "mqHost": "192.168.1.82"
 }
 EOF
+  chown tomcat:tomcat /etc/cloud-server/client.ks
+  chmod 400 /etc/cloud-server/client.ks
   chmod 400 $MQ_CREDS_FILE
   chown tomcat:tomcat $MQ_CREDS_FILE
 fi
