@@ -66,31 +66,6 @@ mv /tmp/tomcat9 /etc/default/  # Updated tomcat9 default file to enable use of J
 
 chgrp -R grp-cloud /var/cloud-server/
 
-#
-# AddToTomcatUnitFileIfNotPresent: Add ReadWriteFilePaths to the tomcat unit file to enable access to /etc/security-cam
-#                                  and /var/log/security-cam.
-#
-AddToTomcatUnitFileIfNotPresent() {
-  lineToWrite=$1
-  lineToWriteUnder=$2
-  unitFile=$3
-  # Enter lineToWrite after lineToWriteUnder if not already present
-  if ! grep "$lineToWrite" "$unitFile"; then
-    # Add the line after lineToWriteUnder escaping all '/' as the regex is within / delimiters.
-    result=$(awk '/'"${lineToWriteUnder//\//\\/}"'/ { print; print '\""${lineToWrite}"\"'; next }1' "$unitFile")
-    echo "$result" >"$unitFile"
-  fi
-}
-
-# Give tomcat permission to write to some additional directories
-lineToWrite="ReadWritePaths=/var/cloud-server/"
-lineToWrite2="ReadWritePaths=/var/log/cloud/"
-lineToWriteUnder="ReadWritePaths=/var/lib/tomcat9/webapps/"
-unitFile="/usr/lib/systemd/system/tomcat9.service"
-
-AddToTomcatUnitFileIfNotPresent $lineToWrite $lineToWriteUnder $unitFile
-AddToTomcatUnitFileIfNotPresent $lineToWrite2 $lineToWriteUnder $unitFile
-
 # Start the services
 systemctl daemon-reload
 deb-systemd-invoke enable tomcat9.service
