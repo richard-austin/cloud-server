@@ -70,7 +70,7 @@ are not present, though you can add or remove the local NVR account.
   * Add/Remove local NVR account.
 ### Run time platform, for Cloud Service
 The current build configuration (as created with./gradlew buildDebFile) is for Raspberry pi V4 running headless (server) 
-version of Ubuntu 23.10 (Mantic Minotaur). The application runs on Java on the server side, so it can easily be adapted 
+version of Ubuntu 24.04 (Noble Numbat). The application runs on Java on the server side, so it can easily be adapted 
 to other platforms.
 ### Tomcat Web Server
 Tomcat 9 (https://tomcat.apache.org/) hosts the server (Web Back End) and client (Web Front End) of the NVR, giving access
@@ -127,7 +127,7 @@ cd xtrn-scripts-and-config/deb-file-creation
 ```
 scp the .deb file to the Raspberry pi
 ## Installation on the Raspberry pi
-The Raspberry pi should be running Ubuntu 23.10 (Mantic Minotaur) OS.
+The Raspberry pi should be running Ubuntu 24.04 (Noble Numbat) OS.
 ```
 sudo apt update
 sudo apt upgrade 
