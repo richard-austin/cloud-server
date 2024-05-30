@@ -155,9 +155,8 @@ sudo apt install ./<i>deb_file_name</i>.deb
     ```
 ## ActiveMQ
 Messages between the Cloud Service and the NVRs pass through an <a href="https://github.com/richard-austin/activemq-for-cloud-service">ActiveMQ</a> service.
-The mqURL for the Cloud service and cloudActiveMQUrl on the NVRs (both in application.yml) should be set to where ActiveMQ is installed.
-The truststore and keystore on Cloud and NVRs as well as the ActiveMQ credentials should all tie up. The default configurations 
-in the three projects will work (but with mqURL and cloudActiveMQUrl needing setting for your network environment).
+Both the Cloud Server and NVRs must be configured to connect to the same ActiveMQ instance using the
+correct credentials (see [Admin Mode](#set-amq-connection) section)
 ## Initial Setup
 #### Set up admin user account password
 The admin account is set up with the default password *elementary*, this should be changed first of all.
@@ -181,9 +180,12 @@ To enter administrator mode: -
 * Enter *admin* as the username and the admin password you set above as the password.
 * On the menu bar, select *Admin -> Accounts Admin*. A table listing connected NVRs and NVR Cloud
   Service accounts will be shown.
+
+<a id="set-amq-connection"></a> 
 #### Set ActiveMQ user name and password
 To connect to ActiveMQ, the correct credentials and ActiveMQ host have to be entered. This should be done when
 you log onto the Cloud Server as admin for the first time: -
+
 * Open the General menu and select "Set ActiveMQ Credentials"
 * Enter the username (usually cloud) given on initial installation of **activemq-for-cloud-service**
 * Enter the password given on initial installation of **activemq-for-cloud-service** (this will be a 20 character
@@ -201,6 +203,36 @@ you log onto the Cloud Server as admin for the first time: -
 * To change the host without changing the username and password, leave the username and password fields blank
   and update the ActiveMQ host field only.
 * Click the **Update Creds** button, the new settings will be applied.
+
+#### Client Account Administration
+
+These functions are available under Admin -> Accounts admin on the main menu. A table of 
+NVRs/users is shown which lists NVRs which are either connected, have accounts set up or both.
+
+![Accounts Admin Editable Table](README.images/accounts-admin2.png)
+*Accounts Admin (editable table)*
+
+In the screenshot above, the Accounts Admin table is show. This table allows the Cloud Service administrator to perform
+various operations on NVR Cloud accounts. There are two NVRs are listed, the top one shows a connected NVR for which
+no account has yet been created, while the bottom one shows a connected NVR for which an account has been created. The list
+can also show NVRs for which an account has been created but are not currently connected to the Cloud Server.
+
+The following functions are available: -
+
+
+| Column                 | Usage                                                                                                                                                                                                    |
+|------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Change Password        | Change the password for an NVR Cloud Account. Click on the button and edit using the drop down dialogue box.                                                                                             |
+| Change Email Address   | Change the email address for an NVR Cloud Account.  Click on the button and edit using the drop down dialogue box.                                                                                       |
+| Enable/Disable Account | Enable or disable the NVR cloud account. When disabled, the Cloud client account will not be usable (log in will fail). Click on the checkbox to change state.                                           |
+| Delete Account         | Completely removes the NVR Cloud account. The user will be able to recreate an account using their NVR product ID. Click on the button to delete the account and confirm or cancel on the drop down box. |
+| Product ID             | Shows the product ID of the NVR for that account. The product ID associates a user name with a specific NVR. This is not an editable field.                                                              |
+| Account Created        | Shows a green user icon if an account has been created for the NVR, or a red bell icon if no account has yet been created. This is not an editable field.                                                |
+| Username               | Shows the account username. This will be blank if no account has yet been created. This is not an editable field.                                                                                        |
+| NVR Connected          | Shows a green circular arrows icon if the NVR is connected, or a red circular arrows with exclamation mark icon if not connected. This is not an editable field.                                         |
+| Users connected        | Shows the number of users connected to the Cloud via that client/NVR account. The number of users can take a minute or so to change when a user disconnects. This is not an editable field.              |
+Note that these functions only affect the client/NVR cloud account. Any local account on the NVR will be unaffected.
+
 ## Client Mode
 In client mode you are connected to your NVR and can use the functions of that NVR. This includes viewing live CCTV streams, selecting
 recordings by date and time and viewing them, set certain camera parameters and configure camera setup including Wi-Fi.
