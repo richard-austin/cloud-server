@@ -4,3 +4,10 @@
 systemctl daemon-reload
 userdel usr-cloud || true
 groupdel grp-cloud || true
+
+if [ "$1" == purge ] ; then
+  rm -r /var/log/tomcat9
+  rm -r /var/lib/tomcat9
+  userdel tomcat || true
+fi
+
