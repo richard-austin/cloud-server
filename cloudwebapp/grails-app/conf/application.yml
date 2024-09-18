@@ -127,8 +127,9 @@ environments:
 
     cloud:
       mqTrustStorePath: /etc/cloud-server/client.ts
-      mqUser: cloud
-      mqPassword: inelESOLsiONgeOuShEFatIns
+      # These are the credentials for the cloud account on the NVR
+      username: cloud
+      password: DrN3yuFAtSsK2w7AtTf66FFRVveBwtjU
       mqURL: failover://ssl://192.168.1.83:61617?socket.verifyHostName=false
       privateKeyPath: ../xtrn-files-and-config/privateKey
       browserFacingPort: 8083
@@ -155,6 +156,7 @@ environments:
     varHomeDirectory: /var/cloud-server
 
     cloud:
+      # These are the credentials for the cloud account on the NVR
       username: cloud
       password: "DrN3yuFAtSsK2w7AtTf66FFRVveBwtjU"
       mqTrustStorePath: /etc/cloud-server/client.ts
