@@ -95,6 +95,7 @@ spring:
     unique-names: true
 ---
 hibernate:
+  globally_quoted_identifiers: true # Required for Grails version 6.2.0
   cache:
     queries: false
     use_second_level_cache: false
