@@ -3,7 +3,7 @@ import {SetCameraParams, UtilsService} from '../shared/utils.service';
 import {CameraService, cameraType} from '../cameras/camera.service';
 import {Camera, CameraParams} from '../cameras/Camera';
 import {ReportingComponent} from '../reporting/reporting.component';
-import {AbstractControl, FormControl, FormGroup, Validators} from '@angular/forms';
+import {AbstractControl, UntypedFormControl, UntypedFormGroup, Validators} from '@angular/forms';
 import {ActivatedRoute} from '@angular/router';
 
 @Component({
@@ -35,22 +35,22 @@ export class CameraParamsComponent implements OnInit, AfterViewInit, OnDestroy {
           if (cam.address == camera) {
             this.cam = cam;
             this.camType() === cameraType.sv3c ?
-              this.camControlFormGroup = new FormGroup({
-                irselector: new FormControl('', [Validators.required]),
-                cameraName: new FormControl('', [Validators.required, Validators.maxLength(25)]),
-                dateFormat: new FormControl('', [Validators.required, Validators.maxLength(30)]),
-                startDate: new FormControl('', [Validators.required]),
-                softVersion: new FormControl('', [Validators.required]),
-                model: new FormControl('', [Validators.required])
+              this.camControlFormGroup = new UntypedFormGroup({
+                irselector: new UntypedFormControl('', [Validators.required]),
+                cameraName: new UntypedFormControl('', [Validators.required, Validators.maxLength(25)]),
+                dateFormat: new UntypedFormControl('', [Validators.required, Validators.maxLength(30)]),
+                startDate: new UntypedFormControl('', [Validators.required]),
+                softVersion: new UntypedFormControl('', [Validators.required]),
+                model: new UntypedFormControl('', [Validators.required])
               }) :
-              this.camControlFormGroup = new FormGroup({
-                lampStatus: new FormControl('', [Validators.required]),
-                wdrStatus: new FormControl('', [Validators.required]),
-                cameraName: new FormControl('', [Validators.required, Validators.maxLength(25)]),
-                dateFormat: new FormControl('', [Validators.required, Validators.maxLength(30)]),
-                startDate: new FormControl('', [Validators.required]),
-                softVersion: new FormControl('', [Validators.required]),
-                model: new FormControl('', [Validators.required])
+              this.camControlFormGroup = new UntypedFormGroup({
+                lampStatus: new UntypedFormControl('', [Validators.required]),
+                wdrStatus: new UntypedFormControl('', [Validators.required]),
+                cameraName: new UntypedFormControl('', [Validators.required, Validators.maxLength(25)]),
+                dateFormat: new UntypedFormControl('', [Validators.required, Validators.maxLength(30)]),
+                startDate: new UntypedFormControl('', [Validators.required]),
+                softVersion: new UntypedFormControl('', [Validators.required]),
+                model: new UntypedFormControl('', [Validators.required])
               });
             if (this.camType() === cameraType.sv3c) {
               this.irselector = this.camControlFormGroup.controls['irselector'];
@@ -76,8 +76,9 @@ export class CameraParamsComponent implements OnInit, AfterViewInit, OnDestroy {
   cameraTypes: typeof cameraType = cameraType;
   cameraParams!: CameraParams;
   downloading: boolean = true;
-  camControlFormGroup!: FormGroup;
-  _reboot : boolean = false;
+  camControlFormGroup!: UntypedFormGroup;
+  isGuest: boolean = true;
+  _reboot: boolean = false;
   _confirmReboot: boolean = false;
 
   private getCameraParams() {
@@ -90,7 +91,7 @@ export class CameraParamsComponent implements OnInit, AfterViewInit, OnDestroy {
           this.cameraParams = result;
           // Show the current IR setting
           if (this.camType() === cameraType.sv3c) {
-          this.irselector.setValue(this.cameraParams.infraredstat);
+            this.irselector.setValue(this.cameraParams.infraredstat);
           } else {
             this.lampStatus.setValue(this.cameraParams.lamp_mode);
             this.wdrStatus.setValue(this.cameraParams.wdr);
@@ -113,7 +114,7 @@ export class CameraParamsComponent implements OnInit, AfterViewInit, OnDestroy {
              password which must be set the same on all cameras.
              `;
           } else {
-          this.reporting.errorMessage = reason;
+            this.reporting.errorMessage = reason;
           }
           this.downloading = false;
         }
@@ -147,11 +148,11 @@ export class CameraParamsComponent implements OnInit, AfterViewInit, OnDestroy {
 
         // Update the locally stored values
         if (this.camType() === cameraType.sv3c) {
-        this.cameraParams.infraredstat = this.irselector.value;
+          this.cameraParams.infraredstat = this.irselector.value;
         } else {
-        this.cameraParams.lamp_mode = this.lampStatus.value;
-        this.cameraParams.wdr = this.wdrStatus.value;
-      }
+          this.cameraParams.lamp_mode = this.lampStatus.value;
+          this.cameraParams.wdr = this.wdrStatus.value;
+        }
         this.cameraParams.name_1 = this.cameraName.value;
         this._reboot = this._confirmReboot = false;
       },
@@ -173,7 +174,7 @@ export class CameraParamsComponent implements OnInit, AfterViewInit, OnDestroy {
       return this.irselector?.invalid || this.cameraName?.invalid;
     } else {
       return this.lampStatus?.invalid || this.wdrStatus?.invalid;
-  }
+    }
   }
 
   camType(): cameraType {
@@ -182,7 +183,7 @@ export class CameraParamsComponent implements OnInit, AfterViewInit, OnDestroy {
 
   anyChanged() {
     return this.camType() === cameraType.sv3c ?
-    this.irselector?.value !== this.cameraParams?.infraredstat
+      this.irselector?.value !== this.cameraParams?.infraredstat
       || this.cameraName?.value !== this.cameraParams?.name_1
       || this.dateFormat?.value !== this.cameraParams?.name_0
       :
@@ -212,13 +213,13 @@ export class CameraParamsComponent implements OnInit, AfterViewInit, OnDestroy {
       this.wdrStatus.disable();
     }
     this.cameraName.disable();
-   }
+  }
 
   reboot() {
-     this._reboot = true;
-     this.updateParams();
-     this.cancelReboot();
-   }
+    this._reboot = true;
+    this.updateParams();
+    this.cancelReboot();
+  }
 
   cancelReboot() {
     this._confirmReboot = this._reboot = false;

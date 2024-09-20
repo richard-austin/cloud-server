@@ -158,7 +158,6 @@ import {ActivemqCredentialsComponent} from './activemq-credentials/activemq-cred
   },
     HttpClient, BaseUrl],
   bootstrap: [AppComponent],
-  entryComponents: [IdleTimeoutModalComponent]
 })
 export class AppModule {
 }

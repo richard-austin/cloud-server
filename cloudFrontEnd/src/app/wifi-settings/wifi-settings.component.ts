@@ -5,11 +5,11 @@ import {CurrentWifiConnection} from '../shared/current-wifi-connection';
 import {MatCheckbox, MatCheckboxChange} from '@angular/material/checkbox';
 import {WifiDetails} from '../shared/BaseUrl/wifi-details';
 import {OnDestroy} from '@angular/core';
-import {MatSelect} from '@angular/material/select/select';
 import {timer} from 'rxjs';
 import {WifiConnectResult} from '../shared/wifi-connect-result';
 import {HttpErrorResponse} from '@angular/common/http';
-import {FormControl, FormGroup, Validators} from '@angular/forms';
+import {UntypedFormControl, UntypedFormGroup, Validators} from '@angular/forms';
+import { MatSelect } from '@angular/material/select';
 
 @Component({
   selector: 'app-wifi-settings',
@@ -28,7 +28,7 @@ export class WifiSettingsComponent implements OnInit, OnDestroy {
   connecting: boolean = false;
 
   @ViewChild(ReportingComponent) reporting!: ReportingComponent;
-  enterPasswordForm!: FormGroup;
+  enterPasswordForm!: UntypedFormGroup;
   private password: string | undefined;
   resetting: boolean = false;
 
@@ -168,10 +168,16 @@ export class WifiSettingsComponent implements OnInit, OnDestroy {
     return false;
   }
 
-  getFormControl(formGroup: FormGroup, fcName: string): FormControl {
-    return formGroup.get(fcName) as FormControl;
+  getFormControl(formGroup: UntypedFormGroup, fcName: string): UntypedFormControl {
+    return formGroup.get(fcName) as UntypedFormControl;
   }
 
+   hasError = (controlName: string, errorName: string): boolean => {
+    return this.enterPasswordForm.controls[controlName].hasError(errorName);
+  }
+  anyInvalid(): boolean {
+    return this.enterPasswordForm.invalid && this.needPassword;
+  }
   ngOnInit(): void {
     this.wifiUtilsService.checkConnectedThroughEthernet().subscribe((result) => {
         this.ethernetConnectionStatus = result.status;
@@ -193,9 +199,10 @@ export class WifiSettingsComponent implements OnInit, OnDestroy {
         this.reporting.errorMessage = reason;
       });
 
-    this.enterPasswordForm = new FormGroup({
-      password: new FormControl(this.password, [Validators.required, Validators.maxLength(35)]),
+    this.enterPasswordForm = new UntypedFormGroup({
+      password: new UntypedFormControl(this.password, [Validators.required, Validators.minLength(8), Validators.maxLength(35)]),
     }, {updateOn: 'change'});
+    this.enterPasswordForm.markAllAsTouched();
   }
 
   ngOnDestroy(): void {

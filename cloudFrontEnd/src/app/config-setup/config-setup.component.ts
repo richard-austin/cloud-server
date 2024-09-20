@@ -23,11 +23,11 @@ import {
 } from "@angular/forms";
 import {BehaviorSubject} from 'rxjs';
 import {MatCheckboxChange} from "@angular/material/checkbox";
-import {MatSelectChange} from '@angular/material/select/select';
 import {HttpErrorResponse} from "@angular/common/http";
 import {DomSanitizer, SafeResourceUrl} from '@angular/platform-browser';
 import {KeyValue} from '@angular/common';
 import {UtilsService} from '../shared/utils.service';
+import {MatSelectChange} from '@angular/material/select';
 
 declare let objectHash: (obj: Object) => string;
 
@@ -96,7 +96,7 @@ export function validateTrueOrFalse(fieldCondition: {}): ValidatorFn {
 export class ConfigSetupComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('errorReporting') reporting!: ReportingComponent;
   @ViewChild('outputframeid') snapshotImage!: ElementRef<HTMLImageElement>
-  @ViewChild('scrollable_content') scrollableContent!: ElementRef<HTMLElement>
+  @ViewChild('scrollable_content') scrollableContent!: ElementRef<HTMLElement> | null
   downloading: boolean = true;
   updating: boolean = false;
   discovering: boolean = false;

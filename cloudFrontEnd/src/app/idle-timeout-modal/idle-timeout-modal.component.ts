@@ -29,4 +29,7 @@ export class IdleTimeoutModalComponent implements OnInit {
 
   ngOnInit(): void {
   }
+
+  protected readonly Math = Math;
+  protected readonly Number = Number;
 }

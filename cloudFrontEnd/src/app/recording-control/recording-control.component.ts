@@ -3,12 +3,11 @@ import {VideoComponent} from '../video/video.component';
 import {Camera, Stream} from '../cameras/Camera';
 import {CameraService, DateSlot, LocalMotionEvent, LocalMotionEvents} from '../cameras/camera.service';
 import {timer} from 'rxjs';
-import {MatSelectChange} from '@angular/material/select';
+import {MatSelect, MatSelectChange} from '@angular/material/select';
 import {MotionService} from '../motion/motion.service';
 import {ReportingComponent} from '../reporting/reporting.component';
 import {HttpErrorResponse} from '@angular/common/http';
 import {ActivatedRoute} from '@angular/router';
-import {MatSelect} from '@angular/material/select/select';
 import {UtilsService} from '../shared/utils.service';
 import {MatDatepickerInputEvent} from '@angular/material/datepicker';
 
