@@ -28,6 +28,8 @@ export class RegisterLocalNvrAccountComponent implements OnInit, AfterViewInit {
   @ViewChild(ReportingComponent) reporting!: ReportingComponent;
 
   constructor(private utilsService: UtilsService) {
+    if(utilsService.hasLocalAccount)
+        window.location.href = '/#';
   }
 
   passwordValidator(): ValidatorFn {
