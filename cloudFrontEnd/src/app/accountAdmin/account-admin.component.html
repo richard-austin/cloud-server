@@ -93,7 +93,7 @@
       </ng-container>
 
       <ng-container matColumnDef="productId">
-        <th *matHeaderCellDef
+          <th mat-sort-header="productId" *matHeaderCellDef
             matTooltip="Sort by productId"
             matTooltipClass="tooltip">ProductId
         </th>
@@ -115,7 +115,7 @@
       </ng-container>
 
       <ng-container matColumnDef="userName">
-        <th *matHeaderCellDef
+          <th mat-sort-header="username" *matHeaderCellDef
             matTooltip="Sort by userId"
             matTooltipClass="tooltip">Username
         </th>
@@ -148,85 +148,85 @@
                     <mat-card>
                       <mat-card-title>Change Password</mat-card-title>
                       <mat-card-content>
-                        <mat-form-field aria-autocomplete="none">
-                          <input matInput type="password" [formControl]="getFormControl(changePasswordForm, 'password')"
-                                 autocomplete="new-password"
-                                 matTooltip="Enter new password for user {{acc.userName}}"
-                                 matTooltipClass="tooltip"
-                                 placeholder="New Password">
-                          <mat-hint>New password for user {{acc.userName}}</mat-hint>
-                        </mat-form-field>
+                          <div>
+                              <mat-form-field appearance="outline" aria-autocomplete="none">
+                                  <input matInput type="password"
+                                         [formControl]="getFormControl(changePasswordForm, 'password')"
+                                         autocomplete="new-password"
+                                         matTooltip="Enter new password for user {{acc.userName}}"
+                                         matTooltipClass="tooltip"
+                                         placeholder="New Password">
+                                  <mat-label>New password for user {{ acc.userName }}</mat-label>
+                              </mat-form-field>
+                          </div>
+                          <mat-form-field appearance="outline" aria-autocomplete="none">
+                              <input matInput type="password"
+                                     [formControl]="getFormControl(changePasswordForm, 'confirmPassword')"
+                                     autocomplete="new-password"
+                                     matTooltip="Confirm new password"
+                                     matTooltipClass="tooltip"
+                                     placeholder="Confirm New Password">
+                              <mat-label>Confirm New password</mat-label>
+                          </mat-form-field>
+
+                          <div>
+                              <button color="cancel" mat-raised-button (click)="showChangePasswordForm(acc)"
+                                      matTooltip="Close the change password form"
+                                      matTooltipClass="tooltip">
+                                Cancel
+                              </button>
+                                      <span>&nbsp;&nbsp;</span>
+                              <button color="warn" mat-raised-button
+                                      [disabled]="anyInvalid() || successMessage != ''"
+                                      (click)="changePassword(acc)"
+                                      matTooltip="Save the change to the {{acc.username}} account password"
+                                      matTooltipClass="tooltip">
+                                Reset Password
+                              </button>
+                          </div>
                       </mat-card-content>
-                      <mat-form-field aria-autocomplete="none">
-                        <input matInput type="password"
-                               [formControl]="getFormControl(changePasswordForm, 'confirmPassword')"
-                               autocomplete="new-password"
-                               matTooltip="Confirm new password"
-                               matTooltipClass="tooltip"
-                               placeholder="Confirm New Password">
-                        <mat-hint>Confirm New password</mat-hint>
-                      </mat-form-field>
                     </mat-card>
-                    <br>
-                    <span class="cam-creds-confirm-group">
-                      <button color="cancel" mat-raised-button (click)="showChangePasswordForm(acc)"
-                              matTooltip="Close the change password form"
-                              matTooltipClass="tooltip">
-                        Cancel
-                      </button>
-                              <span>&nbsp;&nbsp;</span>
-                      <button color="warn" mat-raised-button
-                              [disabled]="anyInvalid() || successMessage != ''"
-                              (click)="changePassword(acc)"
-                              matTooltip="Save the change to the {{acc.username}} account password"
-                              matTooltipClass="tooltip">
-                        Reset Password
-                      </button>
-                    </span>
-                    <br>
-                    <br>
                   </ng-container>
                   <ng-container *ngIf="showChangeEmail">
                     <mat-card>
                       <mat-card-title>Change Email Address</mat-card-title>
                       <mat-card-content>
-                        <mat-form-field class="email-input">
-                          <input matInput type="text" [formControl]="getFormControl(changeEmailForm, 'email')"
-                                 maxlength="70"
-                                 matTooltip="Enter new email address for user {{acc.userName}}"
-                                 matTooltipClass="tooltip"
-                                 placeholder="New Email Address">
-                          <mat-hint>New Email Address For User {{acc.userName}}</mat-hint>
-                        </mat-form-field>
-                      </mat-card-content>
-                      <mat-form-field class="email-input">
-                        <input matInput type="text"
-                               [formControl]="getFormControl(changeEmailForm, 'confirmEmail')"
-                               maxlength="70"
-                               matTooltip="Confirm new email address"
-                               matTooltipClass="tooltip"
-                               placeholder="Confirm New Email Address">
-                        <mat-hint>Confirm New Email Address</mat-hint>
-                      </mat-form-field>
-                    </mat-card>
-                    <br>
-                    <span>
-                      <button color="cancel" mat-raised-button (click)="showChangeEmailForm(acc)"
-                              matTooltip="Close the change email address form"
-                              matTooltipClass="tooltip">
-                        Cancel
-                      </button>
+                          <div>
+                              <mat-form-field appearance="outline" class="email-input">
+                                  <input matInput type="text" [formControl]="getFormControl(changeEmailForm, 'email')"
+                                         maxlength="70"
+                                         matTooltip="Enter new email address for user {{acc.userName}}"
+                                         matTooltipClass="tooltip"
+                                         placeholder="New Email Address">
+                                  <mat-label>New Email Address For User {{ acc.userName }}</mat-label>
+                              </mat-form-field>
+                          </div>
+                          <mat-form-field appearance="outline" class="email-input">
+                              <input matInput type="text"
+                                     [formControl]="getFormControl(changeEmailForm, 'confirmEmail')"
+                                     maxlength="70"
+                                     matTooltip="Confirm new email address"
+                                     matTooltipClass="tooltip"
+                                     placeholder="Confirm New Email Address">
+                              <mat-label>Confirm New Email Address</mat-label>
+                          </mat-form-field>
+                          <div>
+                              <button color="cancel" mat-raised-button (click)="showChangeEmailForm(acc)"
+                                      matTooltip="Close the change email address form"
+                                      matTooltipClass="tooltip">
+                                  Cancel
+                              </button>
                               <span>&nbsp;&nbsp;</span>
-                      <button color="warn" mat-raised-button
-                              [disabled]="anyInvalidEmail() || successMessage != ''"
-                              (click)="changeEmail(acc)"
-                              matTooltip="Save the change to the {{acc.username}} account email address"
-                              matTooltipClass="tooltip">
-                        Change Email Address
-                      </button>
-                    </span>
-                    <br>
-                    <br>
+                              <button color="warn" mat-raised-button
+                                      [disabled]="anyInvalidEmail() || successMessage != ''"
+                                      (click)="changeEmail(acc)"
+                                      matTooltip="Save the change to the {{acc.username}} account email address"
+                                      matTooltipClass="tooltip">
+                                  Change Email Address
+                              </button>
+                          </div>
+                      </mat-card-content>
+                    </mat-card>
                   </ng-container>
 
                   <ng-container *ngIf="showConfirmDeleteAccount">

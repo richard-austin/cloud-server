@@ -3,8 +3,6 @@ import { RouterModule, Routes } from '@angular/router';
 import {RegisterAccountComponent} from './register-account/register-account.component';
 import {OnlyAnonUsersService} from './guards/only-anon-users.service';
 import {LoginComponent} from './login/login.component';
-import {OnlyAdminUsersService} from './guards/only-admin-users.service';
-import {AccountAdminComponent} from './accountAdmin/account-admin.component';
 import {OnlyClientUsersService} from './guards/only-client-users.service';
 import {RemoveLocalNvrAccountComponent} from './remove-local-nvr-account/remove-local-nvr-account.component';
 
@@ -18,10 +16,10 @@ const routes: Routes = [
   {path: 'configsetup', loadChildren: () => import('./config-setup/config-setup.module').then(m => m.ConfigSetupModule)},
   {path: 'general', loadChildren: () => import('./general/general.module').then(m => m.GeneralModule)},
   {path: 'wifi', loadChildren: () => import('./wifi-settings/wifi-settings.module').then(m => m.WifiSettingsModule)},
+  {path: 'accountadmin', loadChildren: () => import('./accountAdmin/account-admin.module').then(m => m.AccountAdminModule)},
   {path: 'register', component: RegisterAccountComponent, canActivate: [OnlyAnonUsersService]},
   {path: 'login', component: LoginComponent, canActivate: [OnlyAnonUsersService]},
-  {path: 'removelocalnvraccount', component: RemoveLocalNvrAccountComponent, canActivate: [OnlyClientUsersService]},
-  {path: 'accountadmin', component: AccountAdminComponent, canActivate: [OnlyAdminUsersService]},
+  {path: 'removelocalnvraccount', component: RemoveLocalNvrAccountComponent, canActivate: [OnlyClientUsersService]}
 ];
 
 @NgModule({

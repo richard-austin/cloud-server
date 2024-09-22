@@ -42,10 +42,7 @@ import {SetupSMTPClientComponent} from './setup-smtpclient/setup-smtpclient.comp
 import {MatSelect} from '@angular/material/select';
 import {LoginComponent} from './login/login.component';
 import {RegisterAccountComponent} from './register-account/register-account.component';
-import {AccountAdminComponent} from './accountAdmin/account-admin.component';
-import {MatSort} from '@angular/material/sort';
-import {FilterPipe} from './accountAdmin/filter.pipe';
-import {SortPipe} from './accountAdmin/sort.pipe';
+import {MatSortModule} from '@angular/material/sort';
 import {RemoveLocalNvrAccountComponent} from './remove-local-nvr-account/remove-local-nvr-account.component';
 
 @NgModule({
@@ -58,10 +55,7 @@ import {RemoveLocalNvrAccountComponent} from './remove-local-nvr-account/remove-
     IdleTimeoutModalComponent,
     LoginComponent,
     RegisterAccountComponent,
-    AccountAdminComponent,
-    RemoveLocalNvrAccountComponent,
-    FilterPipe,
-    SortPipe
+    RemoveLocalNvrAccountComponent
   ],
     bootstrap: [AppComponent],
     imports: [BrowserModule,
@@ -99,7 +93,7 @@ import {RemoveLocalNvrAccountComponent} from './remove-local-nvr-account/remove-
         MatInput,
         MatLabel,
         MatHint,
-        MatError, MatDialogTitle, MatDialogContent, MatDialogActions, MatCardHeader, MatSelect, MatOption, MatSort, MatIconButton, MatRowDef, MatHeaderRowDef],
+        MatError, MatDialogTitle, MatDialogContent, MatDialogActions, MatCardHeader, MatSelect, MatOption, MatIconButton, MatRowDef, MatHeaderRowDef],
     exports: [
     ],
   providers: [    {
