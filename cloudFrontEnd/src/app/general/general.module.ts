@@ -1,5 +1,4 @@
 import { NgModule } from '@angular/core';
-import {CommonModule, NgOptimizedImage} from '@angular/common';
 import {GeneralRoutingModule} from "./general-routing.module";
 import {SharedModule} from "../shared/shared.module";
 import {MatCard, MatCardContent, MatCardSubtitle, MatCardTitle} from "@angular/material/card";
@@ -26,6 +25,7 @@ import {
 } from "../create-user-account-container/create-user-account-container.component";
 import {MatProgressSpinner} from "@angular/material/progress-spinner";
 import {AboutComponent} from '../about/about.component';
+import {CommonModule} from '@angular/common';
 
 @NgModule({
   declarations: [
@@ -63,7 +63,6 @@ import {AboutComponent} from '../about/about.component';
     MatCellDef,
     MatHeaderCellDef,
     MatHeaderRowDef,
-    NgOptimizedImage,
   ]
 })
 export class GeneralModule { }
