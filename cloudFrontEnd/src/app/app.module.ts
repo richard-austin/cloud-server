@@ -42,8 +42,6 @@ import {SetupSMTPClientComponent} from './setup-smtpclient/setup-smtpclient.comp
 import {MatSelect} from '@angular/material/select';
 import {LoginComponent} from './login/login.component';
 import {RegisterAccountComponent} from './register-account/register-account.component';
-import {MatSortModule} from '@angular/material/sort';
-import {RemoveLocalNvrAccountComponent} from './remove-local-nvr-account/remove-local-nvr-account.component';
 
 @NgModule({
   declarations: [
@@ -54,8 +52,7 @@ import {RemoveLocalNvrAccountComponent} from './remove-local-nvr-account/remove-
     NavComponent,
     IdleTimeoutModalComponent,
     LoginComponent,
-    RegisterAccountComponent,
-    RemoveLocalNvrAccountComponent
+    RegisterAccountComponent
   ],
     bootstrap: [AppComponent],
     imports: [BrowserModule,

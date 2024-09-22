@@ -147,11 +147,11 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   registerLocalNVRAccount() {
-    window.location.href = '#/registerlocalnvraccount';
+    window.location.href = '#/account/registerlocalnvraccount';
   }
 
   removeLocalNVRAccount() {
-    window.location.href = '#/removelocalnvraccount';
+    window.location.href = '#/account/removelocalnvraccount';
   }
 
   drawdownCalc() {
