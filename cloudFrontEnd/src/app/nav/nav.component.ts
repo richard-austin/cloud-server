@@ -103,11 +103,11 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   about() {
-    window.location.href = '#/about';
+    window.location.href = '#/general/about';
   }
 
   aboutCCTVCloud() {
-    window.location.href = '#/about/true';
+    window.location.href = '#/general/about/true';
   }
 
 
@@ -155,7 +155,7 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   drawdownCalc() {
-    window.location.href = '#/dc';
+    window.location.href = '#/general/dc';
   }
 
   configSetup() {

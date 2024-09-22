@@ -7,7 +7,7 @@
       <div>Version: {{version}}</div>
       <ng-container *ngIf="!isLocal">
         <hr>
-        <img src="{{getOnvifUrl()}}" width="=100" height="50" alt="Onvif logo">
+        <img ngSrc="{{getOnvifUrl()}}" width="=100" height="50" alt="Onvif logo">
         <hr>
         <h2>Built with open source software</h2>
         <div [innerHTML]="openSourceInfo">

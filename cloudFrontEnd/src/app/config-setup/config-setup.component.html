@@ -168,16 +168,16 @@
       </ng-container>
 
       <ng-container matColumnDef="cameraParamSpecs">
-        <th mat-header-cell *matHeaderCellDef>Camera Type.</th>
-        <td mat-cell *matCellDef="let cam; let i = dataIndex">
-          <mat-form-field appearance="outline" [style.width.px]="185">
+                <th *matHeaderCellDef mat-header-cell>Camera Type.</th>
+                <td *matCellDef="let cam; let i = dataIndex" mat-cell>
+                    <mat-form-field [style.width.px]="185" appearance="outline"
+                                    matTooltip="Select the camera type to enable control of image text and infra red status from the web application. Set to 'Not Listed' to disable this feature, or if the camera type is not listed."
+                                    matTooltipClass="tooltip">
+                        <mat-label>Camera type (if listed)</mat-label>
             <!--Call setUpTableFormControls after  updateCamField on changed selection to ensure the address field
                 enabled state is updated.-->
-            <mat-label>Camera type (if listed)</mat-label>
-            <mat-select [formControl]="getCamControl(i, 'cameraParamSpecs')"
-                        (selectionChange)="updateCamField(i, 'cameraParamSpecs'); setUpTableFormControls()"
-                        matTooltip="Select the camera type to enable control of image text and infra red status from the web application. Set to 'Not Listed' to disable this feature, or if the camera type is not listed."
-                        matTooltipClass="tooltip">
+                        <mat-select (selectionChange)="updateCamField(i, 'cameraParamSpecs'); setUpTableFormControls()"
+                                    [formControl]="getCamControl(i, 'cameraParamSpecs')">
               <mat-option *ngFor="let spec of cameraSvc.cameraParamSpecs" [value]="spec">
                 {{spec.name}}
               </mat-option>
