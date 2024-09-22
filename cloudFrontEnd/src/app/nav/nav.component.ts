@@ -71,7 +71,7 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   getActiveIPAddresses() {
-    window.location.href = '#/getactiveipaddresses';
+    window.location.href = '#/general/getactiveipaddresses';
   }
 
   getLocalWifiDetails() {
@@ -83,7 +83,7 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   localAdminFunctionsForNVR() {
-    window.location.href = '#/cua';
+    window.location.href = '#/general/cua';
   }
 
   multiCamView() {
@@ -143,7 +143,7 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   setIp() {
-    window.location.href = '#/setip';
+    window.location.href = '#/general/setip';
   }
 
   registerLocalNVRAccount() {
