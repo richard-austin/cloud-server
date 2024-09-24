@@ -251,7 +251,7 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   changeEmail() {
-    window.location.href = '#/changeaccountemail';
+    window.location.href = '#/changeemail';
   }
 
   changePassword() {
