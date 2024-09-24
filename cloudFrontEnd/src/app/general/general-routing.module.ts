@@ -7,13 +7,16 @@ import {DrawdownCalcContainerComponent} from "../drawdown-calc-container/drawdow
 import {
   CreateUserAccountContainerComponent
 } from "../create-user-account-container/create-user-account-container.component";
+import {OnlyClientUsersService} from '../guards/only-client-users.service';
+import {OnlyLoggedInService} from '../guards/only-logged-in.service';
 
 const routes: Routes = [
-  {path: 'setip', component: SetIpComponent},
-  {path: 'cua', component: CreateUserAccountContainerComponent},
-  {path: 'getactiveipaddresses', component: GetActiveIPAddressesComponent},
-  {path: 'dc', component: DrawdownCalcContainerComponent},
-  {path: 'about', component: AboutComponent}
+  {path: 'setip', component: SetIpComponent, canActivate: [OnlyClientUsersService]},
+  {path: 'cua', component: CreateUserAccountContainerComponent, canActivate: [OnlyClientUsersService]},
+  {path: 'getactiveipaddresses', component: GetActiveIPAddressesComponent, canActivate: [OnlyClientUsersService]},
+  {path: 'dc', component: DrawdownCalcContainerComponent, canActivate: [OnlyClientUsersService]},
+  {path: 'about/:isLocal', component: AboutComponent, canActivate: [OnlyLoggedInService]},
+  {path: 'about', component: AboutComponent, canActivate: [OnlyClientUsersService]}
 ];
 @NgModule({
   imports: [RouterModule.forChild(routes)],

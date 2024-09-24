@@ -21,9 +21,9 @@
                  matTooltipClass="tooltip"
                  placeholder="SMTP User name">
           <mat-hint>User name for the SMTP account</mat-hint>
-          <mat-error *ngIf="setupSMTPForm.controls['username'].hasError('pattern')">50 or less characters and numbers
+          <mat-error *ngIf="setupSMTPForm !== undefined && setupSMTPForm .controls['username'].hasError('pattern')">50 or less characters and numbers
           </mat-error>
-          <mat-error *ngIf="setupSMTPForm.controls['username'].hasError('required')">User name is required</mat-error>
+          <mat-error *ngIf="setupSMTPForm  !== undefined && setupSMTPForm .controls['username'].hasError('required')">User name is required</mat-error>
         </mat-form-field>
         <mat-form-field appearance="outline" class="setup-smtp-input">
           <input matInput type="password" autocomplete="off" maxlength="50"
@@ -34,9 +34,9 @@
                  matTooltipClass="tooltip"
                  placeholder="SMTP Password">
           <mat-hint>Password for the SMTP account</mat-hint>
-          <mat-error *ngIf="setupSMTPForm.controls['password'].hasError('maxlength')">50 or less characters and numbers
+          <mat-error *ngIf="setupSMTPForm  !== undefined && setupSMTPForm .controls['password'].hasError('maxlength')">50 or less characters and numbers
           </mat-error>
-          <mat-error *ngIf="setupSMTPForm.controls['password'].hasError('required')">Password is required</mat-error>
+          <mat-error *ngIf="setupSMTPForm  !== undefined && setupSMTPForm .controls['password'].hasError('required')">Password is required</mat-error>
         </mat-form-field>
         <mat-form-field appearance="outline" class="setup-smtp-input">
           <input matInput type="password" autocomplete="off" maxlength="50"
@@ -47,10 +47,10 @@
                  matTooltipClass="tooltip"
                  placeholder="Confirm SMTP Password">
           <mat-hint>Password for the SMTP account</mat-hint>
-          <mat-error *ngIf="setupSMTPForm.controls['confirmPassword'].hasError('maxlength')">50 or less characters and
+          <mat-error *ngIf="setupSMTPForm  !== undefined && setupSMTPForm .controls['confirmPassword'].hasError('maxlength')">50 or less characters and
             numbers
           </mat-error>
-          <mat-error *ngIf="setupSMTPForm.controls['confirmPassword'].hasError('notMatching')">Passwords must match
+          <mat-error *ngIf="setupSMTPForm  !== undefined && setupSMTPForm .controls['confirmPassword'].hasError('notMatching')">Passwords must match
           </mat-error>
         </mat-form-field>
         <mat-checkbox (change)="updateStartTLSState($event)" [checked]="smtpData.enableStartTLS"
@@ -115,9 +115,9 @@
                  matTooltipClass="tooltip"
                  placeholder="Warning email sender address">
           <mat-hint>Senders email address</mat-hint>
-          <mat-error *ngIf="setupSMTPForm.controls['fromAddress'].hasError('pattern')">50 or less characters and numbers
+          <mat-error *ngIf="setupSMTPForm  !== undefined && setupSMTPForm .controls['fromAddress'].hasError('pattern')">50 or less characters and numbers
           </mat-error>
-          <mat-error *ngIf="setupSMTPForm.controls['fromAddress'].hasError('required')">User name is required
+          <mat-error *ngIf="setupSMTPForm  !== undefined && setupSMTPForm .controls['fromAddress'].hasError('required')">User name is required
           </mat-error>
         </mat-form-field>
       </div>

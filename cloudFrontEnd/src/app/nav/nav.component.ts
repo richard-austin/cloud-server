@@ -75,11 +75,11 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   getLocalWifiDetails() {
-    window.location.href = '#/getlocalwifidetails';
+    window.location.href = '#/wifi/getlocalwifidetails';
   }
 
   wifiSettings() {
-    window.location.href = '#/wifisettings';
+    window.location.href = '#/wifi/wifisettings';
   }
 
   localAdminFunctionsForNVR() {

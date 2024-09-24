@@ -66,7 +66,7 @@ export class SetupSMTPClientComponent implements OnInit {
   }
 
   getFormControl(fcName: string): FormControl {
-    return this?.setupSMTPForm.get(fcName) as FormControl;
+    return this?.setupSMTPForm?.get(fcName) as FormControl;
   }
 
   anyInvalid(): boolean {
