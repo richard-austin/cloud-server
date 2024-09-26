@@ -1,6 +1,7 @@
 import {AfterViewInit, Component, ElementRef, OnInit, ViewChild} from '@angular/core';
 import {AbstractControl, FormControl, FormGroup, ValidationErrors, ValidatorFn, Validators} from "@angular/forms";
 import {UtilsService} from "../shared/utils.service";
+import {timer} from 'rxjs';
 
 @Component({
   selector: 'app-register-account',
@@ -118,6 +119,8 @@ export class RegisterAccountComponent implements OnInit, AfterViewInit {
 
   ngAfterViewInit(): void {
     // Set the focus to the username input
-    this.usernameInput.nativeElement.focus();
+    timer(20).subscribe(() => {
+      this.usernameInput.nativeElement.focus();
+    });
   }
 }

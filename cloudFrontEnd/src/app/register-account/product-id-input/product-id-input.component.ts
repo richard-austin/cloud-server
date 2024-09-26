@@ -1,11 +1,17 @@
-import {AfterViewInit, Component, ElementRef, Input, OnInit, ViewChild, ViewEncapsulation} from '@angular/core';
-import {FormControl} from '@angular/forms';
+import {AfterViewInit, Component, ElementRef, forwardRef, Input, OnInit, ViewChild, ViewEncapsulation} from '@angular/core';
+import {FormControl, NG_VALUE_ACCESSOR} from '@angular/forms';
 import {timer} from "rxjs";
 
+export const CUSTOM_CONROL_VALUE_ACCESSOR: any = {
+  provide: NG_VALUE_ACCESSOR,
+  useExisting: forwardRef(() => ProductIdInputComponent),
+  multi: true,
+};
 @Component({
   selector: 'app-product-id-input',
   templateUrl: './product-id-input.component.html',
   styleUrls: ['./product-id-input.component.scss'],
+  providers: [CUSTOM_CONROL_VALUE_ACCESSOR],
   encapsulation: ViewEncapsulation.None
 })
 export class ProductIdInputComponent implements OnInit, AfterViewInit {
@@ -13,6 +19,8 @@ export class ProductIdInputComponent implements OnInit, AfterViewInit {
   @ViewChild('productIdCtl') productIdCtl!: ElementRef<HTMLInputElement>;
   readonly indexMax: number = 19;
   cursor: number = 0;
+  onChanged!: Function;
+  onTouched!: Function;
 
   constructor() {
   }
@@ -95,6 +103,14 @@ export class ProductIdInputComponent implements OnInit, AfterViewInit {
     let productIDInput: HTMLInputElement = this.productIdCtl.nativeElement;
     return productIDInput.value.indexOf(" ");
   }
+
+  registerOnChange(fn: Function) {
+    this.onChanged = fn;
+  }
+  registerOnTouched(fn: Function) {
+    this.onTouched = fn;
+  }
+  writeValue(value: any): void {}
 
   ngOnInit(): void {
   }
