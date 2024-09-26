@@ -19,6 +19,7 @@ chown -R usr-cloud:grp-cloud /var/log/cloud
 chown -R tomcat:grp-cloud /var/log/cloud/cloud.log* || true # To prevent access denied errors on first starting tomcat
 chown -R tomcat:grp-cloud /var/cloud-server/ || true
 chown -R tomcat:tomcat /var/lib/tomcat9
+chown -R tomcat:tomcat /var/log/tomcat9
 chown -R tomcat:grp-cloud /var/log/security-cam
 
 chown tomcat:tomcat /var/lib/tomcat9/webapps/ROOT.war
