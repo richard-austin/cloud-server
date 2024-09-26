@@ -3,7 +3,6 @@ import { BrowserModule } from '@angular/platform-browser';
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
-import { CamerasComponent } from './cameras/cameras.component';
 import {HttpClient, provideHttpClient, withInterceptorsFromDi} from '@angular/common/http';
 import {BaseUrl} from "./shared/BaseUrl/BaseUrl";
 import { NavComponent } from './nav/nav.component';
@@ -42,17 +41,21 @@ import {SetupSMTPClientComponent} from './setup-smtpclient/setup-smtpclient.comp
 import {MatSelect} from '@angular/material/select';
 import {LoginComponent} from './login/login.component';
 import {RegisterAccountComponent} from './register-account/register-account.component';
+import {ProductIdInputComponent} from './register-account/product-id-input/product-id-input.component';
+import {ForgottenPasswordComponent} from './login/forgotten-password/forgotten-password.component';
 
 @NgModule({
   declarations: [
-    AppComponent,
-    ActivemqCredentialsComponent,
-    SetupSMTPClientComponent,
-    CamerasComponent,
-    NavComponent,
-    IdleTimeoutModalComponent,
-    LoginComponent,
-    RegisterAccountComponent
+      AppComponent,
+      ActivemqCredentialsComponent,
+      SetupSMTPClientComponent,
+      // CamerasComponent,
+      NavComponent,
+      IdleTimeoutModalComponent,
+      LoginComponent,
+      ForgottenPasswordComponent,
+      RegisterAccountComponent,
+      ProductIdInputComponent
   ],
     bootstrap: [AppComponent],
     imports: [BrowserModule,

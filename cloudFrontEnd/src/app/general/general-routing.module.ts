@@ -9,10 +9,13 @@ import {
 } from "../create-user-account-container/create-user-account-container.component";
 import {OnlyClientUsersService} from '../guards/only-client-users.service';
 import {OnlyLoggedInService} from '../guards/only-logged-in.service';
+import {ActivemqCredentialsComponent} from '../activemq-credentials/activemq-credentials.component';
+import {OnlyAdminUsersService} from '../guards/only-admin-users.service';
 
 const routes: Routes = [
   {path: 'setip', component: SetIpComponent, canActivate: [OnlyClientUsersService]},
   {path: 'cua', component: CreateUserAccountContainerComponent, canActivate: [OnlyClientUsersService]},
+  {path: 'registerActiveMQAccount', component: ActivemqCredentialsComponent, canActivate: [OnlyAdminUsersService]},
   {path: 'getactiveipaddresses', component: GetActiveIPAddressesComponent, canActivate: [OnlyClientUsersService]},
   {path: 'dc', component: DrawdownCalcContainerComponent, canActivate: [OnlyClientUsersService]},
   {path: 'about/:isLocal', component: AboutComponent, canActivate: [OnlyLoggedInService]},

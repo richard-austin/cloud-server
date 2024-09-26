@@ -46,6 +46,7 @@ class UtilsService {
         String json = new String(bytes, StandardCharsets.UTF_8)
         def gson = new GsonBuilder().create()
         def smtpData = gson.fromJson(json, SMTPData)
+        smtpData.password = ""
         return smtpData
     }
 

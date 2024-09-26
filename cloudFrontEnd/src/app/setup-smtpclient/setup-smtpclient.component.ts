@@ -160,15 +160,19 @@ export class SetupSMTPClientComponent implements OnInit {
   }
 
   ngOnInit(): void {
-
+    this.setupFormControls();
     this.utilsService.getSMTPClientParamsLocally().subscribe({
       next: (smtpData) => {
         this.smtpData = smtpData;
         this.smtpData.confirmPassword = this.smtpData.password;
-        this.setupFormControls();
+        const fields = Object.keys(this.setupSMTPForm.controls);
+        // Populate the form fields
+        for(const index in fields) {
+          let x:string = fields[index];
+          this.getFormControl(x).setValue(smtpData[x as keyof SMTPData]);
+        }
       },
       error: (reason) => {
-        this.setupFormControls();
         timer(200).subscribe(() => { // Ensure message gets displayed
           if (reason.status == 400) {
             this.reporting.warningMessage = reason.error;
