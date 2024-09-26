@@ -132,7 +132,7 @@ tasks.register('setVersion', Exec) {
 }
 
 tasks.register('buildDebFile', Exec) {
-    dependsOn[':cloudwebapp:assemble']
+    dependsOn([':cloudwebapp:assemble'])
     group = 'build'
     workingDir "$projectDir/../xtrn-files-and-config/deb-file-creation"
     commandLine './create-deb.sh'
