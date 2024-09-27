@@ -4,14 +4,13 @@
     <mat-card-content>
       <form (ngSubmit)="$event.preventDefault(); formSubmitted()" [formGroup]="changeEmailForm">
         <div>
-          <mat-form-field appearance="outline">
-            <mat-label>Password</mat-label>
+          <mat-form-field appearance="outline" [style.width.px]="300">
             <input matInput type="password" formControlName="password"
                    autocomplete="off"
                    placeholder="Enter password">
             <mat-error *ngIf="hasError('password', 'required')">Password is required</mat-error>
             <mat-error *ngIf="hasError('password', 'pattern')">Password incorrect</mat-error>
-            <mat-hint>Enter password</mat-hint>
+            <mat-label>Enter password</mat-label>
           </mat-form-field>
         </div>
         <div>
@@ -27,13 +26,13 @@
         </div>
         <div>
           <mat-form-field appearance="outline" class="email-input">
-            <mat-label>Confirm new email address</mat-label>
+
             <input matInput type="text" formControlName="confirmNewEmail" autocomplete="off" maxlength="40"
                    placeholder="Confirm new email address">
             <mat-error *ngIf="hasError('confirmNewEmail', 'required')">Confirm new email address is required</mat-error>
-            <mat-error *ngIf="hasError('confirmNewEmail', 'confirmNewEmail')">Confirm new email and new email differ
+            <mat-error *ngIf="hasError('confirmNewEmail', 'confirmNewEmail') && !hasError('confirmNewEmail', 'required')">Confirm new email and new email differ
             </mat-error>
-            <mat-hint>Enter new email again</mat-hint>
+            <mat-label>Confirm new email address</mat-label>
           </mat-form-field>
         </div>
         <div class="button-container">

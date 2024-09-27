@@ -19,7 +19,7 @@
                  matTooltip="Enter SMTP account user name (this may be the account email address)"
                  matTooltipClass="tooltip"
                  placeholder="SMTP User name">
-          <mat-hint>User name for the SMTP account</mat-hint>
+          <mat-label>User name for the SMTP account</mat-label>
           <mat-error *ngIf="setupSMTPForm !== undefined && setupSMTPForm .controls['username'].hasError('pattern')">50 or less characters and numbers
           </mat-error>
           <mat-error *ngIf="setupSMTPForm  !== undefined && setupSMTPForm .controls['username'].hasError('required')">User name is required</mat-error>
@@ -32,7 +32,7 @@
                  matTooltip="Enter SMTP account password"
                  matTooltipClass="tooltip"
                  placeholder="SMTP Password">
-          <mat-hint>Password for the SMTP account</mat-hint>
+          <mat-label>Password for the SMTP account</mat-label>
           <mat-error *ngIf="setupSMTPForm  !== undefined && setupSMTPForm .controls['password'].hasError('maxlength')">50 or less characters and numbers
           </mat-error>
           <mat-error *ngIf="setupSMTPForm  !== undefined && setupSMTPForm .controls['password'].hasError('required')">Password is required</mat-error>
@@ -45,7 +45,7 @@
                  matTooltip="Confirm SMTP account password"
                  matTooltipClass="tooltip"
                  placeholder="Confirm SMTP Password">
-          <mat-hint>Password for the SMTP account</mat-hint>
+          <mat-label>Password for the SMTP account</mat-label>
           <mat-error *ngIf="setupSMTPForm  !== undefined && setupSMTPForm .controls['confirmPassword'].hasError('maxlength')">50 or less characters and
             numbers
           </mat-error>
@@ -70,7 +70,7 @@
               TLSv1.3
             </mat-option>
           </mat-select>
-          <mat-hint>Select required TLS protocol</mat-hint>
+          <mat-label>Select required TLS protocol</mat-label>
         </mat-form-field>
         <mat-form-field appearance="outline" class="setup-smtp-input">
           <input matInput type="text" autocomplete="off" maxlength="50"
@@ -80,7 +80,7 @@
                  matTooltip="Host name to add to trust list (normally the same as SMTP host)."
                  matTooltipClass="tooltip"
                  placeholder="Trust host name">
-          <mat-hint>Trust host name</mat-hint>
+          <mat-label>Trust host name</mat-label>
         </mat-form-field>
         <mat-form-field appearance="outline" class="setup-smtp-input">
           <input matInput type="text" autocomplete="off" maxlength="50"
@@ -90,7 +90,7 @@
                  matTooltip="Host name (or IP address) of SMTP server."
                  matTooltipClass="tooltip"
                  placeholder="SMTP host name">
-          <mat-hint>SMTP host name</mat-hint>
+          <mat-label>SMTP host name</mat-label>
         </mat-form-field>
         <mat-form-field appearance="outline" class="setup-smtp-input">
           <input matInput autocomplete="off" maxlength="6"
@@ -103,7 +103,7 @@
                  matTooltip="Port used by SMTP server."
                  matTooltipClass="tooltip"
                  placeholder="SMTP port">
-          <mat-hint>SMTP port</mat-hint>
+          <mat-label>SMTP port</mat-label>
         </mat-form-field>
         <mat-form-field appearance="outline" class="setup-smtp-input">
           <input matInput type="text" autocomplete="off" maxlength="50"
@@ -113,7 +113,7 @@
                  matTooltip="Enter the senders address which warning emails will appear to have come from"
                  matTooltipClass="tooltip"
                  placeholder="Warning email sender address">
-          <mat-hint>Senders email address</mat-hint>
+          <mat-label>Senders email address</mat-label>
           <mat-error *ngIf="setupSMTPForm  !== undefined && setupSMTPForm .controls['fromAddress'].hasError('pattern')">50 or less characters and numbers
           </mat-error>
           <mat-error *ngIf="setupSMTPForm  !== undefined && setupSMTPForm .controls['fromAddress'].hasError('required')">User name is required
