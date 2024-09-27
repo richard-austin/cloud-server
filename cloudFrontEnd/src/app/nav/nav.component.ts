@@ -5,9 +5,8 @@ import {ReportingComponent} from '../reporting/reporting.component';
 import {HttpErrorResponse} from '@angular/common/http';
 import {Subscription} from 'rxjs';
 import {IdleTimeoutStatusMessage, Message, messageType, UtilsService} from '../shared/utils.service';
-import {MatDialog} from '@angular/material/dialog';
+import {MatDialog, MatDialogRef} from '@angular/material/dialog';
 import {IdleTimeoutModalComponent} from '../idle-timeout-modal/idle-timeout-modal.component';
-import {MatDialogRef} from '@angular/material/dialog/dialog-ref';
 import {UserIdleConfig} from '../angular-user-idle/angular-user-idle.config';
 import {UserIdleService} from '../angular-user-idle/angular-user-idle.service';
 import {map} from 'rxjs/operators';
@@ -72,19 +71,19 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   getActiveIPAddresses() {
-    window.location.href = '#/getactiveipaddresses';
+    window.location.href = '#/general/getactiveipaddresses';
   }
 
   getLocalWifiDetails() {
-    window.location.href = '#/getlocalwifidetails';
+    window.location.href = '#/wifi/getlocalwifidetails';
   }
 
   wifiSettings() {
-    window.location.href = '#/wifisettings';
+    window.location.href = '#/wifi/wifisettings';
   }
 
   localAdminFunctionsForNVR() {
-    window.location.href = '#/cua';
+    window.location.href = '#/general/cua';
   }
 
   multiCamView() {
@@ -104,11 +103,11 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   about() {
-    window.location.href = '#/about';
+    window.location.href = '#/general/about';
   }
 
   aboutCCTVCloud() {
-    window.location.href = '#/about/true';
+    window.location.href = '#/general/about/true';
   }
 
 
@@ -144,19 +143,19 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   setIp() {
-    window.location.href = '#/setip';
+    window.location.href = '#/general/setip';
   }
 
   registerLocalNVRAccount() {
-    window.location.href = '#/registerlocalnvraccount';
+    window.location.href = '#/account/registerlocalnvraccount';
   }
 
   removeLocalNVRAccount() {
-    window.location.href = '#/removelocalnvraccount';
+    window.location.href = '#/account/removelocalnvraccount';
   }
 
   drawdownCalc() {
-    window.location.href = '#/dc';
+    window.location.href = '#/general/dc';
   }
 
   configSetup() {
@@ -252,7 +251,7 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   changeEmail() {
-    window.location.href = '#/changeaccountemail';
+    window.location.href = '#/changeemail';
   }
 
   changePassword() {
@@ -260,7 +259,7 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   setActiveMQCreds() {
-    window.location.href = '#/registerActiveMQAccount';
+    window.location.href = '#/general/registerActiveMQAccount';
   }
   get cameras(): Map<string, Camera> {
     return this.cameraSvc.cameras;

@@ -1,5 +1,12 @@
-import {Component, ElementRef, OnInit, ViewChild} from '@angular/core';
-import {AbstractControl, FormControl, FormGroup, ValidationErrors, ValidatorFn, Validators} from "@angular/forms";
+import {AfterViewInit, Component, ElementRef, OnInit, ViewChild} from '@angular/core';
+import {
+  AbstractControl,
+  UntypedFormControl,
+  UntypedFormGroup,
+  ValidationErrors,
+  ValidatorFn,
+  Validators
+} from '@angular/forms';
 import {UtilsService} from "../shared/utils.service";
 import {ReportingComponent} from "../reporting/reporting.component";
 
@@ -8,19 +15,21 @@ import {ReportingComponent} from "../reporting/reporting.component";
   templateUrl: './register-local-nvr-account.component.html',
   styleUrls: ['./register-local-nvr-account.component.scss']
 })
-export class RegisterLocalNvrAccountComponent implements OnInit {
+export class RegisterLocalNvrAccountComponent implements OnInit, AfterViewInit {
   username: string = '';
   password: string = '';
   confirmPassword: string = '';
   email: string = '';
   confirmEmail: string = '';
-  nvrAccountRegistrationForm!: FormGroup;
+  nvrAccountRegistrationForm!: UntypedFormGroup;
   // errorMessage: string = '';
   // successMessage: string = '';
   @ViewChild('username') usernameInput!: ElementRef<HTMLInputElement>;
   @ViewChild(ReportingComponent) reporting!: ReportingComponent;
 
   constructor(private utilsService: UtilsService) {
+    if(utilsService.hasLocalAccount)
+        window.location.href = '/#';
   }
 
   passwordValidator(): ValidatorFn {
@@ -89,8 +98,8 @@ export class RegisterLocalNvrAccountComponent implements OnInit {
       });
   }
 
-  getFormControl(fcName: string): FormControl {
-    return this.nvrAccountRegistrationForm.get(fcName) as FormControl;
+  getFormControl(fcName: string): UntypedFormControl {
+    return this.nvrAccountRegistrationForm.get(fcName) as UntypedFormControl;
   }
 
   anyInvalid(): boolean {
@@ -102,12 +111,12 @@ export class RegisterLocalNvrAccountComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.nvrAccountRegistrationForm = new FormGroup({
-      username: new FormControl(this.username, [Validators.required, Validators.maxLength(20), Validators.pattern("^[a-zA-Z0-9](_(?!(\.|_))|\.(?!(_|\.))|[a-zA-Z0-9]){3,18}[a-zA-Z0-9]$")]),
-      password: new FormControl(this.password, [Validators.required, Validators.maxLength(25), this.passwordValidator()]),
-      confirmPassword: new FormControl(this.confirmPassword, [Validators.required, Validators.maxLength(25), this.passwordMatchValidator()]),
-      email: new FormControl(this.email, [Validators.required, Validators.maxLength(40), this.emailValidator()]),
-      confirmEmail: new FormControl(this.confirmEmail, [Validators.required, Validators.maxLength(40), this.emailMatchValidator()])
+    this.nvrAccountRegistrationForm = new UntypedFormGroup({
+      username: new UntypedFormControl(this.username, [Validators.required, Validators.maxLength(20), Validators.pattern("^[a-zA-Z0-9](_(?!(\.|_))|\.(?!(_|\.))|[a-zA-Z0-9]){3,18}[a-zA-Z0-9]$")]),
+      password: new UntypedFormControl(this.password, [Validators.required, Validators.maxLength(25), this.passwordValidator()]),
+      confirmPassword: new UntypedFormControl(this.confirmPassword, [Validators.required, Validators.maxLength(25), this.passwordMatchValidator()]),
+      email: new UntypedFormControl(this.email, [Validators.maxLength(40), this.emailValidator()]),
+      confirmEmail: new UntypedFormControl(this.confirmEmail, [Validators.required, Validators.maxLength(40), this.emailMatchValidator()])
     }, {updateOn: "change"});
 
     // Ensure camera form controls highlight immediately if invalid

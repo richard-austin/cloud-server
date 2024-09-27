@@ -1,7 +1,7 @@
 .register-container
 {
   margin-top: 1rem;
-  font-size: 2rem;
+  font-size: 16px;
   display: inline-flex;
   width: 100%;
   >mat-card
@@ -10,4 +10,8 @@
     margin-left: auto;
     margin-right: auto;
   }
+}
+
+mat-form-field {
+  margin-bottom: 0.5rem;
 }

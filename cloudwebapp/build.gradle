@@ -47,7 +47,7 @@ dependencies {
     implementation "org.springframework.boot:spring-boot-starter-logging"
     implementation "org.springframework.boot:spring-boot-starter-validation"
     implementation "org.springframework.boot:spring-boot-autoconfigure"
-    implementation "org.grails.plugins:spring-security-core:4.0.3"
+    implementation "org.grails.plugins:spring-security-core:6.1.1"
     implementation "org.grails:grails-core"
     implementation "org.springframework.boot:spring-boot-starter-actuator"
     implementation "org.springframework.boot:spring-boot-starter-tomcat"
@@ -97,7 +97,7 @@ dependencies {
     implementation 'javax.mail:mail:1.4.7'
 }
 
-task prepareKotlinBuildScriptModel {
+tasks.register('prepareKotlinBuildScriptModel') {
 }
 
 bootRun {
@@ -123,7 +123,7 @@ bootWar {
     }
 }
 
-task setVersion(type: Exec) {
+tasks.register('setVersion', Exec) {
     group = 'build'
     description = 'Sets the version.txt file with the current version from git describe'
     workingDir "$projectDir"
@@ -131,7 +131,8 @@ task setVersion(type: Exec) {
     args = ['-c', 'mkdir -p grails-app/assets/version && git describe --tags --dirty | tr -d \'\\n\' > grails-app/assets/version/version.txt']
 }
 
-task buildDebFile(type: Exec, dependsOn: [':cloudwebapp:assemble']) {
+tasks.register('buildDebFile', Exec) {
+    dependsOn([':cloudwebapp:assemble'])
     group = 'build'
     workingDir "$projectDir/../xtrn-files-and-config/deb-file-creation"
     commandLine './create-deb.sh'

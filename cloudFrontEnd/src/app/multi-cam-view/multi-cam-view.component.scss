@@ -73,9 +73,13 @@ tr.detail-row {
   background-color: #1e1b3d;
 }
 
+.stream-select-toggle {
+  position: relative;
+  left: 4px;
+  top: 2px;
+}
 .expand {
   position: relative;
-  font-size: xx-large;
 }
 
 td, th {
@@ -86,4 +90,7 @@ tr.mat-header-row {
 }
 tr.mat-row {
   height:fit-content !important;
+}
+mat-icon {
+  font-size: 25px !important;
 }

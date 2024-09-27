@@ -1,15 +1,17 @@
 <div class="camera-params-container">
   <mat-card class="mat-elevation-z8">
     <mat-card-title>View/Set Parameters</mat-card-title>
-    <mat-card-subtitle>{{cam?.name}}</mat-card-subtitle>
-    <mat-card-content class="wait-box mat-form-field-flex" *ngIf="downloading">
-      <mat-spinner [diameter]="25"></mat-spinner>
-      <span>Please wait..</span>
+      <mat-card-subtitle>{{ cam.name }}</mat-card-subtitle>
+      <mat-card-content class="wait-box" *ngIf="downloading">
+        <span class="wait-spinner">
+          <mat-spinner [diameter]="25"></mat-spinner>
+          <span>Please wait..</span>
+        </span>
     </mat-card-content>
     <mat-card-content [ngStyle]="downloading ? {display: 'none'} : {display: 'block'}">
       <div [formGroup]="camControlFormGroup">
         <div *ngIf="camType() === cameraTypes.sv3c">
-        <mat-form-field appearance="legacy">
+            <mat-form-field appearance="outline">
           <mat-label>Infra Red Status</mat-label>
           <mat-select formControlName="irselector">
             <mat-option value="auto">
@@ -28,7 +30,7 @@
         </div>
         <div *ngIf="camType() !== cameraTypes.sv3c">
           <div>
-            <mat-form-field appearance="legacy">
+              <mat-form-field appearance="outline">
               <mat-label>Night Vision Mode</mat-label>
               <mat-select formControlName="lampStatus">
                 <mat-option value="0">
@@ -46,7 +48,7 @@
             </mat-form-field>
           </div>
           <div>
-            <mat-form-field appearance="legacy">
+              <mat-form-field appearance="outline">
               <mat-label>WDR</mat-label>
               <mat-select formControlName="wdrStatus">
                 <mat-option value="off">
@@ -62,7 +64,7 @@
           </div>
         </div>
         <div>
-          <mat-form-field appearance="standard">
+            <mat-form-field appearance="outline">
             <mat-label>Camera Name</mat-label>
             <input matInput type="text" formControlName="cameraName"
                    placeholder="Camera Name">
@@ -72,15 +74,13 @@
           </mat-form-field>
         </div>
         <div>
-          <mat-form-field appearance="standard">
+            <mat-form-field appearance="outline">
             <mat-label>Date Format</mat-label>
             <input matInput type="text" formControlName="dateFormat"
                    placeholder="Start Date">
             <mat-hint>Read only value</mat-hint>
-            <mat-error *ngIf="hasError('dateFormat', 'required')">Camera name is required</mat-error>
-            <mat-error *ngIf="hasError('dateFormat', 'maxlength')">Max camera name length exceeded</mat-error>
           </mat-form-field>
-          <mat-form-field appearance="standard">
+            <mat-form-field appearance="outline">
             <mat-label>Start Date</mat-label>
             <input matInput type="text" formControlName="startDate"
                    placeholder="Start Date">
@@ -88,13 +88,13 @@
           </mat-form-field>
         </div>
         <div>
-          <mat-form-field appearance="standard">
+            <mat-form-field appearance="outline">
             <mat-label>Software Version</mat-label>
             <input matInput type="text" formControlName="softVersion"
                    placeholder="Software Version">
             <mat-hint>Read only value</mat-hint>
           </mat-form-field>
-          <mat-form-field appearance="standard">
+            <mat-form-field appearance="outline">
             <mat-label>Model</mat-label>
             <input matInput type="text" formControlName="model"
                    placeholder="Model">
@@ -103,25 +103,29 @@
          </div>
       </div>
       <div class="button-container">
-        <button *ngIf="!_confirmReboot" mat-flat-button (click)="updateParams()" [disabled]="!anyChanged() || anyInvalid()"
+          <button *ngIf="!_confirmReboot" mat-raised-button (click)="updateParams()"
+                  [disabled]="!anyChanged() || anyInvalid()"
                 matTooltip="{{(!anyChanged() || anyInvalid()) ? 'Ensure all fields are correct and complete before committing' : 'Click to commit the changes'}}"
                 matTooltipClass="tooltip"
-                color="warning">Update
+                  color="warn">Update
         </button>
-        <button *ngIf="_confirmReboot" mat-flat-button (click)="reboot()" [disabled]="(!anyChanged() || anyInvalid()) && !_confirmReboot"
+          <button *ngIf="_confirmReboot" mat-raised-button (click)="reboot()"
+                  [disabled]="(!anyChanged() || anyInvalid()) && !_confirmReboot"
                 matTooltip="Click to proceed with rebooting this camera"
                 matTooltipClass="tooltip"
-                color="warning">Reboot camera, Are you sure?
+                  color="warn">Reboot camera, Are you sure?
         </button>
-        <button *ngIf="!_confirmReboot" mat-flat-button (click)="confirmReboot()" [disabled]="anyChanged() || anyInvalid()"
+          <button *ngIf="!_confirmReboot" mat-raised-button (click)="confirmReboot()"
+                  [disabled]="anyChanged() || anyInvalid()"
                 matTooltip="{{'Click to reboot this camera'}}"
                 matTooltipClass="tooltip"
-                color="warning">Reboot Camera
+                  color="warn">Reboot Camera
         </button>
-        <button *ngIf="_confirmReboot" mat-flat-button (click)="cancelReboot()" [disabled]="anyChanged() || anyInvalid()"
+          <button *ngIf="_confirmReboot" mat-raised-button (click)="cancelReboot()"
+                  [disabled]="anyChanged() || anyInvalid()"
                 matTooltip="Click to cancel reboot of this camera"
                 matTooltipClass="tooltip"
-                color="default">Cancel
+                  color="cancel">Cancel
         </button>
       </div>
     </mat-card-content>

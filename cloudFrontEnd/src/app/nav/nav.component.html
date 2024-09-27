@@ -153,13 +153,13 @@
     </div>
   </div>
 </div>
-<mat-card class="mat-elevation-z8 confirm-logout alert-warning" *ngIf="confirmLogout">
-  <mat-card-subtitle style="color: inherit">
-    Logout from Security Cam, Are you sure?
+<mat-card class="mat-elevation-z8 confirm-logout" *ngIf="confirmLogout">
+  <mat-card-subtitle>
+    Logout from Cloud, Are you sure?
   </mat-card-subtitle>
   <mat-card-content>
-    <button mat-flat-button color="warn" (click)="logOff(true)">Confirm</button>
-    <button mat-flat-button color="primary" (click)="logOff(false)">Cancel</button>
+    <button mat-raised-button color="warn" (click)="logOff(true)">Confirm</button>
+    <button mat-raised-button color="cancel" (click)="logOff(false)">Cancel</button>
   </mat-card-content>
 </mat-card>
 <div *ngIf="!utilsService.activeMQTransportActive" class="no-transport-warning">

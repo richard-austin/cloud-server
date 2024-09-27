@@ -39,7 +39,6 @@
               "src/styles.scss"
             ],
             "scripts": ["./node_modules/hls.js/dist/hls.light.min.js",
-                        "./node_modules/mpegts.js/dist/mpegts.js",
                          "./node_modules/moment/min/moment.min.js",
                         "./node_modules/file-saver/dist/FileSaver.min.js",
                         "./node_modules/sockjs-client/dist/sockjs.min.js",
@@ -86,18 +85,18 @@
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
           "options": {
-            "browserTarget": "client:build"
+            "buildTarget": "client:build"
           },
           "configurations": {
             "production": {
-              "browserTarget": "client:build:production"
+              "buildTarget": "client:build:production"
             }
           }
         },
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "browserTarget": "client:build"
+            "buildTarget": "client:build"
           }
         },
         "test": {
@@ -148,6 +147,5 @@
         }
       }
     }
-  },
-  "defaultProject": "client"
+  }
 }

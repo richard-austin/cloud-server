@@ -2,6 +2,7 @@ import {AfterViewInit, Component, ElementRef, OnInit, ViewChild} from '@angular/
 import {FormControl, FormGroup, Validators} from "@angular/forms";
 import {CameraService} from "../cameras/camera.service";
 import {LoggedInMessage, UtilsService} from "../shared/utils.service";
+import {timer} from 'rxjs';
 
 @Component({
   selector: 'app-login',
@@ -18,7 +19,7 @@ export class LoginComponent implements OnInit, AfterViewInit {
   @ViewChild('username') usernameInput!: ElementRef<HTMLInputElement>
 
 
-  constructor(private cameraSvc: CameraService, public utilsService: UtilsService) { }
+  constructor(public utilsService: UtilsService) { }
   login()
   {
     this.errorMessage = '';
@@ -69,6 +70,8 @@ export class LoginComponent implements OnInit, AfterViewInit {
 
   ngAfterViewInit(): void {
     // Set the focus to the username input
-    this.usernameInput.nativeElement.focus();
+    timer(20).subscribe(() => {
+      this.usernameInput.nativeElement.focus();
+    });
   }
 }

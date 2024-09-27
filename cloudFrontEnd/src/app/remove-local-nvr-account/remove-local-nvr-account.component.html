@@ -3,13 +3,13 @@
 
   <mat-card-content>
     <span>
-      <button color="default" mat-flat-button (click)="cancel()"
+      <button color="cancel" mat-raised-button (click)="cancel()"
               matTooltip="Close the delete account form, and leave the account active"
               matTooltipClass="tooltip">
         Cancel
       </button>
               <span>&nbsp;&nbsp;</span>
-      <button [disabled]="!utilsService.hasLocalAccount" color="warning" mat-flat-button
+      <button [disabled]="!utilsService.hasLocalAccount" color="warn" mat-raised-button
               (click)="deleteAccount()"
               matTooltip="Delete the local NVR web account"
               matTooltipClass="tooltip">
