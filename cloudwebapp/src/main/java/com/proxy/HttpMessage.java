@@ -1,14 +1,8 @@
 package com.proxy;
 
-import org.apache.activemq.command.ActiveMQBytesMessage;
-
-import javax.jms.BytesMessage;
-import javax.jms.Message;
-import javax.jms.TextMessage;
+import jakarta.jms.BytesMessage;
 import java.nio.ByteBuffer;
 import java.util.*;
-
-import static javax.lang.model.element.ElementKind.CLASS;
 
 public class HttpMessage extends HashMap<String, List<String>> {
     private String httpMessage = "";

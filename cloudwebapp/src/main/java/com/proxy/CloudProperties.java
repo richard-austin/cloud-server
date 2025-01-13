@@ -1,8 +1,9 @@
 package com.proxy;
 
+import com.cloudwebapp.Config;
 import com.google.gson.*;
-import grails.config.Config;
-import grails.core.GrailsApplication;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -12,8 +13,8 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Objects;
 
+@Component
 public final class CloudProperties {
-    GrailsApplication grailsApplication;
     static private CloudProperties theInstance;
 
     private CloudProperties()
@@ -40,6 +41,8 @@ public final class CloudProperties {
     private String LOG_LEVEL;
     private JsonObject cloudCreds;
 
+    @Autowired
+    private Config config;
 
     private void setupConfigParams() throws Exception {
         Config config = grailsApplication.getConfig();

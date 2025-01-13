@@ -90,7 +90,7 @@ NVRs and the Cloud Service. It can be co hosted with the Cloud Service or run se
 both the NVRs and Cloud Service must be configured to connect to the ActiveMQ host address. The ActiveMQ project
 <a href="https://github.com/richard-austin/activemq-for-cloud-service">here</a> is configured for
 use with the NVR and Cloud projects, though you will need to edit the cloudActiveMQUrl in the NVRs
-application.yml and mqURL in the Cloud Service application.yml file for those to point to the host on which ActiveMQ
+application.properties and mqURL in the Cloud Service application.properties files for those to point to the host on which ActiveMQ
 is running.
 
 ## Building the project

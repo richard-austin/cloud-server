@@ -1,9 +1,10 @@
 package com.proxy.cloudListener;
 
 import com.proxy.CloudMQ;
-import grails.util.Holders;
-import org.grails.web.json.JSONObject;
+import org.springframework.boot.configurationprocessor.json.JSONException;
+import org.springframework.boot.configurationprocessor.json.JSONObject;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import java.util.Map;
@@ -17,12 +18,17 @@ public class CloudMQInstanceMap {
     // List of keys by CloudMQ instance value, used for remove by value
     Map<String, Timer> timers;
     SimpMessagingTemplate brokerMessagingTemplate;
-    final String update = new JSONObject()
-            .put("message", "update")
-            .toString();
+    final String update;
 
     CloudMQInstanceMap() {
-        ApplicationContext ctx = Holders.getGrailsApplication().getMainContext();
+        try {
+            update = new JSONObject()
+                    .put("message", "update")
+                    .toString();
+        } catch (JSONException e) {
+            throw new RuntimeException(e);
+        }
+        ApplicationContext ctx = new AnnotationConfigApplicationContext(CloudMQInstanceMap.class);
         brokerMessagingTemplate = (SimpMessagingTemplate) ctx.getBean("brokerMessagingTemplate");
         map = new ConcurrentHashMap<>();
         timers = new ConcurrentHashMap<>();

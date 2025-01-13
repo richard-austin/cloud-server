@@ -3,14 +3,18 @@ package com.proxy.cloudListener;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import com.proxy.*;
+import jakarta.jms.BytesMessage;
+import jakarta.jms.Message;
+import jakarta.jms.Session;
 import org.apache.activemq.ActiveMQConnection;
 import org.apache.activemq.ActiveMQSslConnectionFactory;
 import org.apache.activemq.transport.TransportListener;
-import org.grails.web.json.JSONObject;
+import org.springframework.boot.configurationprocessor.json.JSONException;
+import org.springframework.boot.configurationprocessor.json.JSONObject;
 import org.slf4j.LoggerFactory;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
-import javax.jms.*;
+import jakarta.jms.*;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -77,9 +81,14 @@ public class CloudMQListener {
 
                             @Override
                             public void transportInterupted() {
-                                final String transportActiveMsg = new JSONObject()
-                                        .put("transportActive", false)
-                                        .toString();
+                                final String transportActiveMsg;
+                                try {
+                                    transportActiveMsg = new JSONObject()
+                                            .put("transportActive", false)
+                                            .toString();
+                                } catch (JSONException e) {
+                                    throw new RuntimeException(e);
+                                }
                                 // Disable audio out on clients except the initiator
                                 brokerMessagingTemplate.convertAndSend("/topic/transportStatus", transportActiveMsg);
                                 transportActive = false;
@@ -89,9 +98,14 @@ public class CloudMQListener {
 
                             @Override
                             public void transportResumed() {
-                                final String transportActiveMsg = new JSONObject()
-                                        .put("transportActive", true)
-                                        .toString();
+                                final String transportActiveMsg;
+                                try {
+                                    transportActiveMsg = new JSONObject()
+                                            .put("transportActive", true)
+                                            .toString();
+                                } catch (JSONException e) {
+                                    throw new RuntimeException(e);
+                                }
                                 // Disable audio out on clients except the initiator
                                 brokerMessagingTemplate.convertAndSend("/topic/transportStatus", transportActiveMsg);
                                 transportActive = true;
