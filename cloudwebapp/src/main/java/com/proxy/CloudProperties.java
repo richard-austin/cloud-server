@@ -1,9 +1,7 @@
 package com.proxy;
 
-import com.cloudwebapp.Config;
+import com.cloudwebapp.IConfig;
 import com.google.gson.*;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -13,23 +11,29 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Objects;
 
-@Component
 public final class CloudProperties {
     static private CloudProperties theInstance;
-
-    private CloudProperties()
-    {
-    }
+    private final IConfig config;
 
     public static CloudProperties getInstance()
     {
         return theInstance;
     }
 
-    public void setGrailsApplication(GrailsApplication grailsApplication) throws Exception {
-        this.grailsApplication = grailsApplication;
-        CloudProperties.theInstance = this;
-        setupConfigParams();
+    public static CloudProperties Create(IConfig config) {
+        theInstance = new CloudProperties(config);
+        return theInstance;
+    }
+
+    private CloudProperties(IConfig config)
+    {
+        try {
+            this.config = config;
+            setupConfigParams();
+            CloudProperties.theInstance = this;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private String USERNAME;
@@ -41,27 +45,21 @@ public final class CloudProperties {
     private String LOG_LEVEL;
     private JsonObject cloudCreds;
 
-    @Autowired
-    private Config config;
-
     private void setupConfigParams() throws Exception {
-        Config config = grailsApplication.getConfig();
-        USERNAME = config.getProperty("cloud.username");
-        PASSWORD = config.getProperty("cloud.password");
-        AMQ_TRUSTSTORE_PATH = config.getProperty("cloud.mqTrustStorePath");
-        AMQ_TRUSTSTORE_PASSWORD = config.getProperty("cloud.mqTrustStorePassword");
-        PRIVATE_KEY_PATH = config.getProperty("cloud.privateKeyPath");
-        BROWSER_FACING_PORT = Integer.parseInt(Objects.requireNonNull(config.getProperty("cloud.browserFacingPort")));
-        LOG_LEVEL = config.getProperty("cloud.logLevel");
+        USERNAME = config.getUsername();
+        PASSWORD = config.getPassword();
+        AMQ_TRUSTSTORE_PATH = config.getMqTrustStorePath();
+        PRIVATE_KEY_PATH = config.getPrivateKeyPath();
+        BROWSER_FACING_PORT = Integer.parseInt(Objects.requireNonNull(config.getBrowserFacingPort()));
+        LOG_LEVEL = config.getLogLevel();
         cloudCreds = getCloudCreds();
     }
 
     public JsonObject getCloudCreds() throws Exception {
         JsonObject json;
-        Config config = grailsApplication.getConfig();
         try {
             Gson gson = new Gson();
-            json = gson.fromJson(new FileReader(config.toProperties().getProperty("varHomeDirectory")+"/cloud-creds.json"), JsonObject.class);
+            json = gson.fromJson(new FileReader(config.getVarHomeDirectory() + "/cloud-creds.json"), JsonObject.class);
         }
         catch(Exception ex) {
             throw new Exception("Error when getting Cloud credentials");
@@ -88,7 +86,7 @@ public final class CloudProperties {
         JsonElement je = JsonParser.parseString(json);
         String prettyJsonString = gson.toJson(je);
 
-        String fileName = grailsApplication.getConfig().getProperty("varHomeDirectory") + "/cloud-creds.json";
+        String fileName = config.getVarHomeDirectory() + "/cloud-creds.json";
         File file = new File(fileName);
         boolean b1 = file.setWritable(true);
         BufferedWriter writer = new BufferedWriter(new FileWriter(fileName));
@@ -118,12 +116,6 @@ public final class CloudProperties {
         return mqHost != null ? mqHost.getAsString() : "<none>";
     }
 
-    public String getAMQ_TRUSTSTORE_PATH() {
-        return AMQ_TRUSTSTORE_PATH;
-    }
-    public String getAMQ_TRUSTSTORE_PASSWORD() {
-        return AMQ_TRUSTSTORE_PASSWORD;
-    }
     public String getUSERNAME() { return USERNAME;}
     public String getPASSWORD() {return PASSWORD;}
     public String getPRIVATE_KEY_PATH() { return PRIVATE_KEY_PATH; }  // Private key to decrypt the product ID
@@ -131,14 +123,13 @@ public final class CloudProperties {
     public String getLOG_LEVEL() { return LOG_LEVEL; }
 
     public String getACTIVE_MQ_URL() {
-        Config config = grailsApplication.getConfig();
         // Take the cloudActiveMQUrl in application.yml and replace the host with that which was set in
         //  Update ActiveMQ Credentials, leave it if it was never set
         URI uri;
         boolean hasFailover = false;
         final String failover = "failover://";
         try {
-            String mqUrl = config.getProperty("cloud.mqURL");
+            String mqUrl = config.getMqURL();
             if(mqUrl != null && mqUrl.startsWith(failover)) {
                 mqUrl = mqUrl.substring(failover.length());
                 hasFailover = true;

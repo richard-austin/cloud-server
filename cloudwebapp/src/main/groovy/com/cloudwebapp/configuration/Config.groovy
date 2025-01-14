@@ -1,5 +1,6 @@
-package com.cloudwebapp
+package com.cloudwebapp.configuration
 
+import com.cloudwebapp.IConfig
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.context.annotation.Configuration
@@ -25,10 +26,11 @@ class DataSource {
 
 @Configuration
 @ConfigurationProperties(prefix="cloud")
-class Config {
+class Config implements IConfig {
     String appHomeDirectory
     String varHomeDirectory
 
+    String mqTrustStorePath
     String username
     String password
     String mqURL
