@@ -1,6 +1,6 @@
 package com.cloudwebapp.interfaceobjects
 
-import cloudservice.entityobjects.RestfulResponseStatusEnum
+import com.cloudwebapp.enums.RestfulResponseStatusEnum
 
 class RestfulResponse {
     RestfulResponseStatusEnum status

@@ -2,12 +2,9 @@ package com.cloudwebapp.services
 
 import ch.qos.logback.classic.Level
 import ch.qos.logback.classic.Logger
-import grails.gorm.transactions.Transactional
 import org.slf4j.LoggerFactory
+import jakarta.annotation.*
 
-import javax.annotation.PostConstruct
-
-@Transactional
 class LogService {
 
     Logger cloud = null

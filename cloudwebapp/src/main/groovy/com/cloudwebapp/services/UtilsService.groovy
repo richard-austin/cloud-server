@@ -1,22 +1,22 @@
 package com.cloudwebapp.services
 
-import cloudservice.commands.SMTPData
-import cloudservice.commands.SetupSMTPAccountCommand
-import cloudservice.enums.PassFail
-import cloudservice.interfaceobjects.ObjectCommandResponse
+import com.cloudwebapp.commands.SetupSMTPAccountCommand
+import com.cloudwebapp.configuration.Config
+import com.cloudwebapp.interfaceobjects.ObjectCommandResponse
 import com.google.gson.GsonBuilder
-import grails.config.Config
-import grails.core.GrailsApplication
-import grails.gorm.transactions.Transactional
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.stereotype.Service
 
 import java.nio.charset.StandardCharsets
 
-@Transactional
+@Service
 class UtilsService {
-    public final String passwordRegex = /^[A-Za-z0-9][A-Za-z0-9(){\[1*£$\\\]}=@~?^]{7,31}$/
-    public final String emailRegex = /^([a-zA-Z0-9_\-\.]+)@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.)|(([a-zA-Z0-9\-]+\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\]?)$/
+    public final static String passwordRegex = /^[A-Za-z0-9][A-Za-z0-9(){\[1*£$\\\]}=@~?^]{7,31}$/
+    public final static String emailRegex = /^([a-zA-Z0-9_\-\.]+)@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.)|(([a-zA-Z0-9\-]+\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\]?)$/
+    @Autowired
     LogService logService
-    GrailsApplication grailsApplication
+    @Autowired
+    Config config
 
     ObjectCommandResponse setupSMTPClient(SetupSMTPAccountCommand cmd) {
         ObjectCommandResponse result = new ObjectCommandResponse()
@@ -40,7 +40,7 @@ class UtilsService {
 
     def getSMTPConfigData() {
         Config config = grailsApplication.getConfig()
-        def configFileName = config.getProperty("cloud.mail.smtp.configFile")
+        def configFileName = config.getMail().getConfigFile()
         File file = new File(configFileName)
         byte[] bytes = file.readBytes()
         String json = new String(bytes, StandardCharsets.UTF_8)
