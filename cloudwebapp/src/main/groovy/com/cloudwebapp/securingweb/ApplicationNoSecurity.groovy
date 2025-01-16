@@ -16,16 +16,16 @@ class ApplicationNoSecurity {
     @Bean
     WebSecurityCustomizer webSecurityCustomizer() {
         if(!enabled) {
-            logService.cam.info("============================================")
-            logService.cam.info("Spring Security is DISABLED!!!")
-            logService.cam.info("============================================")
+            logService.cloud.info("============================================")
+            logService.cloud.info("Spring Security is DISABLED!!!")
+            logService.cloud.info("============================================")
             return (web) ->
                     web.ignoring().requestMatchers("/**")
         }
         else {
-            logService.cam.info("++++++++++++++++++++++++++++++++++++++++++++")
-            logService.cam.info("Spring Security is enabled")
-            logService.cam.info("++++++++++++++++++++++++++++++++++++++++++++")
+            logService.cloud.info("++++++++++++++++++++++++++++++++++++++++++++")
+            logService.cloud.info("Spring Security is enabled")
+            logService.cloud.info("++++++++++++++++++++++++++++++++++++++++++++")
             return (web) -> web.ignoring()
         }
     }
