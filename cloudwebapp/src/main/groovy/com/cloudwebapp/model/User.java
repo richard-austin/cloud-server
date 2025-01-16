@@ -43,6 +43,12 @@ public class User implements MyUserDetails {
     @NotNull
     private String password;
 
+    @Column(length = 19)
+    @Size(min=19, max = 19)
+    @NotBlank
+    @NotNull
+    private String productid;
+
     private boolean enabled;
     private boolean credentialsNonExpired;
 

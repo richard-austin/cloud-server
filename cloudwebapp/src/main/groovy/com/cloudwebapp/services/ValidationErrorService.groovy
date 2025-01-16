@@ -1,9 +1,9 @@
 package com.cloudwebapp.services
 
-import grails.gorm.transactions.Transactional
-import grails.validation.ValidationErrors
+import org.springframework.boot.context.properties.bind.validation.ValidationErrors
+import org.springframework.stereotype.Service
 
-@Transactional
+@Service
 class ValidationErrorService {
 
     Map commandErrors(ValidationErrors validationErrors, String serviceName) {

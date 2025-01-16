@@ -19,7 +19,7 @@ class Mail {
 
 @Configuration
 @ConfigurationProperties(prefix="datasource")
-class DataSource {
+class H2DataSource {
     String dbCreate
     String url
 }
@@ -42,7 +42,7 @@ class Config implements IConfig {
     Mail mail
 
     @Autowired
-    DataSource dataSource
+    H2DataSource dataSource
 
     @Autowired
     Quartz quartz

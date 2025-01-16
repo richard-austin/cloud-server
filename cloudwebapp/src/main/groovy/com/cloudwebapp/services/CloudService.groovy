@@ -1,12 +1,19 @@
 package com.cloudwebapp.services
 
+import com.cloudwebapp.commands.RegisterUserCommand
+import com.cloudwebapp.dao.RoleRepository
+import com.cloudwebapp.dao.UserRepository
+import com.cloudwebapp.enums.PassFail
 import com.cloudwebapp.interfaceobjects.ObjectCommandResponse
 import com.cloudwebapp.interfaceobjects.RestfulResponse
+import com.cloudwebapp.model.User
 import com.proxy.CloudMQ
 import com.proxy.cloudListener.CloudMQListener
 import jakarta.servlet.http.HttpServletRequest
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.configurationprocessor.json.JSONObject
 import org.springframework.messaging.simp.SimpMessagingTemplate
+import org.springframework.stereotype.Service
 import org.springframework.util.ResourceUtils
 
 import java.nio.charset.StandardCharsets
@@ -43,12 +50,16 @@ class Account {
     }
 }
 
+@Service
 class CloudService {
+    @Autowired
     LogService logService
     CloudMQListener cloudListener = null
-    UserService userService
-    UserRoleService userRoleService
-    RoleService roleService
+    @Autowired
+    UserRepository userRepository
+    @Autowired
+    RoleRepository roleRepository
+    @Autowired
     SimpMessagingTemplate brokerMessagingTemplate
 
 
@@ -159,17 +170,17 @@ class CloudService {
     ObjectCommandResponse register(RegisterUserCommand cmd) {
         ObjectCommandResponse response = new ObjectCommandResponse()
         try {
-             if (User.findByProductid(cmd.productId) != null)
+             if (userRepository.findByProductid(cmd.productId) != null)
                 throw new Exception("Product ID " + cmd.productId + " is already registered")
-            else if (User.findByUsername(cmd.username) != null)
+            else if (userRepository.findByUsername(cmd.username) != null)
                 throw new Exception("Username " + cmd.username + " is already registered")
 
             CloudMQ cloud = cloudListener.getInstances().get(cmd.productId.trim())
 
             if (cloud != null) {
                 User u = new User(username: cmd.username, productid: cmd.productId, password: cmd.password, email: cmd.email)
-                u = userService.save(u)
-                userRoleService.save(u, roleService.findByAuthority('ROLE_CLIENT'))
+                u = userRepository.save(u)
+              //  userRoleService.save(u, roleRepository.findByName('ROLE_CLIENT'))
             } else
                 throw new Exception("Cannot find an NVR for product ID ${cmd.productId}")
 

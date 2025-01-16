@@ -4,10 +4,13 @@ import ch.qos.logback.classic.Level
 import ch.qos.logback.classic.Logger
 import org.slf4j.LoggerFactory
 import jakarta.annotation.*
+import org.springframework.stereotype.Service
 
+@Service
 class LogService {
 
     Logger cloud = null
+
     static Logger logger = null
 
     void setLogLevel(String level)
