@@ -1,9 +1,6 @@
 package com.cloudwebapp.dto;
 
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -23,6 +20,13 @@ public class UserDto {
     @NotNull
     @Size(min = 1)
     private String matchingPassword;
+
+    @Setter
+    @Getter
+    @Size(min=19, max = 19)
+    @NotBlank
+    @NotNull
+    private String productid;
 
     @Setter
     @Getter

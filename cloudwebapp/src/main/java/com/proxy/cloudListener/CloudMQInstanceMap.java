@@ -1,10 +1,10 @@
 package com.proxy.cloudListener;
 
+import com.cloudwebapp.beans.AppContextManager;
 import com.proxy.CloudMQ;
 import org.springframework.boot.configurationprocessor.json.JSONException;
 import org.springframework.boot.configurationprocessor.json.JSONObject;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import java.util.Map;
@@ -28,7 +28,7 @@ public class CloudMQInstanceMap {
         } catch (JSONException e) {
             throw new RuntimeException(e);
         }
-        ApplicationContext ctx = new AnnotationConfigApplicationContext(CloudMQInstanceMap.class);
+        ApplicationContext ctx = AppContextManager.getAppContext();
         brokerMessagingTemplate = (SimpMessagingTemplate) ctx.getBean("brokerMessagingTemplate");
         map = new ConcurrentHashMap<>();
         timers = new ConcurrentHashMap<>();

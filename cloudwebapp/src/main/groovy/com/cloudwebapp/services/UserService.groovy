@@ -29,6 +29,7 @@ class UserService {
         final User user = new User()
         user.setUsername(accountDto.getUsername())
         user.setPassword(passwordEncoder.encode(accountDto.password))
+        user.setProductid(accountDto.productid)
         user.setCredentialsNonExpired(accountDto.credentialsNonExpired)
         user.setEmail(accountDto.email)
         user.setCloudAccount(accountDto.cloudAccount)

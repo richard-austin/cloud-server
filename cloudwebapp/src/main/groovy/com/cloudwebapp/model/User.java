@@ -100,6 +100,10 @@ public class User implements MyUserDetails {
         this.password = password;
     }
 
+    public void setProductid(String productid) {
+        this.productid = productid;
+    }
+
     public boolean getCloudAccount() {
         return cloudAccount;
     }
