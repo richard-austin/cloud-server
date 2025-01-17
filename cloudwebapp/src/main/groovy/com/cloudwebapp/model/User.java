@@ -100,6 +100,9 @@ public class User implements MyUserDetails {
         this.password = password;
     }
 
+    public String getProductid() {
+        return productid;
+    }
     public void setProductid(String productid) {
         this.productid = productid;
     }

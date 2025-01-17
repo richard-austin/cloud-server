@@ -34,7 +34,7 @@ class InitialAccountSetup {
             if (!userService.userNameExists('admin')) {
                 Role adminRole = roleRepository.findByName('ROLE_ADMIN')
                 if(adminRole != null) {
-                    def u = new UserDto(username: 'admin', productid: '0000-0000-0000-0000', password: 'elementary', email: 'changeme@changeme.com', role: adminRole.getId())
+                    def u = new UserDto(username: 'admin', productid: '0000-0000-0000-0000', password: 'elementary', email: 'changeme@changeme.com', role: adminRole.getId(), credentialsNonExpired: true)
                     userService.registerNewUserAccount(u)
                 }
             }

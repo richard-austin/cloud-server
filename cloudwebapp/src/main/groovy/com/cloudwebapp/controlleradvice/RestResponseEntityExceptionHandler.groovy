@@ -32,7 +32,7 @@ class RestResponseEntityExceptionHandler {
             String errorMessage = error.getDefaultMessage()
             errors.put(fieldName, errorMessage)
         })
-        logService.cam.warn("MethodArgumentNotValidException ${errors.toString()}")
+        logService.cloud.warn("MethodArgumentNotValidException ${errors.toString()}")
         String acceptHeader = req.getHeader("Accept")
         if (acceptHeader.containsIgnoreCase("application/json") || acceptHeader.contains('*/*') )
             return ResponseEntity.badRequest().contentType(MediaType.APPLICATION_JSON).body(errors)
@@ -54,14 +54,14 @@ class RestResponseEntityExceptionHandler {
 
     @ExceptionHandler(CloudRestMethodException.class)
     ResponseEntity<Object> handleNVRRestMethodException(final CloudRestMethodException ex, final HttpServletRequest req) {
-        logService.cam.error("${ex.getClass()}: ${ex.getReason()}")
-        logService.cam.trace(ex.getStackTrace().toString())
+        logService.cloud.error("${ex.getClass()}: ${ex.getReason()}")
+        logService.cloud.trace(ex.getStackTrace().toString())
         return returnDetails(ex, req)
     }
 
     @ExceptionHandler(Exception.class)
     ResponseEntity<Object> handleGeneralException(final Exception ex, final HttpServletRequest req) {
-        logService.cam.error("${ex.getClass()} has occurred: ${ex.getMessage()}: ${ex.getCause()}")
+        logService.cloud.error("${ex.getClass()} has occurred: ${ex.getMessage()}: ${ex.getCause()}")
         return returnDetails(ex, req)
     }
 
