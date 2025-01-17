@@ -73,5 +73,4 @@ class TwoFactorAuthProvider extends DaoAuthenticationProvider {
     private void logAudit(String auditType, GString message) {
         logService.cloud.info "Audit:${auditType}- ${message.toString()}"
     }
-
 }
