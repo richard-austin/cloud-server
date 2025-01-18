@@ -36,7 +36,7 @@ export class LoginComponent implements OnInit, AfterViewInit {
         }
       },
       (reason)=> {
-      this.errorMessage = reason.error.reason;
+        this.errorMessage = reason.statusText + ": " + reason.error;
       });
   }
 

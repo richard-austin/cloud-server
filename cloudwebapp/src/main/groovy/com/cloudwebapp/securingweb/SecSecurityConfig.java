@@ -1,5 +1,6 @@
 package com.cloudwebapp.securingweb;
 
+import com.cloudwebapp.beans.CloudAuthFailureHandler;
 import com.cloudwebapp.beans.CloudAuthSuccessHandler;
 import com.cloudwebapp.dao.UserRepository;
 import com.cloudwebapp.eventlisteners.SecCamSecurityEventListener;
@@ -24,12 +25,18 @@ public class SecSecurityConfig {
     @Value("${spring-security.enabled}")
     boolean enabled;
 
-    SecSecurityConfig(RememberMeServices rememberMeServices, MyUserDetailsService myUserDetailsService, SecCamSecurityEventListener secCamSecurityEventListener, LogService logService, CloudAuthSuccessHandler cloudAuthSuccessHandler) {
+    SecSecurityConfig(RememberMeServices rememberMeServices,
+                      MyUserDetailsService myUserDetailsService,
+                      SecCamSecurityEventListener secCamSecurityEventListener,
+                      LogService logService,
+                      CloudAuthSuccessHandler cloudAuthSuccessHandler,
+                      CloudAuthFailureHandler cloudAuthFailureHandler) {
         this.rememberMeServices = rememberMeServices;
         this.myUserDetailsService = myUserDetailsService;
         this.secCamSecurityEventListener = secCamSecurityEventListener;
         this.logService = logService;
         this.cloudAuthSuccessHandler = cloudAuthSuccessHandler;
+        this.cloudAuthFailureHandler = cloudAuthFailureHandler;
     }
 
     RememberMeServices rememberMeServices;
@@ -37,6 +44,7 @@ public class SecSecurityConfig {
     LogService logService;
     SecCamSecurityEventListener secCamSecurityEventListener;
     CloudAuthSuccessHandler cloudAuthSuccessHandler;
+    CloudAuthFailureHandler cloudAuthFailureHandler;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http, CloudService cloudService, UserRepository userRepository) throws Exception {
@@ -50,13 +58,12 @@ public class SecSecurityConfig {
                             .requestMatchers("/recover/resetPassword").anonymous()
                     )
                     .authorizeHttpRequests((requests) -> requests
-                            .requestMatchers("/*/cloudstomp/*").permitAll()
+                            .requestMatchers("/cloudstomp").permitAll()
                             .requestMatchers("/*.css").permitAll()
                             .requestMatchers("/*.js").permitAll()
                             .requestMatchers("/*.ttf").permitAll()
                             .requestMatchers("/*.woff2").permitAll()
                             .requestMatchers("/cloud/register").permitAll()
-                            .requestMatchers("cloud/sendResetPasswordLink").permitAll()
                             .requestMatchers("/*/favicon.ico").permitAll()
                             .requestMatchers("/*.index.html").permitAll()
                             .requestMatchers("/javascripts/*.js").permitAll()
@@ -73,7 +80,8 @@ public class SecSecurityConfig {
                             .successHandler(cloudAuthSuccessHandler)
                           //  .authenticationDetailsSource(authenticationDetailsSource())
                             .loginProcessingUrl("/login/authenticate")
-                            .failureUrl("/login/auth?error")
+                           // .failureUrl("/")
+                            .failureHandler(cloudAuthFailureHandler)
                             .permitAll()
                     )
                     .logout(httpSecurityLogoutConfigurer ->
