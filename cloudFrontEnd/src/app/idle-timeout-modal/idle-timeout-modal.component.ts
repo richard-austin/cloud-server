@@ -19,7 +19,7 @@ export class IdleTimeoutModalComponent implements OnInit {
 
   onClose(): void {
     this.dialogRef.close();
-    this.utilsService.logoff();
+    this.utilsService.logout();
   }
 
   onContinue() {

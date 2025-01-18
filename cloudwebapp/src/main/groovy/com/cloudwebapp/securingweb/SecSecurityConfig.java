@@ -1,5 +1,6 @@
 package com.cloudwebapp.securingweb;
 
+import com.cloudwebapp.beans.CloudAuthSuccessHandler;
 import com.cloudwebapp.dao.UserRepository;
 import com.cloudwebapp.eventlisteners.SecCamSecurityEventListener;
 import com.cloudwebapp.security.MyUserDetailsService;
@@ -23,17 +24,19 @@ public class SecSecurityConfig {
     @Value("${spring-security.enabled}")
     boolean enabled;
 
-    SecSecurityConfig(RememberMeServices rememberMeServices, MyUserDetailsService myUserDetailsService, SecCamSecurityEventListener secCamSecurityEventListener, LogService logService) {
+    SecSecurityConfig(RememberMeServices rememberMeServices, MyUserDetailsService myUserDetailsService, SecCamSecurityEventListener secCamSecurityEventListener, LogService logService, CloudAuthSuccessHandler cloudAuthSuccessHandler) {
         this.rememberMeServices = rememberMeServices;
         this.myUserDetailsService = myUserDetailsService;
         this.secCamSecurityEventListener = secCamSecurityEventListener;
         this.logService = logService;
+        this.cloudAuthSuccessHandler = cloudAuthSuccessHandler;
     }
 
     RememberMeServices rememberMeServices;
     MyUserDetailsService myUserDetailsService;
     LogService logService;
     SecCamSecurityEventListener secCamSecurityEventListener;
+    CloudAuthSuccessHandler cloudAuthSuccessHandler;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http, CloudService cloudService, UserRepository userRepository) throws Exception {
@@ -67,10 +70,9 @@ public class SecSecurityConfig {
                     .rememberMe(rememberMe -> rememberMe
                             .rememberMeServices(rememberMeServices))
                     .formLogin((form) -> form
+                            .successHandler(cloudAuthSuccessHandler)
                           //  .authenticationDetailsSource(authenticationDetailsSource())
-                           // .loginPage("/login/auth")
                             .loginProcessingUrl("/login/authenticate")
-                            .defaultSuccessUrl("/", true)
                             .failureUrl("/login/auth?error")
                             .permitAll()
                     )
@@ -78,6 +80,7 @@ public class SecSecurityConfig {
                             httpSecurityLogoutConfigurer
                                     .logoutUrl("/logout")
                                     .addLogoutHandler(secCamSecurityEventListener)
+                                    .logoutSuccessUrl("/")
                                     .permitAll());
         }
         return http.build();

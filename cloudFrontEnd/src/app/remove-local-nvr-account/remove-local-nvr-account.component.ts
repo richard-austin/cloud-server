@@ -23,7 +23,7 @@ export class RemoveLocalNvrAccountComponent implements OnInit {
         this.reporting.successMessage = "Removed account " + result.username + " successfully";
       },
       reason => {
-        this.reporting.error = reason;
+        this.reporting.errorMessage = reason;
       })
   }
 

@@ -71,13 +71,13 @@
       </div>
       <span class="cam-creds-confirm-group">
       <button color="cancel" mat-raised-button (click)="hideRegisterForm()"
-              matTooltip="{{reporting === undefined || reporting.success === undefined ? 'Close this dialogue and abandon setting up an account': 'Close this dialogue box'}}"
+              matTooltip="{{success === false ? 'Close this dialogue and abandon setting up an account': 'Close this dialogue box'}}"
               matTooltipClass="tooltip">
-        {{reporting === undefined || reporting.success === undefined ? 'Cancel' : 'Exit'}}
+        {{success === false ? 'Cancel' : 'Exit'}}
       </button>
               <span>&nbsp;&nbsp;</span>
       <button color="warn" mat-raised-button
-              [disabled]="anyInvalid() || reporting !== undefined && reporting.success !== undefined"
+              [disabled]="anyInvalid() || success !== false"
               (click)="register()"
               matTooltip="Login into the CCTV Cloud Service with the given username and password"
               matTooltipClass="tooltip">

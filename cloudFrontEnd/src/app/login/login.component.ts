@@ -1,6 +1,5 @@
 import {AfterViewInit, Component, ElementRef, OnInit, ViewChild} from '@angular/core';
 import {FormControl, FormGroup, Validators} from "@angular/forms";
-import {CameraService} from "../cameras/camera.service";
 import {LoggedInMessage, UtilsService} from "../shared/utils.service";
 import {timer} from 'rxjs';
 
@@ -37,7 +36,7 @@ export class LoginComponent implements OnInit, AfterViewInit {
         }
       },
       (reason)=> {
-      this.errorMessage = reason.error;
+      this.errorMessage = reason.error.reason;
       });
   }
 

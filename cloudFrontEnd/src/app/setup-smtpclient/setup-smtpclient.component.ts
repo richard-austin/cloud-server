@@ -27,6 +27,7 @@ export class SetupSMTPClientComponent implements OnInit {
   setupSMTPForm!: FormGroup;
   smtpData: SMTPData = new SMTPData();
   error: boolean = false;
+  success: boolean = true;
 
   @ViewChild(ReportingComponent) reporting: ReportingComponent = new ReportingComponent();
 
@@ -89,9 +90,11 @@ export class SetupSMTPClientComponent implements OnInit {
     this.utilsService.setupSMTPClientLocally(this.smtpData).subscribe({
       complete: () => {
         this.reporting.successMessage = "SMTP settings updated";
+        this.success = true;
       },
       error: (reason) => {
         this.reporting.errorMessage = reason;
+        this.success  = false;
       }
     });
   }

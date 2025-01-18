@@ -152,16 +152,16 @@ export class UtilsService {
             this.getHasLocalAccount();
           }
         },
-        () => {
+        (reason) => {
           this._isAdmin = this._loggedIn = false;
         }),
       catchError((err: HttpErrorResponse) => throwError(err))
     );
   }
 
-  logoff(): void {
+  logout(): void {
     this._hasLocalAccount = this._loggedIn = false;
-    window.location.href = 'logoff';
+    window.location.href = 'logout';
   }
 
   getTemperature(): Observable<Temperature> {

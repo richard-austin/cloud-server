@@ -38,6 +38,7 @@ dependencies {
  //   implementation group: 'jakarta.persistence', name: 'jakarta.persistence-api', version: '3.2.0'
     implementation group: 'org.jboss.aerogear', name: 'aerogear-otp-java', version: '1.0.0'
     implementation 'org.projectlombok:lombok:1.18.36'
+
 //    implementation 'org.springframework.security:spring-security-core:6.4.2'
 //    implementation 'org.springframework.security:spring-security-web:6.4.2'
 //    implementation 'org.springframework.security:spring-security-config:6.4.2'
@@ -63,4 +64,5 @@ tasks.named('test') {
 
 bootRun {
     jvmArgs('-Dspring.profiles.active=dev')
+    systemProperty 'server.port', '8086'
 }

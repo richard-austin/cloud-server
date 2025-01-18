@@ -87,7 +87,7 @@ export class RegisterAccountComponent implements OnInit, AfterViewInit {
       this.successMessage = result.message;
     },
       (reason) => {
-        this.errorMessage = reason.error;
+        this.errorMessage = reason.error.reason;
       });
   }
 
