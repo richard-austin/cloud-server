@@ -53,7 +53,7 @@ class CloudwebappApplication implements ServletContextInitializer {
 
     @Bean
     PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder(11);
+        return new BCryptPasswordEncoder(11)
     }
 
     @PreDestroy

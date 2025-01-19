@@ -741,22 +741,28 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit, OnDestroy {
     else if (cam.value.snapshotUri !== '') {
       this.snapShotKey = cam.key;
       this.cameraSvc.getSnapshot(cam.value).subscribe(result => {
-          this.snapshot = this.sanitizer.bypassSecurityTrustResourceUrl('data:image/jpeg;base64,' + this.toBase64(result));
-          this.snapshotLoading = false;
-        },
-        reason => {
-          if (reason.status === 401) {
-            this.reporting.warningMessage =
-              `Access to camera snapshot at ${cam.value.snapshotUri} is unauthorised. Please ensure the correct credentials for
+            if (result !== null && result.body !== null) {
+              let ab = result.body.arrayBuffer()
+              ab.then((body => {
+                this.snapshot = this.sanitizer.bypassSecurityTrustResourceUrl('data:image/jpeg;base64,' + this.toBase64(body));
+                this.snapshotLoading = false;
+              }))
+            }
+          },
+          reason => {
+            if (reason.status === 401) {
+              this.reporting.warningMessage =
+                  `Access to camera snapshot at ${cam.value.snapshotUri} is unauthorised. Please ensure the correct credentials for
               ${cam.key} is set. (Click on the shield icon on this camera row).`;
-          } else {
-            this.reporting.errorMessage = reason;
-          }
-          this.snapshotLoading = false;
-          this.snapShotKey = '';
-        })
+            } else {
+              this.reporting.errorMessage = reason;
+            }
+            this.snapshotLoading = false;
+            this.snapShotKey = '';
+          })
     }
   }
+
 
   ftpSet(cam: Camera): boolean {
     return cam.ftp !== 'none' && typeof cam.ftp !== 'boolean';
@@ -775,7 +781,7 @@ export class ConfigSetupComponent implements OnInit, AfterViewInit, OnDestroy {
     return hasMotionSet;
   }
 
-  toBase64(data: Array<any>): string {
+  toBase64(data: ArrayBuffer): string {
     let binary: string = '';
     let bytes: Uint8Array = new Uint8Array(data);
     let len: number = bytes.byteLength;
