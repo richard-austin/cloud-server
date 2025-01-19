@@ -206,14 +206,14 @@ export class CameraService {
   }
 
   haveOnvifCredentials(): Observable<string> {
-    return this.http.post(this._baseUrl.getLink("cam", "haveOnvifCredentials"), '', {responseType: 'text'}).pipe(
+    return this.http.post(this._baseUrl.getLink("onvif", "haveOnvifCredentials"), '', {responseType: 'text'}).pipe(
       catchError((err: HttpErrorResponse) => throwError(err)));
   }
 
   updateCameras(camerasJON: string):
     Observable<Map<string, Camera>> {
     let cameras = {camerasJSON: camerasJON};
-    return this.http.post<any>(this._baseUrl.getLink("cam", "updateCameras"), JSON.stringify(cameras), this.httpJSONOptions).pipe(
+    return this.http.post<any>(this._baseUrl.getLink("onvif", "updateCameras"), JSON.stringify(cameras), this.httpJSONOptions).pipe(
       tap((cams) => {
         this.cameras = new Map();
 
