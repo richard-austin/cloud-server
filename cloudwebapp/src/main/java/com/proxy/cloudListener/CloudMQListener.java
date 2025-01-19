@@ -76,7 +76,7 @@ public class CloudMQListener {
 
                             @Override
                             public void onException(IOException error) {
-                                logger.info(error.getClass().getName() + " received in InitQueueConsumer transport listener: " + error.getMessage());
+                                logger.info("{} received in InitQueueConsumer transport listener: {}", error.getClass().getName(), error.getMessage());
                             }
 
                             @Override
@@ -123,7 +123,7 @@ public class CloudMQListener {
                         acceptConnectionsFromBrowser(browserFacingPort);
                     }
                 } catch (Exception ex) {
-                    logger.error(ex.getClass().getName() + " in InitQueueConsumer.start: " + ex.getMessage());
+                    logger.error("{} in InitQueueConsumer.start: {}", ex.getClass().getName(), ex.getMessage());
                 }
             });
 //            try {
@@ -144,7 +144,7 @@ public class CloudMQListener {
                         _sc.close();
                 }
             } catch (Exception ex) {
-                logger.error(ex.getClass().getName() + " in InitQueueConsumer.stop(): " + ex.getMessage());
+                logger.error("{} in InitQueueConsumer.stop(): {}", ex.getClass().getName(), ex.getMessage());
             }
         }
 
@@ -171,7 +171,7 @@ public class CloudMQListener {
                 tMsg.setBooleanProperty("INIT_RESPONSE", true);
                 producer.send(tMsg);
             } catch (JMSException ex) {
-                logger.error(ex.getClass().getName() + " in CloudMQListener.onMessage: " + ex.getMessage());
+                logger.error("{} in CloudMQListener.onMessage: {}", ex.getClass().getName(), ex.getMessage());
             }
         }
 
@@ -246,7 +246,7 @@ public class CloudMQListener {
                     }
                 }
             } catch (Exception ex) {
-                logger.error(ex.getClass().getName() + " in getProductId: " + ex.getMessage());
+                logger.error("{} in getProductId: {}", ex.getClass().getName(), ex.getMessage());
             }
 
         }
@@ -290,11 +290,11 @@ public class CloudMQListener {
                             final int token = getToken();
                             readFromBrowser(browser, token);
                         } catch (Exception ex) {
-                            logger.error(ex.getClass().getName() + " in acceptConnectionsFromBrowser:  " + ex.getMessage());
+                            logger.error("{} in acceptConnectionsFromBrowser:  {}", ex.getClass().getName(), ex.getMessage());
                         }
                     }
                 } catch (IOException ioex) {
-                    logger.error(ioex.getClass().getName() + " in acceptConnectionsFromBrowser: " + ioex.getMessage());
+                    logger.error("{} in acceptConnectionsFromBrowser: {}", ioex.getClass().getName(), ioex.getMessage());
                 }
             }
         });
@@ -313,9 +313,9 @@ public class CloudMQListener {
         browserReadExecutor.submit(() -> {
             ByteBuffer buf = getBuffer();
             try {
-                logger.trace("In readFromBrowser: token " + token);
+                logger.trace("In readFromBrowser: token {}", token);
                 final int bytesRead = channel.read(buf);
-                logger.trace("Read " + bytesRead + " token " + token);
+                logger.trace("Read {} token {}", bytesRead, token);
                 if (bytesRead > 0) {
                     HttpMessage msg = new HttpMessage(buf);
                     List<String> cookies = msg.get("cookie");
@@ -348,7 +348,7 @@ public class CloudMQListener {
             } catch (IOException ignored) {
                 //removeSocket(token);
             } catch (Exception ex) {
-                logger.error(ex.getClass().getName() + " in readFromBrowser: " + ex.getMessage());
+                logger.error("{} in readFromBrowser: {}", ex.getClass().getName(), ex.getMessage());
             }
         });
     }
@@ -377,7 +377,7 @@ public class CloudMQListener {
         try (SocketChannel c = channel) {
             c.write(buf);
         } catch (Exception ex) {
-            logger.error(ex.getClass().getName() + " in sendErrorResponseToBrowser: " + ex.getMessage());
+            logger.error("{} in sendErrorResponseToBrowser: {}", ex.getClass().getName(), ex.getMessage());
         }
     }
 
@@ -417,7 +417,7 @@ public class CloudMQListener {
             inst.decSessionCount(nvrSessionId);
             inst.logoff(nvrSessionId);
         } catch (Exception ex) {
-            logger.error(ex.getClass().getName() + " in logoff: " + ex.getMessage());
+            logger.error("{} in logoff: {}", ex.getClass().getName(), ex.getMessage());
         }
     }
 

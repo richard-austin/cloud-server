@@ -2,6 +2,7 @@ package com.proxy;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
+import com.cloudwebapp.beans.AppContextManager;
 import com.proxy.cloudListener.*;
 import com.proxy.cloudListener.CloudMQListener;
 import org.slf4j.LoggerFactory;
@@ -75,7 +76,7 @@ public class CloudMQ {
         this.cloudProxySession = session;
         this.productId = productId;
         this.instances = instances;
-        ApplicationContext ctx =  new AnnotationConfigApplicationContext(CloudMQ.class);// Holders.getGrailsApplication().getMainContext();
+        ApplicationContext ctx =  AppContextManager.getAppContext();// Holders.getGrailsApplication().getMainContext();
         brokerMessagingTemplate = (SimpMessagingTemplate) ctx.getBean("brokerMessagingTemplate");
         sessionCountTimers = new ConcurrentHashMap<>();
     }
@@ -244,7 +245,7 @@ public class CloudMQ {
                     } else {
                         logger.warn("Authentication on NVR has failed");
                     }
-                    System.out.print(((TextMessage) response).getText());
+                    System.out.print(response);
                 } else
                     logger.error("Couldn't log onto NVR, no message returned for logon request");
 

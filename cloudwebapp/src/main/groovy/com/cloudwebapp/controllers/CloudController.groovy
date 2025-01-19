@@ -73,8 +73,7 @@ class CloudController {
         def result = gv.validate()
 
         if (result.hasErrors()) {
-            def errorsMap = validationErrorService.commandErrors(cmd.errors as ValidationErrors, 'register')
-            logService.cloud.error "register: Validation error: " + errorsMap.toString()
+            logService.cloud.error "register: Validation error: " + result.toString()
             BadRequestResult retVal = new BadRequestResult(result)
             return ResponseEntity
                     .badRequest()

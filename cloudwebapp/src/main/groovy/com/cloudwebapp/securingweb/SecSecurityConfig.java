@@ -3,18 +3,17 @@ package com.cloudwebapp.securingweb;
 import com.cloudwebapp.beans.CloudAuthFailureHandler;
 import com.cloudwebapp.beans.CloudAuthSuccessHandler;
 import com.cloudwebapp.dao.UserRepository;
-import com.cloudwebapp.eventlisteners.SecCamSecurityEventListener;
 import com.cloudwebapp.security.MyUserDetailsService;
 import com.cloudwebapp.security.TwoFactorAuthProvider;
 import com.cloudwebapp.services.CloudService;
 import com.cloudwebapp.services.LogService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.RememberMeServices;
@@ -27,24 +26,24 @@ public class SecSecurityConfig {
 
     SecSecurityConfig(RememberMeServices rememberMeServices,
                       MyUserDetailsService myUserDetailsService,
-                      SecCamSecurityEventListener secCamSecurityEventListener,
                       LogService logService,
                       CloudAuthSuccessHandler cloudAuthSuccessHandler,
-                      CloudAuthFailureHandler cloudAuthFailureHandler) {
+                      CloudAuthFailureHandler cloudAuthFailureHandler,
+                      PasswordEncoder passwordEncoder) {
         this.rememberMeServices = rememberMeServices;
         this.myUserDetailsService = myUserDetailsService;
-        this.secCamSecurityEventListener = secCamSecurityEventListener;
         this.logService = logService;
         this.cloudAuthSuccessHandler = cloudAuthSuccessHandler;
         this.cloudAuthFailureHandler = cloudAuthFailureHandler;
+        this.passwordEncoder = passwordEncoder;
     }
 
     RememberMeServices rememberMeServices;
     MyUserDetailsService myUserDetailsService;
     LogService logService;
-    SecCamSecurityEventListener secCamSecurityEventListener;
     CloudAuthSuccessHandler cloudAuthSuccessHandler;
     CloudAuthFailureHandler cloudAuthFailureHandler;
+    PasswordEncoder passwordEncoder;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http, CloudService cloudService, UserRepository userRepository) throws Exception {
@@ -73,7 +72,7 @@ public class SecSecurityConfig {
                             .requestMatchers("/cloud/isTransportActive").permitAll()
                             .anyRequest().authenticated()
                     )
-                    .authenticationProvider(new TwoFactorAuthProvider(passwordEncoder(), myUserDetailsService, userRepository, logService, cloudService))
+                    .authenticationProvider(new TwoFactorAuthProvider(passwordEncoder, myUserDetailsService, userRepository, logService, cloudService))
                     .rememberMe(rememberMe -> rememberMe
                             .rememberMeServices(rememberMeServices))
                     .formLogin((form) -> form
@@ -87,7 +86,7 @@ public class SecSecurityConfig {
                     .logout(httpSecurityLogoutConfigurer ->
                             httpSecurityLogoutConfigurer
                                     .logoutUrl("/logout")
-                                    .addLogoutHandler(secCamSecurityEventListener)
+                                   // .addLogoutHandler(secCamSecurityEventListener)
                                     .logoutSuccessUrl("/")
                                     .permitAll());
         }
@@ -98,8 +97,4 @@ public class SecSecurityConfig {
 //        return new TwoFactorAuthenticationDetailsSource();
 //    }
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder(11);
-    }
 }

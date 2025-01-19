@@ -13,6 +13,7 @@ import jakarta.servlet.http.HttpServletRequest
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.configurationprocessor.json.JSONObject
 import org.springframework.messaging.simp.SimpMessagingTemplate
+import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import org.springframework.util.ResourceUtils
 
@@ -61,6 +62,8 @@ class CloudService {
     RoleRepository roleRepository
     @Autowired
     SimpMessagingTemplate brokerMessagingTemplate
+    @Autowired
+    PasswordEncoder passwordEncoder
 
 
     final String update = new JSONObject()
@@ -176,11 +179,10 @@ class CloudService {
                 throw new Exception("Username " + cmd.username + " is already registered")
 
             CloudMQ cloud = cloudListener.getInstances().get(cmd.productId.trim())
-
             if (cloud != null) {
-                User u = new User(username: cmd.username, productid: cmd.productId, password: cmd.password, email: cmd.email)
-                u = userRepository.save(u)
-              //  userRoleService.save(u, roleRepository.findByName('ROLE_CLIENT'))
+                def roles = Collections.singletonList(roleRepository.findByName('ROLE_CLIENT'))
+                User u = new User(username: cmd.username, productid: cmd.productId, password: passwordEncoder.encode(cmd.password), email: cmd.email, roles: roles, enabled: true, credentialsNonExpired: true)
+                userRepository.save(u)
             } else
                 throw new Exception("Cannot find an NVR for product ID ${cmd.productId}")
 

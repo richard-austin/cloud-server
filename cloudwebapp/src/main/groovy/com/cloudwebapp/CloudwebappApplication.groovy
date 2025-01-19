@@ -7,16 +7,21 @@ import com.cloudwebapp.services.CloudService
 import com.cloudwebapp.services.LogService
 import com.proxy.CloudProperties
 import jakarta.annotation.PreDestroy
+import jakarta.servlet.ServletContext
+import jakarta.servlet.ServletException
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.SpringApplication
 import org.springframework.boot.autoconfigure.SpringBootApplication
+import org.springframework.boot.web.servlet.ServletContextInitializer
 import org.springframework.context.annotation.Bean
 import org.springframework.security.core.userdetails.UserDetailsService
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
+import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.security.web.authentication.RememberMeServices
 import org.springframework.security.web.authentication.rememberme.TokenBasedRememberMeServices
 
 @SpringBootApplication
-class CloudwebappApplication {
+class CloudwebappApplication implements ServletContextInitializer {
 
     static void main(String[] args) {
         SpringApplication.run(CloudwebappApplication, args)
@@ -46,6 +51,11 @@ class CloudwebappApplication {
         return new CloudRememberMeAuthenticationProvider("remembermekey", logService, cloudService, userRepository)
     }
 
+    @Bean
+    PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder(11);
+    }
+
     @PreDestroy
     void onExit() {
         try {
@@ -54,5 +64,10 @@ class CloudwebappApplication {
         } catch (Exception ex) {
             logService.cloud.error("${ex.getClass()} when shutting down services: ${ex.getMessage()}")
         }
+    }
+
+    @Override
+    void onStartup(ServletContext servletContext) throws ServletException {
+        servletContext.getSessionCookieConfig().setName("CLOUDSESSIONID")
     }
 }

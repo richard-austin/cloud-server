@@ -2,6 +2,7 @@ package com.cloudwebapp.services
 
 import com.cloudwebapp.commands.AdminChangeEmailCommand
 import com.cloudwebapp.dao.UserRepository
+import com.cloudwebapp.enums.PassFail
 import com.cloudwebapp.interfaceobjects.ObjectCommandResponse
 import com.cloudwebapp.model.User
 import com.google.gson.JsonObject
