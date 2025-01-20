@@ -6,6 +6,7 @@ import com.cloudwebapp.dao.UserRepository
 import com.cloudwebapp.enums.PassFail
 import com.cloudwebapp.interfaceobjects.ObjectCommandResponse
 import com.cloudwebapp.interfaceobjects.RestfulResponse
+import com.cloudwebapp.model.Role
 import com.cloudwebapp.model.User
 import com.proxy.CloudMQ
 import com.proxy.cloudListener.CloudMQListener
@@ -207,7 +208,9 @@ class CloudService {
             List<Account> accounts = new ArrayList<Account>()
 
             if (cloudListener != null) {
-                List<User> users = User.getAll()
+                Collection<Role> client = new ArrayList<>()
+
+                List<User> users = userRepository.findAll()
                 Map<String, CloudMQ> instances = cloudListener.getInstances()
 
                 users.forEach((User user) -> {

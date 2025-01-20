@@ -1,17 +1,22 @@
 package com.cloudwebapp.services
 
 import com.cloudwebapp.commands.AdminChangeEmailCommand
+import com.cloudwebapp.commands.ChangePasswordCommand
+import com.cloudwebapp.commands.DeleteAccountCommand
+import com.cloudwebapp.commands.ResetPasswordCommand
 import com.cloudwebapp.dao.UserRepository
 import com.cloudwebapp.enums.PassFail
 import com.cloudwebapp.interfaceobjects.ObjectCommandResponse
 import com.cloudwebapp.model.User
 import com.google.gson.JsonObject
 import com.proxy.CloudProperties
+import jakarta.transaction.Transactional
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.configurationprocessor.json.JSONObject
 import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.security.core.Authentication
 import org.springframework.security.core.context.SecurityContextHolder
+import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 
 import jakarta.mail.Message
@@ -25,6 +30,7 @@ import jakarta.mail.internet.MimeMultipart
 import jakarta.mail.Authenticator
 import jakarta.mail.PasswordAuthentication
 
+import javax.swing.JPasswordField
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ScheduledThreadPoolExecutor
 import java.util.concurrent.TimeUnit
@@ -41,6 +47,8 @@ class UserAdminService {
     UtilsService utilsService
     @Autowired
     SimpMessagingTemplate brokerMessagingTemplate
+    @Autowired
+    PasswordEncoder passwordEncoder
 
     final String update = new JSONObject()
             .put("message", "update")
@@ -52,67 +60,68 @@ class UserAdminService {
     final private Map<String, String> passwordResetParameterMap = new ConcurrentHashMap<>()
     final private Map<String, Timer> timerMap = new ConcurrentHashMap<>()
 
-//    /**
-//     * changePassword: Change the password while logged in
-//     * @param cmd
-//     * @return
-//     */
-//    ObjectCommandResponse changePassword(ChangePasswordCommand cmd) {
-//        ObjectCommandResponse result = new ObjectCommandResponse()
-//        try {
-//            Authentication auth = SecurityContextHolder.getContext().getAuthentication()
-//            def principal = auth.getPrincipal()
-//            String userName = principal.getUsername()
-//
-//            User user = userRepo.findByUsername(userName)
-//            user.setPassword(cmd.getNewPassword())
-//            user.save()
-//        }
-//        catch (Exception ex) {
-//            logService.cloud.error("Exception in changePassword: " + ex.getCause() + ' ' + ex.getMessage())
-//            result.status = PassFail.FAIL
-//            result.error = ex.getMessage()
-//        }
-//
-//        return result
-//    }
+    /**
+     * changePassword: Change the password while logged in
+     * @param cmd
+     * @return
+     */
+    @Transactional
+    ObjectCommandResponse changePassword(ChangePasswordCommand cmd) {
+        ObjectCommandResponse result = new ObjectCommandResponse()
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication()
+            String userName = auth.getName()
 
-//    /**
-//     * resetPassword; Reset the password from an email link
-//     * @param cmd
-//     * @return
-//     */
-//    ObjectCommandResponse resetPassword(ResetPasswordCommand cmd) {
-//        ObjectCommandResponse result = new ObjectCommandResponse()
-//        try {
-//            String email = passwordResetParameterMap.get(cmd.getUniqueId())
-//            if (email != null) {
-//                User user = User.findByEmail(email)
-//                if (user != null) {
-//                    user.setPassword(cmd.newPassword)
-//                    user.save()
-//                    passwordResetParameterMap.remove(cmd.uniqueId)
-//                    Timer timer = timerMap.get(cmd.uniqueId)
-//                    timer.cancel()
-//                    timerMap.remove(cmd.uniqueId)
-//                } else {
-//                    logService.cloud.error "No user for email address ${email}"
-//                    result.status = PassFail.FAIL
-//                    result.error = "Invalid email for this password reset link"
-//                }
-//            } else {
-//                logService.cloud.error "No email address for uniqueId ${cmd.uniqueId}"
-//                result.status = PassFail.FAIL
-//                result.error = "Invalid password reset link"
-//            }
-//        }
-//        catch (Exception ex) {
-//            logService.cloud.error("Exception in resetPassword: " + ex.getCause() + ' ' + ex.getMessage())
-//            result.status = PassFail.FAIL
-//            result.error = ex.getMessage()
-//        }
-//        return result
-//    }
+            User user = userRepo.findByUsername(userName)
+            user.setPassword(passwordEncoder.encode(cmd.getNewPassword()))
+            userRepo.save(user)
+        }
+        catch (Exception ex) {
+            logService.cloud.error("Exception in changePassword: " + ex.getCause() + ' ' + ex.getMessage())
+            result.status = PassFail.FAIL
+            result.error = ex.getMessage()
+        }
+
+        return result
+    }
+
+    /**
+     * resetPassword; Reset the password from an email link
+     * @param cmd
+     * @return
+     */
+    @Transactional
+    ObjectCommandResponse resetPassword(ResetPasswordCommand cmd) {
+        ObjectCommandResponse result = new ObjectCommandResponse()
+        try {
+            String email = passwordResetParameterMap.get(cmd.getUniqueId())
+            if (email != null) {
+                User user = userRepo.findByEmail(email)
+                if (user != null) {
+                    user.setPassword(passwordEncoder.encode(cmd.newPassword))
+                    userRepo.save(user)
+                    passwordResetParameterMap.remove(cmd.uniqueId)
+                    Timer timer = timerMap.get(cmd.uniqueId)
+                    timer.cancel()
+                    timerMap.remove(cmd.uniqueId)
+                } else {
+                    logService.cloud.error "No user for email address ${email}"
+                    result.status = PassFail.FAIL
+                    result.error = "Invalid email for this password reset link"
+                }
+            } else {
+                logService.cloud.error "No email address for uniqueId ${cmd.uniqueId}"
+                result.status = PassFail.FAIL
+                result.error = "Invalid password reset link"
+            }
+        }
+        catch (Exception ex) {
+            logService.cloud.error("Exception in resetPassword: " + ex.getCause() + ' ' + ex.getMessage())
+            result.status = PassFail.FAIL
+            result.error = ex.getMessage()
+        }
+        return result
+    }
 
 //    /**
 //     * setAccountEnabledStatus: Enable/disable a user account
@@ -217,22 +226,22 @@ class UserAdminService {
 //        return result
 //    }
 
-//    ObjectCommandResponse adminDeleteAccount(DeleteAccountCommand cmd) {
-//        ObjectCommandResponse result = new ObjectCommandResponse()
-//        try {
-//            User user = User.findByUsername(cmd.username)
-//            UserRole userRole = UserRole.findByUser(user)
-//            userRole.delete(flush: true)
-//            user.delete(flush: true)
-//            brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", update)
-//        }
-//        catch (Exception ex) {
-//            logService.cloud.error("${ex.getClass().getName()} in adminDeleteAccount: ${ex.getCause()} ${ex.getMessage()}")
-//            result.status = PassFail.FAIL
-//            result.error = ex.getMessage()
-//        }
-//        return result
-//    }
+    @Transactional
+    ObjectCommandResponse adminDeleteAccount(DeleteAccountCommand cmd) {
+        ObjectCommandResponse result = new ObjectCommandResponse()
+        try {
+            User user = userRepo.findByUsername(cmd.username)
+
+            userRepo.delete(user)
+            brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", update)
+        }
+        catch (Exception ex) {
+            logService.cloud.error("${ex.getClass().getName()} in adminDeleteAccount: ${ex.getCause()} ${ex.getMessage()}")
+            result.status = PassFail.FAIL
+            result.error = ex.getMessage()
+        }
+        return result
+    }
 
 //    ObjectCommandResponse sendResetPasswordLink(SendResetPasswordLinkCommand cmd) {
 //        ObjectCommandResponse result = new ObjectCommandResponse()
