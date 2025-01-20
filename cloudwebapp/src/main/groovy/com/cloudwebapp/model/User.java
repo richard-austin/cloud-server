@@ -121,7 +121,7 @@ public class User implements MyUserDetails {
 
     @Override
     public boolean getEnabled() {
-        return false;
+        return enabled;
     }
 
     @Override

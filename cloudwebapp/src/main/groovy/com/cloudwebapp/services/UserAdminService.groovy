@@ -1,13 +1,19 @@
 package com.cloudwebapp.services
 
+import com.cloudwebapp.commands.AddOrUpdateActiveMQCredsCmd
 import com.cloudwebapp.commands.AdminChangeEmailCommand
+import com.cloudwebapp.commands.AdminChangePasswordCommand
+import com.cloudwebapp.commands.ChangeEmailCommand
 import com.cloudwebapp.commands.ChangePasswordCommand
 import com.cloudwebapp.commands.DeleteAccountCommand
 import com.cloudwebapp.commands.ResetPasswordCommand
+import com.cloudwebapp.commands.SendResetPasswordLinkCommand
+import com.cloudwebapp.commands.SetAccountEnabledStatusCommand
 import com.cloudwebapp.dao.UserRepository
 import com.cloudwebapp.enums.PassFail
 import com.cloudwebapp.interfaceobjects.ObjectCommandResponse
 import com.cloudwebapp.model.User
+import com.cloudwebapp.utils.ResetPasswordParameterTimerTask
 import com.google.gson.JsonObject
 import com.proxy.CloudProperties
 import jakarta.transaction.Transactional
@@ -30,7 +36,6 @@ import jakarta.mail.internet.MimeMultipart
 import jakarta.mail.Authenticator
 import jakarta.mail.PasswordAuthentication
 
-import javax.swing.JPasswordField
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ScheduledThreadPoolExecutor
 import java.util.concurrent.TimeUnit
@@ -123,54 +128,54 @@ class UserAdminService {
         return result
     }
 
-//    /**
-//     * setAccountEnabledStatus: Enable/disable a user account
-//     * @param cmd : Command object containing the username and the enabled status
-//     * @return: Response object
-//     */
-//    ObjectCommandResponse setAccountEnabledStatus(SetAccountEnabledStatusCommand cmd) {
-//        ObjectCommandResponse response = new ObjectCommandResponse()
-//        try {
-//            User user = userRepo.findByUsername(cmd.username)
-//            if (user != null) {
-//                user.setEnabled(cmd.accountEnabled)
-//                userRepo.save(user)
-//                brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", update)
-//            } else {
-//                response.status = PassFail.FAIL
-//                response.error = "Could not find user ${cmd.username}"
-//                logService.cloud.error("Error in setAccountEnabledStatus: ${response.error}")
-//            }
-//        }
-//        catch (Exception ex) {
-//            response.status = PassFail.FAIL
-//            response.error = "${ex.getClass().getName()} in setAccountEnabledStatus: ${ex.getMessage()}"
-//            logService.cloud.error("Error in setAccountEnabledStatus: ${response.error}")
-//        }
-//        return response
-//    }
+    /**
+     * setAccountEnabledStatus: Enable/disable a user account
+     * @param cmd : Command object containing the username and the enabled status
+     * @return: Response object
+     */
+    ObjectCommandResponse setAccountEnabledStatus(SetAccountEnabledStatusCommand cmd) {
+        ObjectCommandResponse response = new ObjectCommandResponse()
+        try {
+            User user = userRepo.findByUsername(cmd.username)
+            if (user != null) {
+                user.setEnabled(cmd.accountEnabled)
+                userRepo.save(user)
+                brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", update)
+            } else {
+                response.status = PassFail.FAIL
+                response.error = "Could not find user ${cmd.username}"
+                logService.cloud.error("Error in setAccountEnabledStatus: ${response.error}")
+            }
+        }
+        catch (Exception ex) {
+            response.status = PassFail.FAIL
+            response.error = "${ex.getClass().getName()} in setAccountEnabledStatus: ${ex.getMessage()}"
+            logService.cloud.error("Error in setAccountEnabledStatus: ${response.error}")
+        }
+        return response
+    }
 
-//    ObjectCommandResponse adminChangePassword(AdminChangePasswordCommand cmd) {
-//        ObjectCommandResponse result = new ObjectCommandResponse()
-//        try {
-//            User user = User.findByUsername(cmd.username)
-//            user.setPassword(cmd.password)
-//            user.save()
-//        }
-//        catch (Exception ex) {
-//            logService.cloud.error("Exception in adminChangePassword: " + ex.getCause() + ' ' + ex.getMessage())
-//            result.status = PassFail.FAIL
-//            result.error = ex.getMessage()
-//        }
-//        return result
-//    }
+    ObjectCommandResponse adminChangePassword(AdminChangePasswordCommand cmd) {
+        ObjectCommandResponse result = new ObjectCommandResponse()
+        try {
+            User user = userRepo.findByUsername(cmd.username)
+            user.setPassword(passwordEncoder.encode(cmd.password))
+            userRepo.save(user)
+        }
+        catch (Exception ex) {
+            logService.cloud.error("Exception in adminChangePassword: " + ex.getCause() + ' ' + ex.getMessage())
+            result.status = PassFail.FAIL
+            result.error = ex.getMessage()
+        }
+        return result
+    }
 
     ObjectCommandResponse adminChangeEmail(AdminChangeEmailCommand cmd) {
         ObjectCommandResponse result = new ObjectCommandResponse()
         try {
-            User user = User.findByUsername(cmd.username)
+            User user = userRepo.findByUsername(cmd.username)
             user.setEmail(cmd.email)
-            user.save()
+            userRepo.save(user)
             brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", update)
         }
         catch (Exception ex) {
@@ -203,28 +208,28 @@ class UserAdminService {
         return result
     }
 
-//    /**
-//     * changeEmail: Change the admin users email
-//     * @param cmd
-//     * @return
-//     */
-//    ObjectCommandResponse changeEmail(ChangeEmailCommand cmd) {
-//        ObjectCommandResponse result = new ObjectCommandResponse()
-//        try {
-//            def principal = springSecurityService.getPrincipal()
-//            String userName = principal.getUsername()
-//
-//            User user = User.findByUsername(userName)
-//            user.setEmail(cmd.getNewEmail())
-//            user.save()
-//        }
-//        catch (Exception ex) {
-//            logService.cloud.error("Exception in changeEmail: " + ex.getCause() + ' ' + ex.getMessage())
-//            result.status = PassFail.FAIL
-//            result.error = ex.getMessage()
-//        }
-//        return result
-//    }
+    /**
+     * changeEmail: Change the admin users email
+     * @param cmd
+     * @return
+     */
+    ObjectCommandResponse changeEmail(ChangeEmailCommand cmd) {
+        ObjectCommandResponse result = new ObjectCommandResponse()
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication()
+            String userName = auth.getName()
+
+            User user = userRepo.findByUsername(userName)
+            user.setEmail(cmd.getNewEmail())
+            userRepo.save(user)
+        }
+        catch (Exception ex) {
+            logService.cloud.error("Exception in changeEmail: " + ex.getCause() + ' ' + ex.getMessage())
+            result.status = PassFail.FAIL
+            result.error = ex.getMessage()
+        }
+        return result
+    }
 
     @Transactional
     ObjectCommandResponse adminDeleteAccount(DeleteAccountCommand cmd) {
@@ -243,25 +248,25 @@ class UserAdminService {
         return result
     }
 
-//    ObjectCommandResponse sendResetPasswordLink(SendResetPasswordLinkCommand cmd) {
-//        ObjectCommandResponse result = new ObjectCommandResponse()
-//        try {
-//            String uniqueId = generateRandomString()
-//            passwordResetParameterMap.put(uniqueId, cmd.email)
-//            ResetPasswordParameterTimerTask task = new ResetPasswordParameterTimerTask(uniqueId, passwordResetParameterMap, timerMap)
-//            Timer timer = new Timer(uniqueId)
-//            timer.schedule(task, resetPasswordParameterTimeout)
-//            timerMap.put(uniqueId, timer)
-//
-//            sendEmail(cmd.getEmail(), uniqueId, cmd.getClientUri())
-//        }
-//        catch (Exception ex) {
-//            logService.cloud.error("${ex.getClass().getName()} in sendResetPasswordLink: ${ex.getCause()} ${ex.getMessage()}")
-//            result.status = PassFail.FAIL
-//            result.error = ex.getMessage()
-//        }
-//        return result
-//    }
+    ObjectCommandResponse sendResetPasswordLink(SendResetPasswordLinkCommand cmd) {
+        ObjectCommandResponse result = new ObjectCommandResponse()
+        try {
+            String uniqueId = generateRandomString()
+            passwordResetParameterMap.put(uniqueId, cmd.email)
+            ResetPasswordParameterTimerTask task = new ResetPasswordParameterTimerTask(uniqueId, passwordResetParameterMap, timerMap)
+            Timer timer = new Timer(uniqueId)
+            timer.schedule(task, resetPasswordParameterTimeout)
+            timerMap.put(uniqueId, timer)
+
+            sendEmail(cmd.getEmail(), uniqueId, cmd.getClientUri())
+        }
+        catch (Exception ex) {
+            logService.cloud.error("${ex.getClass().getName()} in sendResetPasswordLink: ${ex.getCause()} ${ex.getMessage()}")
+            result.status = PassFail.FAIL
+            result.error = ex.getMessage()
+        }
+        return result
+    }
 
     ObjectCommandResponse getUserAuthorities() {
         ObjectCommandResponse result = new ObjectCommandResponse()
@@ -292,29 +297,29 @@ class UserAdminService {
         return generatedString
     }
 
-//    ObjectCommandResponse addOrUpdateActiveMQCreds(AddOrUpdateActiveMQCredsCmd cmd) {
-//        ObjectCommandResponse result = new ObjectCommandResponse()
-//        try {
-//            CloudProperties props = CloudProperties.getInstance()
-//            props.setCloudCreds(cmd.username, cmd.password, cmd.mqHost)
-//
-//            // Stop and start the ActiveMQ connection so it picks up the new credentials
-//            cloudService.stop()
-//            final ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(1)
-//            executor.schedule(new Runnable() {
-//                @Override
-//                void run() {
-//                    cloudService.start()
-//                }
-//            }, 3, TimeUnit.SECONDS)
-//        }
-//        catch (Exception ex) {
-//            logService.cloud.error("Exception in createAccount: " + ex.getCause() + ' ' + ex.getMessage())
-//            result.status = PassFail.FAIL
-//            result.error = ex.getMessage()
-//        }
-//        return result
-//    }
+    ObjectCommandResponse addOrUpdateActiveMQCreds(AddOrUpdateActiveMQCredsCmd cmd) {
+        ObjectCommandResponse result = new ObjectCommandResponse()
+        try {
+            CloudProperties props = CloudProperties.getInstance()
+            props.setCloudCreds(cmd.username, cmd.password, cmd.mqHost)
+
+            // Stop and start the ActiveMQ connection so it picks up the new credentials
+            cloudService.stop()
+            final ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(1)
+            executor.schedule(new Runnable() {
+                @Override
+                void run() {
+                    cloudService.start()
+                }
+            }, 3, TimeUnit.SECONDS)
+        }
+        catch (Exception ex) {
+            logService.cloud.error("Exception in createAccount: " + ex.getCause() + ' ' + ex.getMessage())
+            result.status = PassFail.FAIL
+            result.error = ex.getMessage()
+        }
+        return result
+    }
 
     ObjectCommandResponse hasActiveMQCreds() {
         ObjectCommandResponse result = new ObjectCommandResponse()

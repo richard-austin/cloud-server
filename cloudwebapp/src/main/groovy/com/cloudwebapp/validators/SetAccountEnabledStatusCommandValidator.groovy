@@ -22,11 +22,11 @@ class SetAccountEnabledStatusCommandValidator implements Validator {
     @Override
     void validate(Object target, Errors errors) {
         if (target instanceof SetAccountEnabledStatusCommand) {
-            if (NullOrBlank.isNullOrBlank(target.username))
-                errors.rejectValue("username", "username cannot be null or blank")
             User user = userRepository.findByUsername(target.username)
 
-            if (user == null)
+            if (NullOrBlank.isNullOrBlank(target.username))
+                errors.rejectValue("username", "username cannot be null or blank")
+            else if (user == null)
                 errors.rejectValue("username", "Unknown user ${target.username}")
         }
     }

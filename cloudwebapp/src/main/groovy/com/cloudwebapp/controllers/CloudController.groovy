@@ -21,12 +21,15 @@ import com.cloudwebapp.services.LogService
 import com.cloudwebapp.services.UserAdminService
 import com.cloudwebapp.services.UtilsService
 import com.cloudwebapp.services.ValidationErrorService
+import com.cloudwebapp.validators.AdminChangeEmailCommandValidator
+import com.cloudwebapp.validators.AdminChangePasswordCommandValidator
 import com.cloudwebapp.validators.BadRequestResult
 import com.cloudwebapp.validators.ChangePasswordCommandValidator
 import com.cloudwebapp.validators.DeleteAccountCommandValidator
 import com.cloudwebapp.validators.GeneralValidator
 import com.cloudwebapp.validators.RegisterUserCommandValidator
 import com.cloudwebapp.validators.ResetPasswordCommandValidator
+import com.cloudwebapp.validators.SetAccountEnabledStatusCommandValidator
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.context.properties.bind.validation.ValidationErrors
@@ -37,6 +40,7 @@ import org.springframework.security.authentication.AuthenticationManager
 import org.springframework.security.authentication.AuthenticationProvider
 import org.springframework.security.authentication.ProviderManager
 import org.springframework.validation.BindingResult
+import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
@@ -131,7 +135,7 @@ class CloudController {
     }
 
     @RequestMapping("/resetPassword")
-    def resetPassword(ResetPasswordCommand cmd) {
+    def resetPassword(@RequestBody ResetPasswordCommand cmd) {
         def gv = new GeneralValidator(cmd, new ResetPasswordCommandValidator())
         def bindingResult = gv.validate()
         ObjectCommandResponse result
@@ -206,24 +210,30 @@ class CloudController {
             return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(response.responseObject)
     }
 
-//    @Secured(['ROLE_ADMIN'])
-//    def setAccountEnabledStatus(SetAccountEnabledStatusCommand cmd) {
-//        ObjectCommandResponse response
-//        if (cmd.hasErrors()) {
-//            def errorsMap = validationErrorService.commandErrors(cmd.errors as ValidationErrors, 'changePassword')
-//            logService.cloud.error "setAccountEnabledStatus: Validation error: " + errorsMap.toString()
-//            render([status: 400, text: errorsMap as JSON] as Map)
-//        } else {
-//            response = userAdminService.setAccountEnabledStatus(cmd)
-//            if (response.status != PassFail.PASS) {
-//                render([status: 500, text: response.error] as Map)
-//            } else {
-//                logService.cloud.info("setAccountEnabledStatus: success")
-//                render ""
-//            }
-//        }
-//    }
-//
+    @Secured(['ROLE_ADMIN'])
+    @RequestMapping("/setAccountEnabledStatus")
+    def setAccountEnabledStatus(@RequestBody SetAccountEnabledStatusCommand cmd) {
+        def gv = new GeneralValidator(cmd, new SetAccountEnabledStatusCommandValidator(userRepository))
+        def bindingResult = gv.validate()
+        ObjectCommandResponse response
+        if (bindingResult.hasErrors()) {
+            logService.cloud.error "setAccountEnabledStatus: Validation error: " + bindingResult.toString()
+            def retVal = new BadRequestResult(bindingResult)
+            return ResponseEntity
+                    .badRequest()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(retVal)
+        } else {
+            response = userAdminService.setAccountEnabledStatus(cmd)
+            if (response.status != PassFail.PASS) {
+                throw new CloudRestMethodException(response.error, "/cloud/setAccountEnabledStatus")
+            } else {
+                logService.cloud.info("setAccountEnabledStatus: success")
+                return ResponseEntity.ok().body("")
+            }
+        }
+    }
+
 //    @Secured(['ROLE_ADMIN'])
 //    def setupSMTPClientLocally(SetupSMTPAccountCommand cmd) {
 //        if (cmd.hasErrors()) {
@@ -281,44 +291,56 @@ class CloudController {
 //    }
 //
 //
-//    @Secured(['ROLE_ADMIN'])
-//    def adminChangePassword(AdminChangePasswordCommand cmd) {
-//        ObjectCommandResponse result
-//        if (cmd.hasErrors()) {
-//            def errorsMap = validationErrorService.commandErrors(cmd.errors as ValidationErrors, 'adminChangePassword')
-//            logService.cloud.error "adminChangePassword: Validation error: " + errorsMap.toString()
-//            render([status: 400, text: errorsMap as JSON] as Map)
-//        } else {
-//            result = userAdminService.adminChangePassword(cmd)
-//            if (result.status != PassFail.PASS) {
-//                logService.cloud.error "adminChangePassword: error: ${result.error}"
-//                render([status: 500, text: result.error] as Map)
-//            } else {
-//                logService.cloud.info("adminChangePassword: success")
-//                render ""
-//            }
-//        }
-//    }
-//
-//    @Secured(['ROLE_ADMIN'])
-//    def adminChangeEmail(AdminChangeEmailCommand cmd) {
-//        ObjectCommandResponse result
-//        if (cmd.hasErrors()) {
-//            def errorsMap = validationErrorService.commandErrors(cmd.errors as ValidationErrors, 'adminChangeEmail')
-//            logService.cloud.error "adminChangeEmail: Validation error: " + errorsMap.toString()
-//            render([status: 400, text: errorsMap as JSON] as Map)
-//        } else {
-//            result = userAdminService.adminChangeEmail(cmd)
-//            if (result.status != PassFail.PASS) {
-//                logService.cloud.error "adminChangeEmail: error: ${result.error}"
-//                render([status: 500, text: result.error] as Map)
-//            } else {
-//                logService.cloud.info("adminChangeEmail: success")
-//                render ""
-//            }
-//        }
-//    }
-//
+    @Secured(['ROLE_ADMIN'])
+    @RequestMapping("/adminChangePassword")
+    def adminChangePassword(@RequestBody AdminChangePasswordCommand cmd) {
+        def gv = new GeneralValidator(cmd, new AdminChangePasswordCommandValidator(userRepository))
+        def bindingResult = gv.validate()
+        ObjectCommandResponse result
+        if (bindingResult.hasErrors()) {
+            def retVal = new BadRequestResult(bindingResult)
+            logService.cloud.error "adminChangePassword: Validation error: " + bindingResult.toString()
+            return ResponseEntity
+                    .badRequest()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(retVal)
+        } else {
+            result = userAdminService.adminChangePassword(cmd)
+            if (result.status != PassFail.PASS) {
+                logService.cloud.error "adminChangePassword: error: ${result.error}"
+                throw new CloudRestMethodException(result.error, "/cloud/adminChangePassword")
+            } else {
+                logService.cloud.info("adminChangePassword: success")
+                return ResponseEntity.ok().body("")
+            }
+        }
+    }
+
+    @Secured(['ROLE_ADMIN'])
+    @RequestMapping("/adminChangeEmail")
+    def adminChangeEmail(@RequestBody AdminChangeEmailCommand cmd) {
+        def gv = new GeneralValidator(cmd, new AdminChangeEmailCommandValidator(userRepository))
+        def bindingResult = gv.validate()
+        ObjectCommandResponse result
+        if (bindingResult.hasErrors()) {
+            logService.cloud.error "adminChangeEmail: Validation error: " + bindingResult.toString()
+            def retVal = new BadRequestResult(bindingResult)
+            return ResponseEntity
+                    .badRequest()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(retVal)
+        } else {
+            result = userAdminService.adminChangeEmail(cmd)
+            if (result.status != PassFail.PASS) {
+                logService.cloud.error "adminChangeEmail: error: ${result.error}"
+                throw new CloudRestMethodException(result.error, "/cloud/adminChangeEmail")
+            } else {
+                logService.cloud.info("adminChangeEmail: success")
+                return ResponseEntity.ok().body("")
+            }
+        }
+    }
+
     @Secured(['ROLE_ADMIN'])
     @RequestMapping("/adminDeleteAccount")
     def adminDeleteAccount(@RequestBody DeleteAccountCommand cmd) {
