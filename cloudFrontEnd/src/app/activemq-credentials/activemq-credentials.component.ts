@@ -12,7 +12,7 @@ export class ActivemqCredentialsComponent implements OnInit {
   public title = ''
   buttonTitle!: string;
   error: boolean = false;
-  success: boolean = true;
+  success: boolean = false;
   cloudCredsForm!: FormGroup;
   username: string = '';
   password: string = '';
@@ -112,7 +112,7 @@ export class ActivemqCredentialsComponent implements OnInit {
       {
         complete: () => {
           this.utilsService.getHasLocalAccount();
-          this.reporting.successMessage = "ActiveMQ client credentials " + (this.updateExisting ? " updated" : " created") + " successfully" + (this.updateExisting ? " username now: " + this.username : "");
+          this.reporting.successMessage = "ActiveMQ client credentials " + (this.updateExisting ? " updated" : " created") + " successfully" + ((this.updateExisting && this.username !== "")  ? (" username now: " + this.username) : "");
           this.success = true;
           this.utilsService.isTransportActive().subscribe();  // Sets the status flag in utils service
         },

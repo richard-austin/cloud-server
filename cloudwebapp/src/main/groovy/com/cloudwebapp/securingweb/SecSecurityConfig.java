@@ -50,10 +50,8 @@ public class SecSecurityConfig {
             http
                     .csrf(AbstractHttpConfigurer::disable)  // @TODO Makes Restful API calls available to any role, or no role
                     .authorizeHttpRequests((requests) -> requests
-                            .requestMatchers("/recover/forgotPassword").anonymous()
-                            .requestMatchers("/recover/sendResetPasswordLink").anonymous()
-                            .requestMatchers("/recover/resetPasswordForm").anonymous()
-                            .requestMatchers("/recover/resetPassword").anonymous()
+                            .requestMatchers("/cloud/sendResetPasswordLink").anonymous()
+                            .requestMatchers("/cloud/resetPassword").anonymous()
                     )
                     .authorizeHttpRequests((requests) -> requests
                             .requestMatchers("/cloudstomp").permitAll()
@@ -67,7 +65,6 @@ public class SecSecurityConfig {
                             .requestMatchers("/javascripts/*.js").permitAll()
                             .requestMatchers("/cloud/sendResetPasswordLink").permitAll()
                             .requestMatchers("/cloud/getUserAuthorities").permitAll()
-                            .requestMatchers("/cloud/resetPassword").hasAnyRole("USER", "ADMIN")
                             .requestMatchers("/cloud/isTransportActive").permitAll()
                             .anyRequest().authenticated()
                     )

@@ -193,10 +193,9 @@ class UserAdminService {
     ObjectCommandResponse getEmail() {
         ObjectCommandResponse result = new ObjectCommandResponse()
         try {
-            def principal = springSecurityService.getPrincipal()
-            String userName = principal.getUsername()
-
-            User user = User.findByUsername(userName)
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication()
+            String userName = auth.getName()
+            User user = userRepo.findByUsername(userName)
 
             result.responseObject = [email: user.getEmail()]
         }
@@ -350,7 +349,7 @@ class UserAdminService {
         String password = smtpData.password
         String fromAddress = smtpData.fromAddress
 
-        User user = User.findByEmail(email)
+        User user = userRepo.findByEmail(email)
         if (user != null) {
             Properties prop = new Properties()
             prop.put("mail.smtp.auth", auth.toBoolean())
@@ -360,7 +359,7 @@ class UserAdminService {
             prop.put("mail.smtp.port", port.toInteger())
             prop.put("mail.smtp.ssl.trust", trust)
 
-            Session session = Session.getDefaultInstance(prop, new Authenticator() {
+            Session session = Session.getInstance(prop, new Authenticator() {
                 @Override
                 protected PasswordAuthentication getPasswordAuthentication() {
                     return new PasswordAuthentication(username, password)

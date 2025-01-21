@@ -1,10 +1,10 @@
 package com.cloudwebapp.security
 
 import com.cloudwebapp.dao.UserRepository
+import com.cloudwebapp.interfaceobjects.TwoFactorAuthenticationException
 import com.cloudwebapp.model.User
 import com.cloudwebapp.services.CloudService
 import com.cloudwebapp.services.LogService
-import org.springframework.security.authentication.BadCredentialsException
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider
 import org.springframework.security.core.AuthenticationException
@@ -46,9 +46,7 @@ class TwoFactorAuthProvider extends DaoAuthenticationProvider {
 
             if (cookie == "" || cookie == "NO_CONN") {
                 logService.cloud.debug("Authentication failed: couldn't log onto NVR")
-                throw new BadCredentialsException(messages.getMessage(
-                        "AbstractUserDetailsAuthenticationProvider.badCredentials",
-                        "Unable to login to NVR"))
+                throw new TwoFactorAuthenticationException("Communication with NVR failed")
             } else
             // Save the NVRSESSIONID mapped against product ID to pass to the onAuthenticationSuccess handler
                 cloudService.authenticatedNVRs(productId, cookie)

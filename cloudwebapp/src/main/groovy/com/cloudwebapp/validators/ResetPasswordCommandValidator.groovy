@@ -16,7 +16,7 @@ class ResetPasswordCommandValidator implements Validator {
         if (target instanceof ResetPasswordCommand) {
             if (NullOrBlank.isNullOrBlank(target.newPassword))
                 errors.rejectValue("newPassword", "newPassword cannot be null or empty")
-            else if (!UtilsService.newPassword.matches(cmd.utilsService.passwordRegex))
+            else if (!target.newPassword.matches(UtilsService.passwordRegex))
                 errors.rejectValue("newPassword", "New password contains invalid characters or is too long (must be <= 32 characters)")
             if (target.confirmNewPassword != target.newPassword)
                 errors.rejectValue("confirmNewPassword", "New passwords do not match")

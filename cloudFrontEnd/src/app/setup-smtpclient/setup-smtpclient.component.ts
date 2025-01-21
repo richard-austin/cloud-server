@@ -27,7 +27,7 @@ export class SetupSMTPClientComponent implements OnInit {
   setupSMTPForm!: FormGroup;
   smtpData: SMTPData = new SMTPData();
   error: boolean = false;
-  success: boolean = true;
+  success: boolean = false;
 
   @ViewChild(ReportingComponent) reporting: ReportingComponent = new ReportingComponent();
 

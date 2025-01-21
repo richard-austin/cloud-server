@@ -1,7 +1,9 @@
 package com.cloudwebapp.services
 
+import com.cloudwebapp.commands.SMTPData
 import com.cloudwebapp.commands.SetupSMTPAccountCommand
 import com.cloudwebapp.configuration.Config
+import com.cloudwebapp.enums.PassFail
 import com.cloudwebapp.interfaceobjects.ObjectCommandResponse
 import com.google.gson.GsonBuilder
 import org.springframework.beans.factory.annotation.Autowired
@@ -39,14 +41,12 @@ class UtilsService {
     }
 
     def getSMTPConfigData() {
-        Config config = grailsApplication.getConfig()
         def configFileName = config.getMail().getConfigFile()
         File file = new File(configFileName)
         byte[] bytes = file.readBytes()
         String json = new String(bytes, StandardCharsets.UTF_8)
         def gson = new GsonBuilder().create()
         def smtpData = gson.fromJson(json, SMTPData)
-        smtpData.password = ""
         return smtpData
     }
 

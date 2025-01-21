@@ -48,8 +48,8 @@ export class ForgottenPasswordComponent implements OnInit {
     this.utilsService.sendResetPasswordLink(email, uri).subscribe(() => {
       this.successMessage = "Please check your email for a reset password link";
     },
-      reason => {
-          this.errorMessage = reason.error;
+      err => {
+          this.errorMessage = err.error.reason;
       })
   }
 

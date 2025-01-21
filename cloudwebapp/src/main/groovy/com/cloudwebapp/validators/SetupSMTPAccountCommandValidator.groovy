@@ -8,7 +8,7 @@ import org.springframework.validation.Validator
 class SetupSMTPAccountCommandValidator implements Validator {
     @Override
     boolean supports(Class<?> clazz) {
-        return false
+        return clazz == SetupSMTPAccountCommand.class
     }
 
     @Override
@@ -17,13 +17,13 @@ class SetupSMTPAccountCommandValidator implements Validator {
 
             if (target.auth) {
                 if (NullOrBlank.isNullOrBlank(target.username))
-                    errors.rejectValue("username", "username is required");
+                    errors.rejectValue("username", "username is required")
                 else if (target.username.size() > 50)
                     errors.rejectValue("username", "Maximum username length is 50 characters")
             }
 
             if (target.auth && NullOrBlank.isNullOrBlank(target.password))
-                errors.rejectValue("password", "password is required");
+                errors.rejectValue("password", "password is required")
             else if (target.password.size() > 50)
                 errors.rejectValue("password", "Maximum password length is 50 characters")
 

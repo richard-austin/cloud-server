@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import {ActivatedRoute, UrlSegment} from "@angular/router";
-import {AbstractControl, FormControl, FormGroup, ValidationErrors, Validators} from "@angular/forms";
+import {AbstractControl, FormControl, FormGroup, ValidationErrors} from "@angular/forms";
 import { UtilsService } from '../shared/utils.service';
 import {HttpErrorResponse} from "@angular/common/http";
 import {ChangePasswordService} from "../change-password/change-password.service";
@@ -79,7 +79,7 @@ export class ResetPasswordComponent implements OnInit {
               this.invalidPassword();
           }
         } else
-          this.errorMessage = reason.error;
+          this.errorMessage = reason.error.reason;
       });
   }
 

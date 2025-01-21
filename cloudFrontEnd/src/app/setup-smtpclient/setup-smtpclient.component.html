@@ -124,10 +124,10 @@
       <button color="cancel" mat-raised-button (click)="hideSetupForm()"
               matTooltip="{{success === false ? 'Close this dialogue and abandon setting up an account': 'Close this dialogue box'}}"
               matTooltipClass="tooltip">
-        {{success === false ? 'Cancel' : 'Exit'}}
+        {{!success ? 'Cancel' : 'Exit'}}
       </button>
       <button color="warn" mat-raised-button
-              [disabled]="error || anyInvalid() || success != false"
+              [disabled]="error || anyInvalid() || success"
               (click)="confirm()"
               matTooltip="Register the new account"
               matTooltipClass="tooltip">

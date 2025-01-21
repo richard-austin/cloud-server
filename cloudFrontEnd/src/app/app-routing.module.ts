@@ -8,6 +8,7 @@ import {OnlyAdminUsersService} from './guards/only-admin-users.service';
 import {OnlyLoggedInService} from './guards/only-logged-in.service';
 import {SetupSMTPClientComponent} from './setup-smtpclient/setup-smtpclient.component';
 import {ForgottenPasswordComponent} from './login/forgotten-password/forgotten-password.component';
+import {ResetPasswordComponent} from './reset-password/reset-password.component';
 
 const routes: Routes = [
   {path: 'live/:streamName', loadChildren: () => import('./live-container/live-container.module').then(m => m.LiveContainerModule), canActivate: [OnlyClientUsersService]},
@@ -24,7 +25,8 @@ const routes: Routes = [
   {path: 'setupsmtpclient', component: SetupSMTPClientComponent, canActivate: [OnlyAdminUsersService]},
   {path: 'register', component: RegisterAccountComponent, canActivate: [OnlyAnonUsersService]},
   {path: 'login', component: LoginComponent, canActivate: [OnlyAnonUsersService]},
-  {path: 'forgotpassword', component: ForgottenPasswordComponent, canActivate: [OnlyAnonUsersService]}
+  {path: 'forgotpassword', component: ForgottenPasswordComponent, canActivate: [OnlyAnonUsersService]},
+  {path: 'resetpassword/:uniqueId', component: ResetPasswordComponent}
 ];
 
 @NgModule({
