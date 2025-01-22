@@ -25,7 +25,7 @@ const PROXY_CONFIG = [
   {
     context: [
       "/login",
-      "/logout",
+      "/logoff",
       "/cloud",
       "/cloudstomp"
     ],

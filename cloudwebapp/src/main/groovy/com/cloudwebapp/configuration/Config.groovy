@@ -37,6 +37,7 @@ class Config implements IConfig {
     String privateKeyPath
     String browserFacingPort
     String logLevel
+    String logFileName
 
     @Autowired
     Mail mail
