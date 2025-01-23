@@ -4,37 +4,38 @@ import {Camera, Stream} from '../cameras/Camera';
 import {MatCheckboxChange} from '@angular/material/checkbox';
 import {ReportingComponent} from '../reporting/reporting.component';
 import {VideoComponent} from '../video/video.component';
-import {HttpErrorResponse} from '@angular/common/http';
+import { HttpErrorResponse } from '@angular/common/http';
 import {timer} from 'rxjs';
 import {animate, state, style, transition, trigger} from '@angular/animations';
 import {IdleTimeoutStatusMessage, UtilsService} from '../shared/utils.service';
 
 @Component({
-  selector: 'app-multi-cam-view',
-  templateUrl: './multi-cam-view.component.html',
-  styleUrls: ['./multi-cam-view.component.scss'],
-  animations: [
-    trigger('detailExpand', [
-      state('collapsed', style({height: '0px', minHeight: '0'})),
-      state('expanded', style({height: '*'})),
-      transition('expanded <=> collapsed', animate('225ms cubic-bezier(0.4, 0.0, 0.2, 1)')),
-    ]),
-    trigger('openClose', [
-      // ...
-      state('open', style({
-        transform: 'rotate(90deg)'
-      })),
-      state('closed', style({
-        transform: 'rotate(0deg)'
-      })),
-      transition('open => closed', [
-        animate('.2s')
-      ]),
-      transition('closed => open', [
-        animate('.2s')
-      ]),
-    ])
-  ]
+    selector: 'app-multi-cam-view',
+    templateUrl: './multi-cam-view.component.html',
+    styleUrls: ['./multi-cam-view.component.scss'],
+    animations: [
+        trigger('detailExpand', [
+            state('collapsed', style({ height: '0px', minHeight: '0' })),
+            state('expanded', style({ height: '*' })),
+            transition('expanded <=> collapsed', animate('225ms cubic-bezier(0.4, 0.0, 0.2, 1)')),
+        ]),
+        trigger('openClose', [
+            // ...
+            state('open', style({
+                transform: 'rotate(90deg)'
+            })),
+            state('closed', style({
+                transform: 'rotate(0deg)'
+            })),
+            transition('open => closed', [
+                animate('.2s')
+            ]),
+            transition('closed => open', [
+                animate('.2s')
+            ]),
+        ])
+    ],
+    standalone: false
 })
 export class MultiCamViewComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChildren(VideoComponent) videos!: QueryList<VideoComponent>;
@@ -43,8 +44,10 @@ export class MultiCamViewComponent implements OnInit, AfterViewInit, OnDestroy {
   expandedElement!: Camera | null;
   cameraColumns = ['name', 'expand'];
   streamColumns = ['select'];
+  numColumns: number;
 
-  constructor(private cameraSvc: CameraService, private utilsService: UtilsService) {
+  constructor(public cameraSvc: CameraService, private utilsService: UtilsService) {
+    this.numColumns = cameraSvc.numColumns;
   }
 
   cams: Map<string, Camera> = new Map<string, Camera>();
@@ -52,6 +55,14 @@ export class MultiCamViewComponent implements OnInit, AfterViewInit, OnDestroy {
 
   toggleStreamSelector() {
     this.showStreamSelector = !this.showStreamSelector;
+  }
+  static colsToSize: Map<number, number> = new Map<number, number>([[0,100], [1, 50], [2,33.33], [3, 25]]);
+  setNumColumns(column: number) {
+    this.numColumns = column;
+    this.cameraSvc.numColumns=column;
+    const size = MultiCamViewComponent.colsToSize.get(column);
+    if(typeof size == "number")
+      this.videos.forEach((vid) => vid.changeSize(size));
   }
 
   setupVideo() {
@@ -70,6 +81,11 @@ export class MultiCamViewComponent implements OnInit, AfterViewInit, OnDestroy {
             video.mute();
             video.setSource(cam, stream);
             video.visible = true;
+            const size = MultiCamViewComponent.colsToSize.get(this.cameraSvc.numColumns);
+            if(typeof size == "number")
+              video.setSize(size);
+            else
+              video.setSize(50);
             ++index;
           }
         });
@@ -111,9 +127,9 @@ export class MultiCamViewComponent implements OnInit, AfterViewInit, OnDestroy {
   /**
    * updateCameras Respond to check box clicks to select/unselect streams. This also ensures
    *               that only one stream (HD or Low Res) can be selected at one time
-   * @param $event: MatCheckbox change event including selected attribute
-   * @param camera: The current camera the stream is on
-   * @param stream: The stream on which the selection is being made
+   * @param $event MatCheckbox change event including selected attribute
+   * @param camera The current camera the stream is on
+   * @param stream The stream on which the selection is being made
    */
   updateCameras($event: MatCheckboxChange, camera: Camera, stream: Stream) {
     if (stream.selected) {

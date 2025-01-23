@@ -7,9 +7,10 @@ import {ReportingComponent} from "../../../reporting/reporting.component";
 export enum ePresetOperations {moveTo, saveTo, clearFrom}
 
 @Component({
-  selector: 'app-preset-button',
-  templateUrl: './preset-button.component.html',
-  styleUrls: ['./preset-button.component.scss']
+    selector: 'app-preset-button',
+    templateUrl: './preset-button.component.html',
+    styleUrls: ['./preset-button.component.scss'],
+    standalone: false
 })
 export class PresetButtonComponent implements OnInit {
   @Input() camera!: Camera;
@@ -18,7 +19,8 @@ export class PresetButtonComponent implements OnInit {
   @Input() presetNumber!: string;
   @Input() operation!: ePresetOperations;
   @Input() color!: string;
-  readonly isGuest: boolean = false;
+  @Input() isGuest: boolean = true;
+
   constructor(private ptz: PTZService) { }
 
   preset() {

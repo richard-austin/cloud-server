@@ -24,6 +24,14 @@ export class MyIp {
   myIp: string = "";
 }
 
+export class GuestStatus {
+  guestAccount: boolean = true;
+
+  constructor(guestAccount: boolean) {
+    this.guestAccount = guestAccount;
+  }
+}
+
 export enum messageType {idleTimeoutStatus, loggedIn, loggedOut}
 
 export abstract class Message {
@@ -473,5 +481,12 @@ export class UtilsService {
 
   set activeMQTransportActive(value: boolean) {
     this._activeMQTransportActive = value;
+  }
+
+  /**
+   * isGuest: Always returns false on the Cloud
+   */
+  async isGuest(): Promise<GuestStatus> {
+    return new GuestStatus(this.isGuestAccount);
   }
 }

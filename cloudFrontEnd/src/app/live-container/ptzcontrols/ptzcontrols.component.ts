@@ -8,9 +8,10 @@ import {UtilsService} from "../../shared/utils.service";
 import {PTZPresetsInfoCommand, PTZPresetsInfoResponse, PTZService} from "../ptz.service";
 
 @Component({
-  selector: 'app-ptzcontrols',
-  templateUrl: './ptzcontrols.component.html',
-  styleUrls: ['./ptzcontrols.component.scss']
+    selector: 'app-ptzcontrols',
+    templateUrl: './ptzcontrols.component.html',
+    styleUrls: ['./ptzcontrols.component.scss'],
+    standalone: false
 })
 export class PTZControlsComponent implements OnInit {
   @Input() camera!: Camera;
@@ -19,6 +20,7 @@ export class PTZControlsComponent implements OnInit {
   eMoveDirections: any = eMoveDirections;
   savePreset: boolean = false;
   clearPreset: boolean = false;
+  isGuest: boolean = true;
   maxPresets: number = 0;
   presetsInfo!: PTZPresetsInfoResponse;
 
@@ -31,9 +33,9 @@ export class PTZControlsComponent implements OnInit {
   }
 
   presetsTooltip(presetNbr: number): string {
-    return this.savePreset ? "Save the current view to preset "+presetNbr :
-           this.clearPreset ? "Clear the saved position from preset "+presetNbr :
-             "Move the view to the saved position in preset "+presetNbr;
+    return this.savePreset ? "Save the current view to preset " + presetNbr :
+      this.clearPreset ? "Clear the saved position from preset " + presetNbr :
+        "Move the view to the saved position in preset " + presetNbr;
   }
 
   presetSaveSwitchChanged($event: MatSlideToggleChange) {
@@ -60,14 +62,15 @@ export class PTZControlsComponent implements OnInit {
   presetOperation(): ePresetOperations {
     return this.savePreset ? ePresetOperations.saveTo :
       this.clearPreset ? ePresetOperations.clearFrom :
-       ePresetOperations.moveTo;
+        ePresetOperations.moveTo;
   }
 
   ngOnInit(): void {
+    this.isGuest = this.utils.isGuestAccount;
     this.ptzService.ptzPresetsInfo(new PTZPresetsInfoCommand(this.camera)).subscribe((result) => {
         this.presetsInfo = result;
         this.maxPresets = result.maxPresets > 32 ? 32 : this.presetsInfo.maxPresets;
-    },
+      },
       reason => {
         this.reporting.errorMessage = reason;
       })

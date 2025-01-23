@@ -38,7 +38,7 @@ app-live-container.multi-display-item {
 
 mat-card.camera-select
 {
-  width: 16rem;
+  width: 20rem;
   max-height: 48rem;
   overflow-y: auto;
   > mat-card-content{
@@ -72,7 +72,6 @@ tr.detail-row {
   margin-bottom: 1rem;
   background-color: #1e1b3d;
 }
-
 .stream-select-toggle {
   position: relative;
   left: 4px;
