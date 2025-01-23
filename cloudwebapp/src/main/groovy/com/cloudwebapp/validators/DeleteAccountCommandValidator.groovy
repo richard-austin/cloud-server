@@ -22,10 +22,12 @@ class DeleteAccountCommandValidator implements Validator{
         if(target instanceof DeleteAccountCommand) {
             if (NullOrBlank.isNullOrBlank(target.username))
                 errors.rejectValue("userName", "userName cannot be null or empty")
-            User user = userRepository.findByUsername(target.username)
+            else {
+                User user = userRepository.findByUsername(target.username)
 
-            if (user == null)
-                errors.rejectValue("userName", "user $target.username does not exist)")
+                if (user == null)
+                    errors.rejectValue("userName", "user $target.username does not exist)")
+            }
         }
     }
 }

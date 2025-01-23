@@ -30,17 +30,19 @@ class ChangeEmailCommandValidator implements Validator {
         if (target instanceof ChangeEmailCommand) {
             if (NullOrBlank.isNullOrBlank(target.password))
                 errors.rejectValue("password", "password cannot be null or empty")
-            // Check the old password is correct
-            Authentication auth = SecurityContextHolder.getContext().getAuthentication()
-            def principal = auth.getPrincipal()
-            if (principal) {   // No principal in dev mode
-                String userName = auth.getName()
+            else {
+                // Check the old password is correct
+                Authentication auth = SecurityContextHolder.getContext().getAuthentication()
+                def principal = auth.getPrincipal()
+                if (principal) {   // No principal in dev mode
+                    String userName = auth.getName()
 
-                try {
-                    authenticationManager.authenticate new UsernamePasswordAuthenticationToken(userName, target.password)
-                }
-                catch (BadCredentialsException ignored) {
-                    errors.rejectValue("password", "The password is incorrect")
+                    try {
+                        authenticationManager.authenticate new UsernamePasswordAuthenticationToken(userName, target.password)
+                    }
+                    catch (BadCredentialsException ignored) {
+                        errors.rejectValue("password", "The password is incorrect")
+                    }
                 }
             }
 

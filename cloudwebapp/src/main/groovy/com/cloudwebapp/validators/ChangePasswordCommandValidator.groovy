@@ -28,18 +28,19 @@ class ChangePasswordCommandValidator implements Validator {
         if (target instanceof ChangePasswordCommand) {
             if (NullOrBlank.isNullOrBlank(target.oldPassword))
                 errors.rejectValue("oldPassword", "oldPassword cannot be null or empty")
+            else {
+                // Check the old password is correct
+                Authentication auth = SecurityContextHolder.getContext().getAuthentication()
+                def principal = auth.getPrincipal()
+                if (principal) {
+                    String userName = auth.getName()
 
-            // Check the old password is correct
-            Authentication auth = SecurityContextHolder.getContext().getAuthentication()
-            def principal = auth.getPrincipal()
-            if (principal) {
-                String userName = auth.getName()
-
-                try {
-                    authenticationManager.authenticate new UsernamePasswordAuthenticationToken(userName, target.oldPassword)
-                }
-                catch (BadCredentialsException ignore) {
-                    errors.rejectValue("oldPassword", "The old password given is incorrect")
+                    try {
+                        authenticationManager.authenticate new UsernamePasswordAuthenticationToken(userName, target.oldPassword)
+                    }
+                    catch (BadCredentialsException ignore) {
+                        errors.rejectValue("oldPassword", "The old password given is incorrect")
+                    }
                 }
             }
 

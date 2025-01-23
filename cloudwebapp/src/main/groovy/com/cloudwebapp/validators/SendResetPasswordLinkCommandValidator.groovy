@@ -17,17 +17,18 @@ class SendResetPasswordLinkCommandValidator implements Validator {
         if (target instanceof SendResetPasswordLinkCommand) {
             if (NullOrBlank.isNullOrBlank(target.email))
                 errors.rejectValue("email", "email cannot be null or empty")
-            if (!target.email.matches(UtilsService.emailRegex))
+            else if (!target.email.matches(UtilsService.emailRegex))
                 errors.rejectValue("email", "Invalid email address")
 
             if (NullOrBlank.isNullOrBlank(target.clientUri))
                 errors.rejectValue("clientUri", "clientUri cannot be null or empty")
-
-            try {
-                new URI(target.clientUri).toURL()
-            }
-            catch (URISyntaxException ignored) {
-                errors.rejectValue("clientUri", "Badly formed URL")
+            else {
+                try {
+                    new URI(target.clientUri).toURL()
+                }
+                catch (URISyntaxException ignored) {
+                    errors.rejectValue("clientUri", "Badly formed URL")
+                }
             }
         }
     }
