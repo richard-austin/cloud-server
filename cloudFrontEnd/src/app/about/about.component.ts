@@ -5,9 +5,10 @@ import {BaseUrl} from "../shared/BaseUrl/BaseUrl";
 import { ActivatedRoute, UrlSegment } from '@angular/router';
 
 @Component({
-  selector: 'app-about',
-  templateUrl: './about.component.html',
-  styleUrls: ['./about.component.scss']
+    selector: 'app-about',
+    templateUrl: './about.component.html',
+    styleUrls: ['./about.component.scss'],
+    standalone: false
 })
 export class AboutComponent implements OnInit {
   @ViewChild(ReportingComponent) errorReporting!: ReportingComponent;

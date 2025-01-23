@@ -8,15 +8,16 @@ export const CUSTOM_CONROL_VALUE_ACCESSOR: any = {
   multi: true,
 };
 @Component({
-  selector: 'app-product-id-input',
-  templateUrl: './product-id-input.component.html',
-  styleUrls: ['./product-id-input.component.scss'],
-  providers: [CUSTOM_CONROL_VALUE_ACCESSOR],
-  encapsulation: ViewEncapsulation.None
+    selector: 'app-product-id-input',
+    templateUrl: './product-id-input.component.html',
+    styleUrls: ['./product-id-input.component.scss'],
+    providers: [CUSTOM_CONROL_VALUE_ACCESSOR],
+    encapsulation: ViewEncapsulation.None,
+    standalone: false
 })
 export class ProductIdInputComponent implements OnInit, AfterViewInit {
   @Input() formControl!: FormControl;
-  @ViewChild('productIdCtl') productIdCtl!: ElementRef<HTMLInputElement>;
+  @ViewChild('productIdCtl') productIdCtrl!: ElementRef<HTMLInputElement>;
   readonly indexMax: number = 19;
   cursor: number = 0;
   onChanged!: Function;
@@ -66,7 +67,7 @@ export class ProductIdInputComponent implements OnInit, AfterViewInit {
   }
 
   setFocus() {
-    let productIDInput: HTMLInputElement = this.productIdCtl.nativeElement;
+    let productIDInput: HTMLInputElement = this.productIdCtrl.nativeElement;
     this.getFormControl().setValue(this.putDashes(productIDInput.value));
     this.cursor = productIDInput.selectionStart = productIDInput.selectionEnd = 0;
 
@@ -100,7 +101,7 @@ export class ProductIdInputComponent implements OnInit, AfterViewInit {
 
   lastCharPosition(): number
   {
-    let productIDInput: HTMLInputElement = this.productIdCtl.nativeElement;
+    let productIDInput: HTMLInputElement = this.productIdCtrl.nativeElement;
     return productIDInput.value.indexOf(" ");
   }
 

@@ -2,7 +2,7 @@
   <input #productIdCtl matInput type="text" autocomplete="off" maxlength="19"
          [formControl]="getFormControl()"
          (focus)="setFocus()"
-         (keydown)="handleKeyDown($event, this.productIdCtl)"
+         (keydown)="handleKeyDown($event, productIdCtrl.nativeElement)"
          class="mono"
          matTooltip="Enter your NVR Product ID. This will have been provided on a note with your NVR"
          matTooltipClass="tooltip"

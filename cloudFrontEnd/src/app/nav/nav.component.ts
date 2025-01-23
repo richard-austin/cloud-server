@@ -13,9 +13,10 @@ import {map} from 'rxjs/operators';
 import {Client, StompSubscription} from '@stomp/stompjs';
 
 @Component({
-  selector: 'app-nav',
-  templateUrl: './nav.component.html',
-  styleUrls: ['./nav.component.scss']
+    selector: 'app-nav',
+    templateUrl: './nav.component.html',
+    styleUrls: ['./nav.component.scss'],
+    standalone: false
 })
 export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
 

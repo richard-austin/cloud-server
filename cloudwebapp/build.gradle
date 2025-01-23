@@ -65,7 +65,7 @@ bootWar.dependsOn([':cloudFrontEnd:buildClient', ':cloudwebapp:setVersion'])
 
 bootWar {
     webInf {
-        from('../cloudFrontEnd/dist/client')
+        from('../cloudFrontEnd/dist/client/browser')
         include '**/*'
         into('classes/static')
     }
