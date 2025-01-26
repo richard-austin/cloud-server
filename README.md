@@ -33,7 +33,7 @@ by which the Cloud Service identifies the specific NVR,
 When an NVR has no local account, it will attempt to connect to the Cloud Service by default.
 
 ### Description
-The Cloud server application consists of a Java (Grails) server side with an Angular 12 web application for the
+The Cloud server application consists of a Java (Spring Boot) server side with an Angular 19 web application for the
 client side. The Angular client has two operating modes, as an admin application (for the admin user), and client
 mode for users who login to use their NVR. In client mode, the server side acts as a proxy to the connected NVRs
 with user accounts, so most restful API calls are made through this proxy to the users NVR. The Cloud Service can handle
@@ -73,14 +73,14 @@ The current build configuration (as created with./gradlew buildDebFile) is for R
 version of Ubuntu 24.04 (Noble Numbat). The application runs on Java on the server side, so it can easily be adapted 
 to other platforms.
 ### Tomcat Web Server
-Tomcat 9 (https://tomcat.apache.org/) hosts the server (Web Back End) and client (Web Front End) of the NVR, giving access
+Tomcat 10 (https://tomcat.apache.org/) hosts the server (Web Back End) and client (Web Front End) of the NVR, giving access
 to these through port 8080.
 ### Web Front End
-The Web Front End (client) is an Angular application using [Angular CLI](https://github.com/angular/angular-cli) version 12.0.5 or later.
+The Web Front End (client) is an Angular application using [Angular CLI](https://github.com/angular/angular-cli) version 19 or later.
 This forms the user interface of the web application.
 To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.io/cli) page.
 ### Web Back End
-The Web Back End (server) is a Grails application (https://grails.org/), which provides
+The Web Back End (server) is a Spring Boot 3 application (https://spring.io/projects/spring-boot), which provides
 a Restful API for the Angular Web Front End in admin mode. In client mode, the Restful API is mainly from
 the NVR via the account proxy.
 ### ActiveMQ
@@ -95,17 +95,19 @@ is running.
 
 ## Building the project
 Ready built .deb files are included in the Releases section, otherwise read the directions below.
-#### The project is verified to build with the following:-
-* Angular CLI: 15.2.0 or greater
-* Node: 18.17.1
-* npm: 9.9.7
+#### The project is developed with the following:-
+* Angular CLI: 19 or greater
+* Node: 18.20.1
+* npm: 10.7.0
 * Package Manager: npm 9.6.7
-* Grails Version: 5.3.2
-* openjdk version "19.0.2" 2023-01-17
-* Gradle 7.6
+* Spring Boot 3
+* openjdk version "21.0.5" 2024-10-15
+* Gradle 8.12
 
-Using other versions may cause build issues in some cases.
-### Set up build environment
+Apart from the JDK, these are not required to carry out the Gradle build described below, but 
+may be required during development
+
+### Set up for a build
 ```
 git clone git@github.com:richard-austin/cloud-server.git
 cd cloud-server
