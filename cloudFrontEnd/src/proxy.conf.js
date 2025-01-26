@@ -1,18 +1,18 @@
 const PROXY_CONFIG = [
   {  context: [
-      "/application",
-      "/assets",
-      "/cam",
-      "/motion",
-      "/onvif",
-      "/user",
-      "/utils",
-      "/recording",
+      "/application/",
+      "/assets/",
+      "/cam/",
+      "/motion/",
+      "/onvif/",
+      "/user/",
+      "/utils/",
+      "/recording/",
       "/wifiUtils",
       "/cloudProxy",
-      "/ptz",
+      "/ptz/",
       "/stomp",
-      "/ws",
+      "/ws/",
       "/dc",
       "/cua",
       "/audio"
@@ -25,9 +25,9 @@ const PROXY_CONFIG = [
   {
     context: [
       "/login",
-      "/logoff",
+      "/logout",
       "/cloud",
-      "/cloudstomp"
+      "/cloudstomp",
     ],
     ws: true,
     target: "http://localhost:8086/",

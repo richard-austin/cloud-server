@@ -11,9 +11,10 @@ import {UtilsService} from "../shared/utils.service";
 import {ReportingComponent} from "../reporting/reporting.component";
 
 @Component({
-  selector: 'app-register-local-nvr-account',
-  templateUrl: './register-local-nvr-account.component.html',
-  styleUrls: ['./register-local-nvr-account.component.scss']
+    selector: 'app-register-local-nvr-account',
+    templateUrl: './register-local-nvr-account.component.html',
+    styleUrls: ['./register-local-nvr-account.component.scss'],
+    standalone: false
 })
 export class RegisterLocalNvrAccountComponent implements OnInit, AfterViewInit {
   username: string = '';
@@ -22,6 +23,7 @@ export class RegisterLocalNvrAccountComponent implements OnInit, AfterViewInit {
   email: string = '';
   confirmEmail: string = '';
   nvrAccountRegistrationForm!: UntypedFormGroup;
+  success: boolean = true;
   // errorMessage: string = '';
   // successMessage: string = '';
   @ViewChild('username') usernameInput!: ElementRef<HTMLInputElement>;
@@ -92,9 +94,11 @@ export class RegisterLocalNvrAccountComponent implements OnInit, AfterViewInit {
     this.utilsService.registerLocalNVRAccount(this.username, this.password, this.confirmPassword, this.email, this.confirmEmail).subscribe(() => {
         this.utilsService.getHasLocalAccount();
         this.reporting.successMessage = "Account " + this.username + " created successfully";
+        this.success = true;
       },
       (reason) => {
         this.reporting.errorMessage = reason;
+        this.success = false;
       });
   }
 

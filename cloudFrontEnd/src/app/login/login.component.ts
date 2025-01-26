@@ -1,13 +1,13 @@
 import {AfterViewInit, Component, ElementRef, OnInit, ViewChild} from '@angular/core';
 import {FormControl, FormGroup, Validators} from "@angular/forms";
-import {CameraService} from "../cameras/camera.service";
 import {LoggedInMessage, UtilsService} from "../shared/utils.service";
 import {timer} from 'rxjs';
 
 @Component({
-  selector: 'app-login',
-  templateUrl: './login.component.html',
-  styleUrls: ['./login.component.scss']
+    selector: 'app-login',
+    templateUrl: './login.component.html',
+    styleUrls: ['./login.component.scss'],
+    standalone: false
 })
 export class LoginComponent implements OnInit, AfterViewInit {
 
@@ -37,7 +37,7 @@ export class LoginComponent implements OnInit, AfterViewInit {
         }
       },
       (reason)=> {
-      this.errorMessage = reason.error;
+        this.errorMessage = reason.statusText + ": " + reason.error;
       });
   }
 

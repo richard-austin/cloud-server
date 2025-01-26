@@ -2,7 +2,8 @@ import {Pipe, PipeTransform} from '@angular/core';
 import {Account} from "../shared/utils.service";
 
 @Pipe({
-  name: 'filter'
+    name: 'filter',
+    standalone: false
 })
 export class FilterPipe implements PipeTransform {
   transform(value: Account[], ...args: string[]): Account[] {

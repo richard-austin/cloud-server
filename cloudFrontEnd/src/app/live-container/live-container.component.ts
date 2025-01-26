@@ -4,14 +4,15 @@ import {Camera, Stream} from '../cameras/Camera';
 import {Subscription, timer} from 'rxjs';
 import {VideoComponent} from '../video/video.component';
 import {IdleTimeoutStatusMessage, UtilsService} from '../shared/utils.service';
-import {HttpErrorResponse} from '@angular/common/http';
+import { HttpErrorResponse } from '@angular/common/http';
 import {ReportingComponent} from '../reporting/reporting.component';
 import {ActivatedRoute} from '@angular/router';
 
 @Component({
-  selector: 'app-live-container',
-  templateUrl: './live-container.component.html',
-  styleUrls: ['./live-container.component.scss']
+    selector: 'app-live-container',
+    templateUrl: './live-container.component.html',
+    styleUrls: ['./live-container.component.scss'],
+    standalone: false
 })
 export class LiveContainerComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild(ReportingComponent) reporting!: ReportingComponent;
@@ -26,17 +27,17 @@ export class LiveContainerComponent implements OnInit, AfterViewInit, OnDestroy 
     this.route.paramMap.subscribe((paramMap) => {
       let streamName: string = paramMap.get('streamName') as string;
         cameraSvc.getCameras().forEach((cam) => {
-        cam.streams.forEach((stream, k) => {
-          if (stream.media_server_input_uri.endsWith(streamName)) {
-            this.camera = cam;
-            this.stream = stream;
-            const subscription = timer(100).subscribe(() => {
-              this.setupVideo();
-              subscription.unsubscribe();
-            });
-          }
-        });
-      });
+          cam.streams.forEach((stream, k) => {
+            if (stream.media_server_input_uri.endsWith(streamName)) {
+              this.camera = cam;
+              this.stream = stream;
+              const subscription = timer(100).subscribe( () => {
+                this.setupVideo();
+                subscription.unsubscribe();
+              });
+            }
+          });
+         });
     })
   }
 
@@ -52,7 +53,7 @@ export class LiveContainerComponent implements OnInit, AfterViewInit, OnDestroy 
       }
     } else
       this.showInvalidInput();
-    }
+  }
 
 
   hasPTZControls() {
@@ -80,8 +81,8 @@ export class LiveContainerComponent implements OnInit, AfterViewInit, OnDestroy 
 
   ngAfterViewInit(): void {
       this.cd.detectChanges();
+      this.video.setSize(100);
   }
-
 
   ngOnDestroy(): void {
     this.video.stop();

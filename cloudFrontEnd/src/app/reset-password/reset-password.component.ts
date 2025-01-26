@@ -1,14 +1,15 @@
 import { Component, OnInit } from '@angular/core';
 import {ActivatedRoute, UrlSegment} from "@angular/router";
-import {AbstractControl, FormControl, FormGroup, ValidationErrors, Validators} from "@angular/forms";
+import {AbstractControl, FormControl, FormGroup, ValidationErrors} from "@angular/forms";
 import { UtilsService } from '../shared/utils.service';
 import {HttpErrorResponse} from "@angular/common/http";
 import {ChangePasswordService} from "../change-password/change-password.service";
 
 @Component({
-  selector: 'app-reset-password',
-  templateUrl: './reset-password.component.html',
-  styleUrls: ['./reset-password.component.scss']
+    selector: 'app-reset-password',
+    templateUrl: './reset-password.component.html',
+    styleUrls: ['./reset-password.component.scss'],
+    standalone: false
 })
 export class ResetPasswordComponent implements OnInit {
   uniqueId: string = "";
@@ -79,7 +80,7 @@ export class ResetPasswordComponent implements OnInit {
               this.invalidPassword();
           }
         } else
-          this.errorMessage = reason.error;
+          this.errorMessage = reason.error.reason;
       });
   }
 

@@ -13,9 +13,10 @@ import {map} from 'rxjs/operators';
 import {Client, StompSubscription} from '@stomp/stompjs';
 
 @Component({
-  selector: 'app-nav',
-  templateUrl: './nav.component.html',
-  styleUrls: ['./nav.component.scss']
+    selector: 'app-nav',
+    templateUrl: './nav.component.html',
+    styleUrls: ['./nav.component.scss'],
+    standalone: false
 })
 export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
 
@@ -98,7 +99,7 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
     this.confirmLogout = false;
 
     if (logoff) {
-      this.utilsService.logoff();
+      this.utilsService.logout();
     }
   }
 
@@ -325,7 +326,7 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
     // Log off when time is up.
     this.userIdle.onTimeout().subscribe(() => {
       this.idleTimeoutDialogRef.close();
-      this.utilsService.logoff();
+      this.utilsService.logout();
     });
 
     // Gets the core temperature every minute (Raspberry pi only), and keeps the session alive

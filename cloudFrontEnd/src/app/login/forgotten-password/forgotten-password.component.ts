@@ -3,9 +3,10 @@ import {AbstractControl, FormControl, FormGroup, ValidationErrors, ValidatorFn, 
 import { UtilsService } from 'src/app/shared/utils.service';
 
 @Component({
-  selector: 'app-forgotten-password',
-  templateUrl: './forgotten-password.component.html',
-  styleUrls: ['./forgotten-password.component.scss']
+    selector: 'app-forgotten-password',
+    templateUrl: './forgotten-password.component.html',
+    styleUrls: ['./forgotten-password.component.scss'],
+    standalone: false
 })
 export class ForgottenPasswordComponent implements OnInit {
   forgottenPasswordForm!: FormGroup;
@@ -48,8 +49,8 @@ export class ForgottenPasswordComponent implements OnInit {
     this.utilsService.sendResetPasswordLink(email, uri).subscribe(() => {
       this.successMessage = "Please check your email for a reset password link";
     },
-      reason => {
-          this.errorMessage = reason.error;
+      err => {
+          this.errorMessage = err.error.reason;
       })
   }
 

@@ -3,9 +3,10 @@ import {UtilsService} from "../shared/utils.service";
 import {ReportingComponent} from "../reporting/reporting.component";
 
 @Component({
-  selector: 'app-remove-local-nvr',
-  templateUrl: './remove-local-nvr-account.component.html',
-  styleUrls: ['./remove-local-nvr-account.component.scss']
+    selector: 'app-remove-local-nvr',
+    templateUrl: './remove-local-nvr-account.component.html',
+    styleUrls: ['./remove-local-nvr-account.component.scss'],
+    standalone: false
 })
 export class RemoveLocalNvrAccountComponent implements OnInit {
 
@@ -23,7 +24,7 @@ export class RemoveLocalNvrAccountComponent implements OnInit {
         this.reporting.successMessage = "Removed account " + result.username + " successfully";
       },
       reason => {
-        this.reporting.error = reason;
+        this.reporting.errorMessage = reason;
       })
   }
 

@@ -1,5 +1,5 @@
 import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
-import {AbstractControl, FormControl, FormGroup, ValidationErrors, ValidatorFn, Validators} from "@angular/forms";
+import {AbstractControl, UntypedFormControl, UntypedFormGroup, ValidationErrors, ValidatorFn, Validators} from "@angular/forms";
 import {ReportingComponent} from "../../reporting/reporting.component";
 import {Camera} from "../../cameras/Camera";
 
@@ -31,9 +31,10 @@ export function isValidDeviceIP(componentObject: AddAsOnvifDeviceComponent): Val
 }
 
 @Component({
-  selector: 'app-add-as-onvif-device',
-  templateUrl: './add-as-onvif-device.component.html',
-  styleUrls: ['./add-as-onvif-device.component.scss']
+    selector: 'app-add-as-onvif-device',
+    templateUrl: './add-as-onvif-device.component.html',
+    styleUrls: ['./add-as-onvif-device.component.scss'],
+    standalone: false
 })
 export class AddAsOnvifDeviceComponent implements OnInit {
   @Output() hideDialogue: EventEmitter<void> = new EventEmitter<void>();
@@ -43,7 +44,7 @@ export class AddAsOnvifDeviceComponent implements OnInit {
 
   constructor() { }
   onvifUrl: string = 'http://192.168.1.1:8080/onvif/device_service';
-  addCameraForm!: FormGroup;
+  addCameraForm!: UntypedFormGroup;
 
   startCapabilitiesDiscovery() {
     this.startFindCameraDetails.emit(this.onvifUrl);
@@ -55,10 +56,10 @@ export class AddAsOnvifDeviceComponent implements OnInit {
   }
 
   getFormControl(fcName: string): any {
-    return this.addCameraForm.get(fcName) as FormControl;
+    return this.addCameraForm.get(fcName) as UntypedFormControl;
   }
   updateField() {
-    let control: FormControl = this.getFormControl("onvifUrl")
+    let control: UntypedFormControl = this.getFormControl("onvifUrl")
     this.onvifUrl = control.value;
   }
 
@@ -68,8 +69,8 @@ export class AddAsOnvifDeviceComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.addCameraForm = new FormGroup({
-      onvifUrl: new FormControl(this.onvifUrl, [Validators.required, Validators.maxLength(60), Validators.pattern("^(http:\\/\\/)[\\w.-]+(?:\\.[\\w\\.-]+)+[\\w\\-\\._~:/?#[\\]@!\\$&'\\(\\)\\*\\+,;=.]+$"), isValidDeviceIP(this)]),
+    this.addCameraForm = new UntypedFormGroup({
+      onvifUrl: new UntypedFormControl(this.onvifUrl, [Validators.required, Validators.maxLength(60), Validators.pattern("^(http:\\/\\/)[\\w.-]+(?:\\.[\\w\\.-]+)+[\\w\\-\\._~:/?#[\\]@!\\$&'\\(\\)\\*\\+,;=.]+$"), isValidDeviceIP(this)]),
     }, {updateOn: "change"});
 
     // Ensure camera form controls highlight immediately if invalid

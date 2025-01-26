@@ -62,7 +62,8 @@
                            [presetNumber]="(i+1).toString()"
                            [presetInfo]="presetsInfo.presets[i]"
                            [operation]="presetOperation()"
-                           matTooltip="{{presetsTooltip(i+1)}}"
+                           [isGuest]="isGuest"
+                           matTooltip="{{isGuest ? 'Disabled for guest' : presetsTooltip(i+1)}}"
                            matTooltipClass="tooltip">
         </app-preset-button>
       </div>

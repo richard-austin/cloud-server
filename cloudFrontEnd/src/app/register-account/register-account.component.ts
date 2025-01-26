@@ -4,9 +4,10 @@ import {UtilsService} from "../shared/utils.service";
 import {timer} from 'rxjs';
 
 @Component({
-  selector: 'app-register-account',
-  templateUrl: './register-account.component.html',
-  styleUrls: ['./register-account.component.scss']
+    selector: 'app-register-account',
+    templateUrl: './register-account.component.html',
+    styleUrls: ['./register-account.component.scss'],
+    standalone: false
 })
 export class RegisterAccountComponent implements OnInit, AfterViewInit {
   username: string = '';
@@ -87,7 +88,7 @@ export class RegisterAccountComponent implements OnInit, AfterViewInit {
       this.successMessage = result.message;
     },
       (reason) => {
-        this.errorMessage = reason.error;
+        this.errorMessage = reason.error.reason;
       });
   }
 

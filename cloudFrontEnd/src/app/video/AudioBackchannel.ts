@@ -85,23 +85,23 @@ export class AudioBackchannel {
        // const ff = navigator.userAgent.search("Firefox");
         // @ts-ignore
         this.recorder = new MediaRecorder(stream);
-        // fires every one second and passes a BlobEvent
-        this.recorder.ondataavailable = (event: any) => {
-          // get the Blob from the event
-          const blob: Blob = event.data;
-          blob.arrayBuffer().then((buff) => {
-            let data = new Uint8Array(buff);
+          // fires every one second and passes a BlobEvent
+          this.recorder.ondataavailable = (event: any) => {
+            // get the Blob from the event
+            const blob: Blob = event.data;
+            blob.arrayBuffer().then((buff) => {
+              let data = new Uint8Array(buff);
 
-            if (data.length > 0) {
-              // and send that blob to the server...
-              this.client.publish({
-                destination: '/app/audio',
-                binaryBody: data,
-                headers: {"content-type": "application/octet-stream"}
-              });
-            }
-          });
-        };
+              if (data.length > 0) {
+                // and send that blob to the server...
+                this.client.publish({
+                  destination: '/app/audio',
+                  binaryBody: data,
+                  headers: {"content-type": "application/octet-stream"}
+                });
+              }
+            });
+          };
 
         this.recorder.onstop = () => {
           this.recorder.ondataavailable = null;
@@ -147,20 +147,22 @@ export class AudioBackchannel {
     //  the end of the speech getting cut off
     let timerSubscription = timer(1000+this.timeForStartAudioOutResponse).subscribe(() => {
       this.video.muted = false;
-      this.stopAudioOut();
+      this.stopAudioOut().then();
       timerSubscription.unsubscribe();
     });
   }
 
-  stopAudioOut(): void {
-    this.recorder?.stop();
-    this.utilsService.stopAudioOut().subscribe(() => {
-      this.client?.deactivate({force: false}).then(() => {
+  async stopAudioOut() {
+    if (!(await this.utilsService.isGuest()).guestAccount) {
+      this.recorder?.stop();
+      this.utilsService.stopAudioOut().subscribe(() => {
+        this.client?.deactivate({force: false}).then(() => {
+        });
+      }, reason => {
+        this.reporting.errorMessage = reason;
       });
-    }, reason => {
-      this.reporting.errorMessage = reason;
-    });
-    this.audioToggle = false;
+      this.audioToggle = false;
+    }
   }
 
   audioButtonTooltip(): string {

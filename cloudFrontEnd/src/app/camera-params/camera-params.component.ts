@@ -7,9 +7,10 @@ import {AbstractControl, UntypedFormControl, UntypedFormGroup, Validators} from 
 import {ActivatedRoute} from '@angular/router';
 
 @Component({
-  selector: 'app-camera-params',
-  templateUrl: './camera-params.component.html',
-  styleUrls: ['./camera-params.component.scss']
+    selector: 'app-camera-params',
+    templateUrl: './camera-params.component.html',
+    styleUrls: ['./camera-params.component.scss'],
+    standalone: false
 })
 export class CameraParamsComponent implements OnInit, AfterViewInit, OnDestroy {
   irselector!: AbstractControl;
@@ -95,6 +96,7 @@ export class CameraParamsComponent implements OnInit, AfterViewInit, OnDestroy {
           } else {
             this.lampStatus.setValue(this.cameraParams.lamp_mode);
             this.wdrStatus.setValue(this.cameraParams.wdr);
+            this.wdrStatus.disable();  // Disabling fro now till I decide whether to make it work (with associated fields) or remove it.
           }
           this.startDate.setValue(this.cameraParams.startdate);
           this.cameraName.setValue(this.cameraParams.name_1);
@@ -108,7 +110,7 @@ export class CameraParamsComponent implements OnInit, AfterViewInit, OnDestroy {
         },
         reason => {
           if (reason.status == 401) {
-             this.reporting.warningMessage = `
+            this.reporting.warningMessage = `
              Unauthorised: The credentials for this camera are not correctly set. Please go to General -> Cameras Configuration and
              click on the shield icon beside the title (Cameras Configuration). You can then set the the user name and
              password which must be set the same on all cameras.
@@ -194,6 +196,7 @@ export class CameraParamsComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.isGuest = this.utils.isGuestAccount;
   }
 
   ngAfterViewInit(): void {

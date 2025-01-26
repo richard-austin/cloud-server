@@ -3,11 +3,12 @@ import {VideoComponent} from '../video/video.component';
 import {Camera, Stream} from '../cameras/Camera';
 import {CameraService, DateSlot, LocalMotionEvent, LocalMotionEvents} from '../cameras/camera.service';
 import {timer} from 'rxjs';
-import {MatSelect, MatSelectChange} from '@angular/material/select';
+import {MatSelectChange} from '@angular/material/select';
 import {MotionService} from '../motion/motion.service';
 import {ReportingComponent} from '../reporting/reporting.component';
-import {HttpErrorResponse} from '@angular/common/http';
+import { HttpErrorResponse } from '@angular/common/http';
 import {ActivatedRoute} from '@angular/router';
+import {MatSelect} from '@angular/material/select';
 import {UtilsService} from '../shared/utils.service';
 import {MatDatepickerInputEvent} from '@angular/material/datepicker';
 
@@ -27,9 +28,10 @@ Date.prototype.addDays = function(days: number): Date {
 };
 
 @Component({
-  selector: 'app-recording-control',
-  templateUrl: './recording-control.component.html',
-  styleUrls: ['./recording-control.component.scss']
+    selector: 'app-recording-control',
+    templateUrl: './recording-control.component.html',
+    styleUrls: ['./recording-control.component.scss'],
+    standalone: false
 })
 export class RecordingControlComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild(VideoComponent) video!: VideoComponent;
@@ -59,7 +61,7 @@ export class RecordingControlComponent implements OnInit, AfterViewInit, OnDestr
     this.initialised = false;
     this.route.paramMap.subscribe((paramMap) => {
       let streamName: string = paramMap.get('streamName') as string;
-      cameraSvc.getCameras().forEach((cam) => {
+      this.cameraSvc.getCameras().forEach((cam) => {
         cam.streams.forEach((stream, k) => {
           if (stream.media_server_input_uri.endsWith(streamName)) {
             this.cam = cam;
@@ -170,13 +172,7 @@ export class RecordingControlComponent implements OnInit, AfterViewInit, OnDestr
     }
   }
   hasAudio (): boolean {
-    const video: any = this.video?.video;
-    if(video) {
-      return video.mozHasAudio ||
-        Boolean(video.webkitAudioDecodedByteCount) ||
-        Boolean(video.audioTracks && video.audioTracks.length);
-    }
-    return false;
+    return this.stream?.audio && !this.stream.motion?.enabled;
   }
 
   /**
@@ -226,9 +222,10 @@ export class RecordingControlComponent implements OnInit, AfterViewInit, OnDestr
     } catch (error: any) {
       let reader: FileReader = new FileReader();
       reader.onload = () => {
+        let result = JSON.parse(reader.result as string)
         this.reporting.errorMessage = new HttpErrorResponse({
-          error: JSON.parse(reader.result as string),
-          status: error.status
+          error: result.reason,
+          status: 500 /*error.status */
         });
       };
       reader.readAsText(error.error);
@@ -248,17 +245,6 @@ export class RecordingControlComponent implements OnInit, AfterViewInit, OnDestr
         this.paused = false;
       };
     }
-  }
-  toggleMuteAudio() {
-    if(this.video !== undefined && this.video !== null)
-      this.video.videoFeeder.mute(!this.video.videoFeeder.isMuted);
-  }
-
-  isMuted() : boolean {
-    let retVal = false;
-    if(this.video !== undefined && this.video !== null)
-      retVal = this.video.videoFeeder.isMuted;
-    return retVal;
   }
 
   /**
@@ -375,9 +361,22 @@ export class RecordingControlComponent implements OnInit, AfterViewInit, OnDestr
     this.video.video.controls = false;  // Turn off controls to prevent full screen on reorientation to landscape
                                         // Also in some browsers (Firefox on Android), having the controls enabled
                                         // prevents pan and pinch zoom from working.
+    this.video.setSize(100, true);
   }
 
   ngOnDestroy(): void {
     this.video.video.controls = true; // Enable controls again
+  }
+
+  toggleMuteAudio() {
+    if(this.video !== undefined && this.video !== null)
+      this.video.videoFeeder.mute(!this.video.videoFeeder.isMuted);
+  }
+
+  isMuted() : boolean {
+    let retVal = false;
+    if(this.video !== undefined && this.video !== null)
+      retVal = this.video.videoFeeder.isMuted;
+    return retVal;
   }
 }

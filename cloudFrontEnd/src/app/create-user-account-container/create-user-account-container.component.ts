@@ -2,9 +2,10 @@ import {AfterViewInit, Component, ElementRef, OnDestroy, OnInit, ViewChild} from
 import {fromEvent, merge, Subscription} from 'rxjs';
 
 @Component({
-  selector: 'app-create-user-account-container',
-  templateUrl: './create-user-account-container.component.html',
-  styleUrls: ['./create-user-account-container.component.scss']
+    selector: 'app-create-user-account-container',
+    templateUrl: './create-user-account-container.component.html',
+    styleUrls: ['./create-user-account-container.component.scss'],
+    standalone: false
 })
 export class CreateUserAccountContainerComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('cuaframe') cuaframeEl!: ElementRef<HTMLIFrameElement>;

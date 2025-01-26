@@ -43,6 +43,7 @@ import {LoginComponent} from './login/login.component';
 import {RegisterAccountComponent} from './register-account/register-account.component';
 import {ProductIdInputComponent} from './register-account/product-id-input/product-id-input.component';
 import {ForgottenPasswordComponent} from './login/forgotten-password/forgotten-password.component';
+import {ResetPasswordComponent} from './reset-password/reset-password.component';
 
 @NgModule({
   declarations: [
@@ -55,7 +56,8 @@ import {ForgottenPasswordComponent} from './login/forgotten-password/forgotten-p
       LoginComponent,
       ForgottenPasswordComponent,
       RegisterAccountComponent,
-      ProductIdInputComponent
+      ProductIdInputComponent,
+      ResetPasswordComponent
   ],
     bootstrap: [AppComponent],
     imports: [BrowserModule,

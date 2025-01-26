@@ -10,16 +10,17 @@ import { Sort } from '@angular/material/sort';
 import {Client, StompSubscription} from '@stomp/stompjs';
 
 @Component({
-  selector: 'app-nvradmin',
-  templateUrl: './account-admin.component.html',
-  styleUrls: ['./account-admin.component.scss'],
-  animations: [
-    trigger('detailExpand', [
-      state('collapsed', style({height: '0px', minHeight: '0'})),
-      state('expanded', style({height: '*'})),
-      transition('expanded <=> collapsed', animate('225ms cubic-bezier(0.4, 0.0, 0.2, 1)')),
-    ])
-  ],
+    selector: 'app-nvradmin',
+    templateUrl: './account-admin.component.html',
+    styleUrls: ['./account-admin.component.scss'],
+    animations: [
+        trigger('detailExpand', [
+            state('collapsed', style({ height: '0px', minHeight: '0' })),
+            state('expanded', style({ height: '*' })),
+            transition('expanded <=> collapsed', animate('225ms cubic-bezier(0.4, 0.0, 0.2, 1)')),
+        ])
+    ],
+    standalone: false
 })
 export class AccountAdminComponent implements OnInit {
   downloading: boolean = false;

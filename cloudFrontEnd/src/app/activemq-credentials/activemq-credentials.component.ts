@@ -4,14 +4,16 @@ import {UtilsService} from "../shared/utils.service";
 import {ReportingComponent} from "../reporting/reporting.component";
 
 @Component({
-  selector: 'app-activemq-credentials',
-  templateUrl: './activemq-credentials.component.html',
-  styleUrls: ['./activemq-credentials.component.scss']
+    selector: 'app-activemq-credentials',
+    templateUrl: './activemq-credentials.component.html',
+    styleUrls: ['./activemq-credentials.component.scss'],
+    standalone: false
 })
 export class ActivemqCredentialsComponent implements OnInit {
   public title = ''
   buttonTitle!: string;
   error: boolean = false;
+  success: boolean = false;
   cloudCredsForm!: FormGroup;
   username: string = '';
   password: string = '';
@@ -111,11 +113,13 @@ export class ActivemqCredentialsComponent implements OnInit {
       {
         complete: () => {
           this.utilsService.getHasLocalAccount();
-          this.reporting.successMessage = "ActiveMQ client credentials " + (this.updateExisting ? " updated" : " created") + " successfully" + (this.updateExisting ? " username now: " + this.username : "");
+          this.reporting.successMessage = "ActiveMQ client credentials " + (this.updateExisting ? " updated" : " created") + " successfully" + ((this.updateExisting && this.username !== "")  ? (" username now: " + this.username) : "");
+          this.success = true;
           this.utilsService.isTransportActive().subscribe();  // Sets the status flag in utils service
         },
         error: (reason) => {
           this.reporting.errorMessage = reason;
+          this.success = false;
         }
       });
   }

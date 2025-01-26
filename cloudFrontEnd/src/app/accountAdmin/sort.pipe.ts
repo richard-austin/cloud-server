@@ -2,7 +2,8 @@ import { Pipe, PipeTransform } from '@angular/core';
 import {Account} from "../shared/utils.service";
 
 @Pipe({
-  name: 'sort'
+    name: 'sort',
+    standalone: false
 })
 export class SortPipe implements PipeTransform {
 

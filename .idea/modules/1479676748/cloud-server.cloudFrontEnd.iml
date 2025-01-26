@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<module version="4">
-  <component name="NewModuleRootManager">
-    <content url="file://$MODULE_DIR$/../../../cloudFrontEnd">
-      <excludeFolder url="file://$MODULE_DIR$/../../../cloudFrontEnd/tmp" />
-      <excludeFolder url="file://$MODULE_DIR$/../../../cloudFrontEnd/dist" />
-    </content>
-  </component>
-</module>

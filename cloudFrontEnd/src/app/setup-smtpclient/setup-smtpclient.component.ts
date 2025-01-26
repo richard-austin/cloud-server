@@ -19,14 +19,16 @@ export class SMTPData {
 }
 
 @Component({
-  selector: 'app-setup-smtpclient',
-  templateUrl: './setup-smtpclient.component.html',
-  styleUrls: ['./setup-smtpclient.component.scss']
+    selector: 'app-setup-smtpclient',
+    templateUrl: './setup-smtpclient.component.html',
+    styleUrls: ['./setup-smtpclient.component.scss'],
+    standalone: false
 })
 export class SetupSMTPClientComponent implements OnInit {
   setupSMTPForm!: FormGroup;
   smtpData: SMTPData = new SMTPData();
   error: boolean = false;
+  success: boolean = false;
 
   @ViewChild(ReportingComponent) reporting: ReportingComponent = new ReportingComponent();
 
@@ -89,9 +91,11 @@ export class SetupSMTPClientComponent implements OnInit {
     this.utilsService.setupSMTPClientLocally(this.smtpData).subscribe({
       complete: () => {
         this.reporting.successMessage = "SMTP settings updated";
+        this.success = true;
       },
       error: (reason) => {
         this.reporting.errorMessage = reason;
+        this.success  = false;
       }
     });
   }

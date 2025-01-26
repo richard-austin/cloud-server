@@ -3,12 +3,13 @@ import {CameraService} from "../../cameras/camera.service";
 import {Camera} from "../../cameras/Camera";
 import {ReportingComponent} from "../../reporting/reporting.component";
 import {BehaviorSubject} from "rxjs";
-import {FormArray, FormControl, FormGroup, Validators} from "@angular/forms";
+import {UntypedFormArray, UntypedFormControl, UntypedFormGroup, Validators} from "@angular/forms";
 
 @Component({
-  selector: 'app-onvif-failures',
-  templateUrl: './onvif-failures.component.html',
-  styleUrls: ['./onvif-failures.component.scss']
+    selector: 'app-onvif-failures',
+    templateUrl: './onvif-failures.component.html',
+    styleUrls: ['./onvif-failures.component.scss'],
+    standalone: false
 })
 export class OnvifFailuresComponent implements OnInit, AfterViewInit {
   @Input() failures!: Map<string, string>;
@@ -17,7 +18,7 @@ export class OnvifFailuresComponent implements OnInit, AfterViewInit {
   @Output() fixUpCamerasData: EventEmitter<void> = new EventEmitter<void>();
 
   list$!: BehaviorSubject<[string, string][]>;
-  failControls!: FormArray;
+  failControls!: UntypedFormArray;
   onvifUserName: string = "";
   onvifPassword: string = "";
   gettingCameraDetails: boolean = false;
@@ -36,12 +37,13 @@ export class OnvifFailuresComponent implements OnInit, AfterViewInit {
         failed: Map<string, string>
       }) => {
         if (result.failed.size == 1) {
-          const fKey: string = result.failed.keys().next().value;
+          const fKey = result.failed.keys().next().value;
           if (this.failures === undefined)
             this.failures = result.failed;
-          else if (!this.failures.has(fKey)) {
-            const fVal: string = result.failed.values().next().value;
-            this.failures.set(fKey, fVal);
+          else if (fKey !== undefined && !this.failures.has(fKey)) {
+            const fVal = result.failed.values().next().value;
+            if(fVal !== undefined)
+              this.failures.set(fKey, fVal);
           }
         }
         if (result.cam !== undefined) {
@@ -54,7 +56,7 @@ export class OnvifFailuresComponent implements OnInit, AfterViewInit {
           let msg = "Couldn't get camera details: - ";
           if (result.failed !== undefined && result.failed.size > 0)
             msg += result.failed.entries().next().value
-          this.reporting.warning = msg;
+          this.reporting.warningMessage = msg
         }
         this.gettingCameraDetails = false;
       },
@@ -67,20 +69,20 @@ export class OnvifFailuresComponent implements OnInit, AfterViewInit {
   setupTableFormControls() {
     this.list$ = new BehaviorSubject<[string, string][]>(Array.from(this.failures));
     const toFailureGroups = this.list$.value.map(camera => {
-      return new FormGroup(
+      return new UntypedFormGroup(
         {
-          onvifUserName: new FormControl({
+          onvifUserName: new UntypedFormControl({
             value: this.onvifUserName,
             disabled: this.gettingCameraDetails
           }, [Validators.maxLength(20), Validators.minLength(0), Validators.pattern(/^[a-zA-Z0-9](_(?!([._]))|\.(?!([_.]))|[a-zA-Z0-9]){3,18}[a-zA-Z0-9]$/)]),
-          onvifPassword: new FormControl({
+          onvifPassword: new UntypedFormControl({
             value: this.onvifPassword,
             disabled: this.gettingCameraDetails
           }, [Validators.maxLength(25), Validators.minLength(0), Validators.pattern(/^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,64}$/)])
         });
     });
 
-    this.failControls = new FormArray(toFailureGroups);
+    this.failControls = new UntypedFormArray(toFailureGroups);
 
     // Ensure camera form controls highlight immediately if invalid
     for (let i = 0; i < this.failControls.length; ++i) {
@@ -88,8 +90,8 @@ export class OnvifFailuresComponent implements OnInit, AfterViewInit {
     }
   }
 
-  getControl(index: number, fieldName: string): FormControl {
-    return this.failControls?.at(index).get(fieldName) as FormControl;
+  getControl(index: number, fieldName: string): UntypedFormControl {
+    return this.failControls?.at(index).get(fieldName) as UntypedFormControl;
   }
   anyInvalid(i: number) : boolean {
     return this.failControls?.at(i).invalid;

@@ -12,16 +12,16 @@
   },
   "private": true,
   "dependencies": {
-    "@angular/animations": "^18.2.0",
-    "@angular/cdk": "^18.2.0",
-    "@angular/common": "^18.2.0",
-    "@angular/compiler": "^18.2.0",
-    "@angular/core": "^18.2.0",
-    "@angular/forms": "^18.2.0",
-    "@angular/material": "^18.2.2",
-    "@angular/platform-browser": "^18.2.0",
-    "@angular/platform-browser-dynamic": "^18.2.0",
-    "@angular/router": "^18.2.0",
+    "@angular/animations": "^19.1.3",
+    "@angular/cdk": "^19.1.1",
+    "@angular/common": "^19.1.3",
+    "@angular/compiler": "^19.1.3",
+    "@angular/core": "^19.1.3",
+    "@angular/forms": "^19.1.3",
+    "@angular/material": "^19.1.1",
+    "@angular/platform-browser": "^19.1.3",
+    "@angular/platform-browser-dynamic": "^19.1.3",
+    "@angular/router": "^19.1.3",
     "@stomp/stompjs": "^7.0.0",
     "cors": "^2.8.5",
     "file-saver": "^2.0.5",
@@ -34,12 +34,12 @@
     "sockjs-client": "^1.6.0",
     "stompjs": "^2.3.3",
     "tslib": "^2.0.0",
-    "zone.js": "~0.14.10"
+    "zone.js": "~0.15.0"
   },
   "devDependencies": {
-    "@angular-devkit/build-angular": "^18.2.1",
-    "@angular/cli": "^18.2.1",
-    "@angular/compiler-cli": "^18.2.0",
+    "@angular-devkit/build-angular": "^19.1.4",
+    "@angular/cli": "^19.1.4",
+    "@angular/compiler-cli": "^19.1.3",
     "@types/jasmine": "~3.6.0",
     "@types/node": "^22.4.2",
     "codelyzer": "^6.0.0",
@@ -53,6 +53,6 @@
     "protractor": "~7.0.0",
     "ts-node": "~8.3.0",
     "tslint": "~6.1.0",
-    "typescript": "5.4.5"
+    "typescript": "5.7.3"
   }
 }

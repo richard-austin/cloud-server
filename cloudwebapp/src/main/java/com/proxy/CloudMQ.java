@@ -1,6 +1,18 @@
 package com.proxy;
 
-import javax.jms.*;
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import com.cloudwebapp.beans.AppContextManager;
+import com.proxy.cloudListener.*;
+import com.proxy.cloudListener.CloudMQListener;
+import org.slf4j.LoggerFactory;
+import org.springframework.boot.configurationprocessor.json.JSONException;
+import org.springframework.boot.configurationprocessor.json.JSONObject;
+import org.springframework.context.ApplicationContext;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+
+import jakarta.jms.*;
+import jakarta.jms.Session;
 import java.io.IOException;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -10,16 +22,6 @@ import java.util.*;
 import java.util.Queue;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.Logger;
-import com.proxy.cloudListener.*;
-import grails.util.Holders;
-import org.grails.web.json.JSONObject;
-import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationContext;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
-import com.proxy.cloudListener.CloudMQListener;
 
 import static com.proxy.CloudMQ.MessageMetadata.*;
 
@@ -59,16 +61,21 @@ public class CloudMQ {
 
     final private Map<String, Timer> sessionCountTimers;
     SimpMessagingTemplate brokerMessagingTemplate;
-    final String update = new JSONObject()
-            .put("message", "update")
-            .toString();
-
+    final String update;
 
     public CloudMQ(Session session, String productId, CloudMQInstanceMap instances) {
+        try {
+            update  = new JSONObject()
+                    .put("message", "update")
+                    .toString();
+        } catch (JSONException e) {
+            throw new RuntimeException(e);
+        }
+
         this.cloudProxySession = session;
         this.productId = productId;
         this.instances = instances;
-        ApplicationContext ctx = Holders.getGrailsApplication().getMainContext();
+        ApplicationContext ctx =  AppContextManager.getAppContext();// Holders.getGrailsApplication().getMainContext();
         brokerMessagingTemplate = (SimpMessagingTemplate) ctx.getBean("brokerMessagingTemplate");
         sessionCountTimers = new ConcurrentHashMap<>();
     }
@@ -237,7 +244,7 @@ public class CloudMQ {
                     } else {
                         logger.warn("Authentication on NVR has failed");
                     }
-                    System.out.print(((TextMessage) response).getText());
+                    System.out.print(response);
                 } else
                     logger.error("Couldn't log onto NVR, no message returned for logon request");
 
