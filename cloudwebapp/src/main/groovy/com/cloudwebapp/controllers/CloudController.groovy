@@ -377,4 +377,17 @@ class CloudController {
         else
             throw new CloudRestMethodException(resp.error, "/cloud/isTransportActive")
     }
+
+    /**
+     * rme.js: This is referenced from the index.html file and is only used to trigger the RememeberMeServices autoLogin
+     *         into returning the NVRSESSIONID and PRODUCTID (if rememberme refers to a client account). This ensures
+     *         that the Angular code can call getUserAuthorities in a timely manner to set up the nav bar
+     *         mode correctly.
+     * @return
+     */
+    @Secured(['ROLE_ADMIN', 'ROLE_CLIENT'])
+    @RequestMapping("/rme.js")
+    def rememberMeEnabler() {
+        return ResponseEntity.ok().body("let x = 6;")
+    }
 }

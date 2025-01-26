@@ -23,6 +23,7 @@ public class SecSecurityConfig {
     @Value("${spring-security.enabled}")
     boolean enabled;
 
+
     SecSecurityConfig(RememberMeServices rememberMeServices,
                       MyUserDetailsService myUserDetailsService,
                       LogService logService,

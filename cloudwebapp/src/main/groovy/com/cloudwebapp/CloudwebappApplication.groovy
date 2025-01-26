@@ -1,5 +1,7 @@
 package com.cloudwebapp
 
+import com.cloudwebapp.beans.MyRememberMeServices
+
 import com.cloudwebapp.configuration.Config
 import com.cloudwebapp.dao.UserRepository
 import com.cloudwebapp.security.CloudRememberMeAuthenticationProvider
@@ -17,7 +19,6 @@ import org.springframework.context.annotation.Bean
 import org.springframework.security.core.userdetails.UserDetailsService
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 import org.springframework.security.crypto.password.PasswordEncoder
-import org.springframework.security.web.authentication.RememberMeServices
 import org.springframework.security.web.authentication.rememberme.TokenBasedRememberMeServices
 
 @SpringBootApplication
@@ -39,16 +40,16 @@ class CloudwebappApplication implements ServletContextInitializer {
     }
 
     @Bean
-    RememberMeServices rememberMeServices(UserDetailsService userDetailsService) {
+    MyRememberMeServices rememberMeServices(UserDetailsService userDetailsService) {
         TokenBasedRememberMeServices.RememberMeTokenAlgorithm encodingAlgorithm = TokenBasedRememberMeServices.RememberMeTokenAlgorithm.SHA256
-        TokenBasedRememberMeServices rememberMe = new TokenBasedRememberMeServices("evenMoreSupersecret", userDetailsService, encodingAlgorithm)
+        MyRememberMeServices rememberMe = new MyRememberMeServices("evenMoreSupersecret", userDetailsService, encodingAlgorithm)
         rememberMe.setMatchingAlgorithm(TokenBasedRememberMeServices.RememberMeTokenAlgorithm.MD5)
         return rememberMe
     }
 
     @Bean
     CloudRememberMeAuthenticationProvider cloudRememberMeAuthenticationProvider(Config config, LogService logService, CloudService cloudService, UserRepository userRepository) {
-        return new CloudRememberMeAuthenticationProvider("remembermekey", logService, cloudService, userRepository)
+        return new CloudRememberMeAuthenticationProvider("evenMoreSupersecret", logService, cloudService, userRepository)
     }
 
     @Bean
