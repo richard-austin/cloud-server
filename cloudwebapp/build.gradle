@@ -61,18 +61,17 @@ bootRun {
     systemProperty 'server.port', '8086'
 }
 
-bootWar.dependsOn([':cloudFrontEnd:buildClient', ':cloudwebapp:setVersion'])
+bootWar.dependsOn([':cloudFrontEnd:buildClient'])
+compileJava.dependsOn(':cloudwebapp:setVersion')
 
 bootWar {
     webInf {
         from('../cloudFrontEnd/dist/client/browser')
-        include '**/*'
         into('classes/static')
     }
 }
 
 tasks.register('setVersion', Exec) {
-    mustRunAfter(':cloudwebapp:compileJava')
     group = 'build'
     description = 'Sets the version.txt file with the current version from git describe'
     workingDir "$projectDir"
