@@ -72,19 +72,19 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   getActiveIPAddresses() {
-    window.location.href = '#/general/getactiveipaddresses';
+    window.location.href = '#/getactiveipaddresses';
   }
 
   getLocalWifiDetails() {
-    window.location.href = '#/wifi/getlocalwifidetails';
+    window.location.href = '#/getlocalwifidetails';
   }
 
   wifiSettings() {
-    window.location.href = '#/wifi/wifisettings';
+    window.location.href = '#/wifisettings';
   }
 
   localAdminFunctionsForNVR() {
-    window.location.href = '#/general/cua';
+    window.location.href = '#/cua';
   }
 
   multiCamView() {
@@ -104,11 +104,11 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   about() {
-    window.location.href = '#/general/about';
+    window.location.href = '#/about';
   }
 
   aboutCCTVCloud() {
-    window.location.href = '#/general/about/true';
+    window.location.href = '#/about/true';
   }
 
 
@@ -144,19 +144,19 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   setIp() {
-    window.location.href = '#/general/setip';
+    window.location.href = '#/setip';
   }
 
   registerLocalNVRAccount() {
-    window.location.href = '#/account/registerlocalnvraccount';
+    window.location.href = '#/registerlocalnvraccount';
   }
 
   removeLocalNVRAccount() {
-    window.location.href = '#/account/removelocalnvraccount';
+    window.location.href = '#/removelocalnvraccount';
   }
 
   drawdownCalc() {
-    window.location.href = '#/general/dc';
+    window.location.href = '#/dc';
   }
 
   configSetup() {
@@ -260,10 +260,10 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   setActiveMQCreds() {
-    window.location.href = '#/general/registerActiveMQAccount';
+    window.location.href = '#/registerActiveMQAccount';
   }
   get cameras(): Map<string, Camera> {
-    return this.cameraSvc.cameras;
+    return this.cameraSvc.getCameras();
   }
 
   ngOnInit(): void {

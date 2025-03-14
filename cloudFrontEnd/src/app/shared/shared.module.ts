@@ -2,7 +2,6 @@ import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {ReportingComponent} from "../reporting/reporting.component";
 import {SafeHtmlPipe} from "./safe-html.pipe";
-import {VideoComponent} from "../video/video.component";
 import {MatCard, MatCardTitle} from "@angular/material/card";
 import {MatTooltip} from "@angular/material/tooltip";
 import {MatIcon} from "@angular/material/icon";
@@ -14,7 +13,6 @@ import {MatButton} from "@angular/material/button";
   declarations: [
       ReportingComponent,
       SafeHtmlPipe,
-      VideoComponent,
       AudioInputPipe
   ],
     imports: [
@@ -29,7 +27,6 @@ import {MatButton} from "@angular/material/button";
     exports: [
         ReportingComponent,
         SafeHtmlPipe,
-        VideoComponent,
         AudioInputPipe
     ]
 })

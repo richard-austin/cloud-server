@@ -3,12 +3,14 @@ import { IPDetails } from '../shared/IPDetails';
 import { WifiUtilsService } from '../shared/wifi-utils.service';
 import {ReportingComponent} from '../reporting/reporting.component';
 import {UtilsService} from "../shared/utils.service";
+import {SharedModule} from '../shared/shared.module';
+import {SharedAngularMaterialModule} from '../shared/shared-angular-material/shared-angular-material.module';
 
 @Component({
     selector: 'app-get-active-ipaddresses',
     templateUrl: './get-active-ipaddresses.component.html',
     styleUrls: ['./get-active-ipaddresses.component.scss'],
-    standalone: false
+    imports: [SharedModule, SharedAngularMaterialModule]
 })
 export class GetActiveIPAddressesComponent implements OnInit {
   @ViewChild(ReportingComponent) reporting!: ReportingComponent

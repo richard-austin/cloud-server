@@ -9,12 +9,14 @@ import {
 } from '@angular/forms';
 import {UtilsService} from "../shared/utils.service";
 import {ReportingComponent} from "../reporting/reporting.component";
+import {SharedModule} from '../shared/shared.module';
+import {SharedAngularMaterialModule} from '../shared/shared-angular-material/shared-angular-material.module';
 
 @Component({
     selector: 'app-register-local-nvr-account',
     templateUrl: './register-local-nvr-account.component.html',
     styleUrls: ['./register-local-nvr-account.component.scss'],
-    standalone: false
+    imports: [SharedModule, SharedAngularMaterialModule]
 })
 export class RegisterLocalNvrAccountComponent implements OnInit, AfterViewInit {
   username: string = '';

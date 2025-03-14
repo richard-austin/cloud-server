@@ -13,7 +13,6 @@ import {UserIdleModule} from "./angular-user-idle/angular-user-idle.module";
 import {DateAdapter, MAT_DATE_LOCALE, MatOption} from '@angular/material/core';
 import {Platform} from "@angular/cdk/platform";
 import {CustomDateAdapter} from "./cameras/camera.service";
-import {ActivemqCredentialsComponent} from './activemq-credentials/activemq-credentials.component';
 import {SharedModule} from './shared/shared.module';
 import {MatCard, MatCardContent, MatCardHeader, MatCardSubtitle, MatCardTitle} from '@angular/material/card';
 import {MatCheckbox} from '@angular/material/checkbox';
@@ -48,7 +47,6 @@ import {ResetPasswordComponent} from './reset-password/reset-password.component'
 @NgModule({
   declarations: [
       AppComponent,
-      ActivemqCredentialsComponent,
       SetupSMTPClientComponent,
       // CamerasComponent,
       NavComponent,
