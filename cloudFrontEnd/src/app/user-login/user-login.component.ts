@@ -7,12 +7,11 @@ import {SharedModule} from '../shared/shared.module';
 
 @Component({
     selector: 'app-login',
-    templateUrl: './login.component.html',
-    styleUrls: ['./login.component.scss'],
+    templateUrl: './user-login.component.html',
+    styleUrls: ['./user-login.component.scss'],
     imports: [SharedModule, SharedAngularMaterialModule]
 })
-export class LoginComponent implements OnInit, AfterViewInit {
-
+export class UserLoginComponent implements OnInit, AfterViewInit {
   username: string = '';
   password: string = '';
   rememberMe: boolean = false;

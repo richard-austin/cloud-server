@@ -5,7 +5,6 @@ import {OnlyClientUsersService} from './guards/only-client-users.service';
 import {OnlyAdminUsersService} from './guards/only-admin-users.service';
 import {OnlyLoggedInService} from './guards/only-logged-in.service';
 import {canDeactivateGuard} from './guards/can-deactivate.guard';
-import {LoginComponent} from './login/login.component';
 
 const routes: Routes = [
   {path: 'live/:streamName', loadComponent: () => import('./live-container/live-container.component').then(m => m.LiveContainerComponent)},
@@ -29,10 +28,9 @@ const routes: Routes = [
   {path: 'removelocalnvraccount', loadComponent: () => import('./remove-local-nvr-account/remove-local-nvr-account.component').then(m => m.RemoveLocalNvrAccountComponent), canActivate: [OnlyClientUsersService]},
   {path: 'setupsmtpclient', loadComponent:() => import('./setup-smtpclient/setup-smtpclient.component').then(m => m.SetupSMTPClientComponent), canActivate: [OnlyAdminUsersService]},
   {path: 'register', loadComponent: () => import('./register-account/register-account.component').then(m => m.RegisterAccountComponent), canActivate: [OnlyAnonUsersService]},
-  {path: 'login', component: LoginComponent, canActivate: [OnlyAnonUsersService]},
-  {path: 'forgotpassword', loadComponent: () => import('./login/forgotten-password/forgotten-password.component').then(m => m.ForgottenPasswordComponent), canActivate: [OnlyAnonUsersService]},
+  {path: 'forgotpassword', loadComponent: () => import('./user-login/forgotten-password/forgotten-password.component').then(m => m.ForgottenPasswordComponent), canActivate: [OnlyAnonUsersService]},
   {path: 'resetpassword/:uniqueId', loadComponent: () => import('./reset-password/reset-password.component').then(m => m.ResetPasswordComponent), canActivate: [OnlyAnonUsersService]},
-//  {path: 'login', loadComponent: () => import('./login/login.component').then(m => m.LoginComponent), canActivate: [OnlyAnonUsersService]}
+  {path: 'login', loadComponent: () => import('./user-login/user-login.component').then(m => m.UserLoginComponent), canActivate: [OnlyAnonUsersService]}
 ];
 
 @NgModule({
