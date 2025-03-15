@@ -6,8 +6,12 @@ import {UtilsService, Account} from "../shared/utils.service";
 import {animate, state, style, transition, trigger} from "@angular/animations";
 import {AbstractControl, FormControl, FormGroup, ValidationErrors, ValidatorFn, Validators} from "@angular/forms";
 import {ReportingComponent} from "../reporting/reporting.component";
-import { Sort } from '@angular/material/sort';
+import {MatSort, Sort} from '@angular/material/sort';
 import {Client, StompSubscription} from '@stomp/stompjs';
+import {SharedModule} from '../shared/shared.module';
+import {SharedAngularMaterialModule} from '../shared/shared-angular-material/shared-angular-material.module';
+import {FilterPipe} from './filter.pipe';
+import {SortPipe} from './sort.pipe';
 
 @Component({
     selector: 'app-nvradmin',
@@ -20,7 +24,7 @@ import {Client, StompSubscription} from '@stomp/stompjs';
             transition('expanded <=> collapsed', animate('225ms cubic-bezier(0.4, 0.0, 0.2, 1)')),
         ])
     ],
-    standalone: false
+  imports: [SharedModule, SharedAngularMaterialModule, MatSort, FilterPipe, SortPipe]
 })
 export class AccountAdminComponent implements OnInit {
   downloading: boolean = false;

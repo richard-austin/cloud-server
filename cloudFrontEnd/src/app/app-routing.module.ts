@@ -1,15 +1,11 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import {OnlyAnonUsersService} from './guards/only-anon-users.service';
-import {LoginComponent} from './login/login.component';
-import {RegisterAccountComponent} from './register-account/register-account.component';
 import {OnlyClientUsersService} from './guards/only-client-users.service';
 import {OnlyAdminUsersService} from './guards/only-admin-users.service';
 import {OnlyLoggedInService} from './guards/only-logged-in.service';
-import {SetupSMTPClientComponent} from './setup-smtpclient/setup-smtpclient.component';
-import {ForgottenPasswordComponent} from './login/forgotten-password/forgotten-password.component';
-import {ResetPasswordComponent} from './reset-password/reset-password.component';
 import {canDeactivateGuard} from './guards/can-deactivate.guard';
+import {LoginComponent} from './login/login.component';
 
 const routes: Routes = [
   {path: 'live/:streamName', loadComponent: () => import('./live-container/live-container.component').then(m => m.LiveContainerComponent)},
@@ -28,14 +24,15 @@ const routes: Routes = [
   {path: 'about', loadComponent: () => import('./about/about.component').then(m => m.AboutComponent), canActivate: [OnlyClientUsersService]},
   {path: 'wifisettings', loadComponent: () => import('./wifi-settings/wifi-settings.component').then(m => m.WifiSettingsComponent)},
   {path: 'getlocalwifidetails', loadComponent: () => import('./get-local-wifi-details/get-local-wifi-details.component').then(m => m.GetLocalWifiDetailsComponent)},
-  {path: 'accountadmin', loadChildren: () => import('./accountAdmin/account-admin.module').then(m => m.AccountAdminModule), canActivate:[OnlyAdminUsersService]},
+  {path: 'accountadmin', loadComponent: () => import('./accountAdmin/account-admin.component').then(m => m.AccountAdminComponent), canActivate:[OnlyAdminUsersService]},
   {path: 'registerlocalnvraccount', loadComponent: () => import('./register-local-nvr-account/register-local-nvr-account.component').then(m => m.RegisterLocalNvrAccountComponent)},
   {path: 'removelocalnvraccount', loadComponent: () => import('./remove-local-nvr-account/remove-local-nvr-account.component').then(m => m.RemoveLocalNvrAccountComponent), canActivate: [OnlyClientUsersService]},
-  {path: 'setupsmtpclient', component: SetupSMTPClientComponent, canActivate: [OnlyAdminUsersService]},
-  {path: 'register', component: RegisterAccountComponent, canActivate: [OnlyAnonUsersService]},
+  {path: 'setupsmtpclient', loadComponent:() => import('./setup-smtpclient/setup-smtpclient.component').then(m => m.SetupSMTPClientComponent), canActivate: [OnlyAdminUsersService]},
+  {path: 'register', loadComponent: () => import('./register-account/register-account.component').then(m => m.RegisterAccountComponent), canActivate: [OnlyAnonUsersService]},
   {path: 'login', component: LoginComponent, canActivate: [OnlyAnonUsersService]},
-  {path: 'forgotpassword', component: ForgottenPasswordComponent, canActivate: [OnlyAnonUsersService]},
-  {path: 'resetpassword/:uniqueId', component: ResetPasswordComponent}
+  {path: 'forgotpassword', loadComponent: () => import('./login/forgotten-password/forgotten-password.component').then(m => m.ForgottenPasswordComponent), canActivate: [OnlyAnonUsersService]},
+  {path: 'resetpassword/:uniqueId', loadComponent: () => import('./reset-password/reset-password.component').then(m => m.ResetPasswordComponent), canActivate: [OnlyAnonUsersService]},
+//  {path: 'login', loadComponent: () => import('./login/login.component').then(m => m.LoginComponent), canActivate: [OnlyAnonUsersService]}
 ];
 
 @NgModule({

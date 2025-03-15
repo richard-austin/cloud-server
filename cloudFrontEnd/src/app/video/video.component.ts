@@ -18,12 +18,13 @@ import {VideoSizing} from "./VideoSizing";
 import {SharedModule} from "../shared/shared.module";
 import {SharedAngularMaterialModule} from "../shared/shared-angular-material/shared-angular-material.module";
 import {FormsModule} from "@angular/forms";
+import {AudioInputPipe} from './audio-input.pipe';
 
 @Component({
     selector: 'app-video',
     templateUrl: './video.component.html',
     styleUrls: ['./video.component.scss'],
-    imports: [SharedModule, SharedAngularMaterialModule, FormsModule]
+    imports: [SharedModule, SharedAngularMaterialModule, FormsModule, AudioInputPipe]
 })
 export class VideoComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('video') videoEl!: ElementRef<HTMLVideoElement>;

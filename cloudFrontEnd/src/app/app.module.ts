@@ -13,7 +13,6 @@ import {UserIdleModule} from "./angular-user-idle/angular-user-idle.module";
 import {DateAdapter, MAT_DATE_LOCALE, MatOption} from '@angular/material/core';
 import {Platform} from "@angular/cdk/platform";
 import {CustomDateAdapter} from "./cameras/camera.service";
-import {SharedModule} from './shared/shared.module';
 import {MatCard, MatCardContent, MatCardHeader, MatCardSubtitle, MatCardTitle} from '@angular/material/card';
 import {MatCheckbox} from '@angular/material/checkbox';
 import {MatTooltip} from '@angular/material/tooltip';
@@ -36,26 +35,13 @@ import {RouterOutlet} from '@angular/router';
 import {MatError, MatFormField, MatHint, MatLabel} from '@angular/material/form-field';
 import {MatInput} from '@angular/material/input';
 import {MatDialogActions, MatDialogContent, MatDialogTitle} from '@angular/material/dialog';
-import {SetupSMTPClientComponent} from './setup-smtpclient/setup-smtpclient.component';
 import {MatSelect} from '@angular/material/select';
-import {LoginComponent} from './login/login.component';
-import {RegisterAccountComponent} from './register-account/register-account.component';
-import {ProductIdInputComponent} from './register-account/product-id-input/product-id-input.component';
-import {ForgottenPasswordComponent} from './login/forgotten-password/forgotten-password.component';
-import {ResetPasswordComponent} from './reset-password/reset-password.component';
 
 @NgModule({
   declarations: [
       AppComponent,
-      SetupSMTPClientComponent,
-      // CamerasComponent,
       NavComponent,
-      IdleTimeoutModalComponent,
-      LoginComponent,
-      ForgottenPasswordComponent,
-      RegisterAccountComponent,
-      ProductIdInputComponent,
-      ResetPasswordComponent
+      IdleTimeoutModalComponent
   ],
     bootstrap: [AppComponent],
     imports: [BrowserModule,
@@ -65,7 +51,7 @@ import {ResetPasswordComponent} from './reset-password/reset-password.component'
         // Default values: `idle` is 600 (10 minutes), `timeout` is 300 (5 minutes)
         // and `ping` is 6q0 (1 minutes).
         UserIdleModule.forRoot({idle: 600, timeout: 60, ping: 60}),
-        SharedModule,
+     //   SharedModule,
         MatCard,
         MatCardTitle,
         MatCardContent,

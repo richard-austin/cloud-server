@@ -4,6 +4,8 @@ import {MatCheckboxChange} from "@angular/material/checkbox";
 import {ReportingComponent} from "../reporting/reporting.component";
 import {UtilsService} from "../shared/utils.service";
 import {timer} from "rxjs";
+import {SharedAngularMaterialModule} from '../shared/shared-angular-material/shared-angular-material.module';
+import {SharedModule} from '../shared/shared.module';
 
 export class SMTPData {
   auth: boolean = true;
@@ -22,7 +24,7 @@ export class SMTPData {
     selector: 'app-setup-smtpclient',
     templateUrl: './setup-smtpclient.component.html',
     styleUrls: ['./setup-smtpclient.component.scss'],
-    standalone: false
+  imports: [SharedModule, SharedAngularMaterialModule]
 })
 export class SetupSMTPClientComponent implements OnInit {
   setupSMTPForm!: FormGroup;

@@ -2,12 +2,14 @@ import {AfterViewInit, Component, ElementRef, OnInit, ViewChild} from '@angular/
 import {FormControl, FormGroup, Validators} from "@angular/forms";
 import {LoggedInMessage, UtilsService} from "../shared/utils.service";
 import {timer} from 'rxjs';
+import {SharedAngularMaterialModule} from '../shared/shared-angular-material/shared-angular-material.module';
+import {SharedModule} from '../shared/shared.module';
 
 @Component({
     selector: 'app-login',
     templateUrl: './login.component.html',
     styleUrls: ['./login.component.scss'],
-    standalone: false
+    imports: [SharedModule, SharedAngularMaterialModule]
 })
 export class LoginComponent implements OnInit, AfterViewInit {
 
@@ -17,7 +19,6 @@ export class LoginComponent implements OnInit, AfterViewInit {
   loginForm!: FormGroup;
   errorMessage: string = '';
   @ViewChild('username') usernameInput!: ElementRef<HTMLInputElement>
-
 
   constructor(public utilsService: UtilsService) { }
   login()

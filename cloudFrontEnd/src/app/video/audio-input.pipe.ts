@@ -2,7 +2,6 @@ import { Pipe, PipeTransform } from '@angular/core';
 
 @Pipe({
     name: 'audioInput',
-    standalone: false
 })
 export class AudioInputPipe implements PipeTransform {
 

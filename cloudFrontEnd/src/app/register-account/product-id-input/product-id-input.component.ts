@@ -1,6 +1,7 @@
 import {AfterViewInit, Component, ElementRef, forwardRef, Input, OnInit, ViewChild, ViewEncapsulation} from '@angular/core';
 import {FormControl, NG_VALUE_ACCESSOR} from '@angular/forms';
 import {timer} from "rxjs";
+import {SharedAngularMaterialModule} from '../../shared/shared-angular-material/shared-angular-material.module';
 
 export const CUSTOM_CONROL_VALUE_ACCESSOR: any = {
   provide: NG_VALUE_ACCESSOR,
@@ -13,7 +14,7 @@ export const CUSTOM_CONROL_VALUE_ACCESSOR: any = {
     styleUrls: ['./product-id-input.component.scss'],
     providers: [CUSTOM_CONROL_VALUE_ACCESSOR],
     encapsulation: ViewEncapsulation.None,
-    standalone: false
+    imports: [SharedAngularMaterialModule]
 })
 export class ProductIdInputComponent implements OnInit, AfterViewInit {
   @Input() formControl!: FormControl;
