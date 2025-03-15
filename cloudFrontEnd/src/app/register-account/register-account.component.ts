@@ -4,12 +4,13 @@ import {UtilsService} from "../shared/utils.service";
 import {timer} from 'rxjs';
 import {SharedModule} from '../shared/shared.module';
 import {SharedAngularMaterialModule} from '../shared/shared-angular-material/shared-angular-material.module';
+import {ProductIdInputComponent} from './product-id-input/product-id-input.component';
 
 @Component({
     selector: 'app-register-account',
     templateUrl: './register-account.component.html',
     styleUrls: ['./register-account.component.scss'],
-    imports: [SharedModule, SharedAngularMaterialModule]
+  imports: [SharedModule, SharedAngularMaterialModule, ProductIdInputComponent]
 })
 export class RegisterAccountComponent implements OnInit, AfterViewInit {
   username: string = '';

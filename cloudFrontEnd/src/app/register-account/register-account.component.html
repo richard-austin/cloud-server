@@ -1,6 +1,6 @@
 <div class="register-container">
   <mat-card class="mat-elevation-z8" xmlns="http://www.w3.org/1999/html">
-    <mat-card-title>Register A New Account</mat-card-title>
+    <mat-card-title>Register a New Account</mat-card-title>
     <mat-card-content>
       <div class="message-display">
         <div class="alert-danger mat-elevation-z4" [style]="'display: '+(errorMessage != '' ? 'inline-block' : 'none')">{{errorMessage}}</div>
@@ -10,7 +10,7 @@
         <mat-form-field appearance="outline" class="register-account-input">
           <input #username matInput type="text" autocomplete="off" maxlength="20"
                  [formControl]="getFormControl('username')"
-                 (keypress)="confirmOnReturn($event)"
+                 (keydown)="confirmOnReturn($event)"
                  matTooltip="Enter a Cloud Service user name."
                  matTooltipClass="tooltip"
                  placeholder="New User name">
@@ -25,7 +25,7 @@
         <mat-form-field appearance="outline" class="register-account-input">
           <input matInput type="password" autocomplete="off" maxlength="25"
                  [formControl]="getFormControl('password')"
-                 (keypress)="confirmOnReturn($event)"
+                 (keydown)="confirmOnReturn($event)"
                  matTooltip="Enter your Cloud Service password (Upper, lower case, numbers and special chars)"
                  matTooltipClass="tooltip"
                  placeholder="Password">
@@ -37,7 +37,7 @@
         <mat-form-field appearance="outline" class="register-account-input">
           <input matInput type="password" autocomplete="off" maxlength="25"
                  [formControl]="getFormControl('confirmPassword')"
-                 (keypress)="confirmOnReturn($event)"
+                 (keydown)="confirmOnReturn($event)"
                  matTooltip="Confirm your Cloud Service password"
                  matTooltipClass="tooltip"
                  placeholder="Confirm Password">
@@ -51,7 +51,7 @@
         <mat-form-field appearance="outline" class="email-input">
           <input matInput type="email" autocomplete="off" maxlength="40"
                  [formControl]="getFormControl('email')"
-                 (keypress)="confirmOnReturn($event)"
+                 (keydown)="confirmOnReturn($event)"
                  matTooltip="Enter your email address. This is required to provide a means of resetting forgotten passwords"
                  matTooltipClass="tooltip"
                  placeholder="email address">
@@ -63,7 +63,7 @@
         <mat-form-field appearance="outline" class="email-input">
           <input matInput type="email" autocomplete="off" maxlength="40"
                  [formControl]="getFormControl('confirmEmail')"
-                 (keypress)="confirmOnReturn($event)"
+                 (keydown)="confirmOnReturn($event)"
                  matTooltip="Confirm your email address"
                  matTooltipClass="tooltip"
                  placeholder="Confirm email address">
