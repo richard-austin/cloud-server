@@ -83,7 +83,7 @@ public class SecSecurityConfig {
                     .logout(httpSecurityLogoutConfigurer ->
                             httpSecurityLogoutConfigurer
                                     .logoutUrl("/logout")
-                                   // .addLogoutHandler(secCamSecurityEventListener)
+                                    .addLogoutHandler(cloudAuthFailureHandler)
                                     .logoutSuccessUrl("/")
                                     .permitAll());
         }

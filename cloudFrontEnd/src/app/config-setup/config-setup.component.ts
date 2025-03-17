@@ -3,7 +3,6 @@ import {
     ChangeDetectorRef,
     Component,
     ElementRef, HostListener,
-    isDevMode,
     OnDestroy,
     OnInit, QueryList,
     ViewChild, ViewChildren,
@@ -393,38 +392,7 @@ export class ConfigSetupComponent implements CanComponentDeactivate, OnInit, Aft
                 if (stream.audio_encoding === "")
                     stream.audio_encoding = "None";
 
-                if (isDevMode()) {  // Development mode
-                    stream.media_server_input_uri = "http://localhost:8085/live/stream?suuid=cam" + camNum + "-stream" + streamNum;
-                    stream.uri = "ws://localhost:8085/ws/stream?suuid=cam" + camNum + "-stream" + streamNum;
-                    if (stream.netcam_uri === '')
-                        stream.netcam_uri = 'rtsp://';
-
-                    if (camera.recordingStream !== 'none' && camera.recordingStream === streamKey) {
-                        stream.recording.enabled = true
-                        stream.recording.recording_src_url = "http://localhost:8085/h/stream?suuid=cam" + camNum + "-stream" + streamNum;
-                        stream.recording.uri = 'http://localhost:8084/recording/rec' + stream.rec_num + '/';
-                        stream.recording.location = 'rec' + stream.rec_num;
-                        stream.motion.trigger_recording_on = 'none';
-                    } else if (stream.motion.enabled) {
-                        // stream.recording = new Recording();
-                        stream.recording.enabled = true;
-                        stream.recording.recording_src_url = "http://localhost:8085/h/stream?suuid=cam" + camNum + "-stream" + streamNum;
-                        stream.recording.uri = 'http://localhost:8084/recording/rec' + stream.rec_num + '/';
-                        stream.recording.location = 'rec' + stream.rec_num;
-                        if (stream.motion.trigger_recording_on !== 'none') {
-                            let recStreamKey: string = stream.motion.trigger_recording_on;
-                            // Get the key of the stream on which recordings are to be triggered
-                            let recStream: Stream = camera.streams.get(recStreamKey) as Stream;
-                            // Set up the recording
-                            if (recStream !== undefined) {
-                                recStream.recording.enabled = true;
-                                recStream.recording.recording_src_url = "http://localhost:8085/h/stream?suuid=cam" + camNum + "-" + recStreamKey;
-                                recStream.recording.uri = 'http://localhost:8084/recording/rec' + recStream.rec_num + '/';
-                                recStream.recording.location = 'rec' + recStream.rec_num;
-                            }
-                        }
-                    }
-                } else {  // Production mode
+                {  // Production mode, dev mode config setup is not used in the Cloud Sevice
                     stream.media_server_input_uri = "http://localhost:8085/live/stream?suuid=cam" + camNum + "-stream" + streamNum;
                     stream.uri = "/ws/stream?suuid=cam" + camNum + "-stream" + streamNum;
                     if (stream.netcam_uri === '')
