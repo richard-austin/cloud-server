@@ -1,4 +1,4 @@
-import {AfterViewInit, Component, ElementRef, OnDestroy, OnInit, ViewChild} from '@angular/core';
+import {AfterViewInit, Component, ElementRef, HostListener, OnDestroy, OnInit, ViewChild} from '@angular/core';
 import {CameraService, cameraType} from '../cameras/camera.service';
 import {Camera, Stream} from '../cameras/Camera';
 import {ReportingComponent} from '../reporting/reporting.component';
@@ -22,6 +22,27 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
 
   @ViewChild(ReportingComponent) errorReporting!: ReportingComponent;
   @ViewChild('navbarCollapse') navbarCollapse!: ElementRef<HTMLDivElement>;
+
+  routerOutletClassName!: string;
+  @HostListener('window:beforeunload', ['$event'])
+  unloadNotification($event: BeforeUnloadEvent) {
+    if(this.routerOutletClassName !== "_ConfigSetupComponent") {
+      // ConfigSetupComponent also handles this, but with a conditional on whether there are outstanding changes and the user can
+      //  opt to not exit the application, so removing NVRSESSIONID would finish the session.
+      this.utilsService.logout();
+
+      document.cookie = "NVRSESSIONID=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+     }
+  }
+
+  // @HostListener('window:unload', ['$event'])
+  // beforeunload($event: any) {
+  //   window.location.href = "/logout"
+  // }
+
+  onActivate($event: any) {
+    this.routerOutletClassName = $event.constructor.name;
+  }
 
   confirmLogout: boolean = false;
   pingHandle!: Subscription;

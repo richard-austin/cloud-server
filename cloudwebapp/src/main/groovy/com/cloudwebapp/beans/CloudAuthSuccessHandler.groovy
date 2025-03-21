@@ -5,6 +5,7 @@ import com.cloudwebapp.model.User
 import com.cloudwebapp.services.CloudService
 import com.cloudwebapp.services.LogService
 import com.google.gson.GsonBuilder
+import com.proxy.CloudMQ
 import jakarta.servlet.ServletException
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
@@ -35,7 +36,7 @@ class CloudAuthSuccessHandler implements AuthenticationSuccessHandler {
         final boolean isAdmin = getRole().contains('ROLE_ADMIN')
 
         if (!isAdmin) {
-            String cookie = cloudService.authenticatedNVRs(productId)
+            String nvrSessionId = cloudService.authenticatedNVRs(productId)
 
             String uri = request.getRequestURI()
             // If uri is /login/authenticate, we are here due to manual login and the 302 redirect would mess up the login
@@ -46,9 +47,8 @@ class CloudAuthSuccessHandler implements AuthenticationSuccessHandler {
                 response.addHeader("Location", "${url}")
             }
 
-            response.addHeader("Set-Cookie", "NVRSESSIONID=" + cookie + "; Path=/; HttpOnly")
+            response.addHeader("Set-Cookie", "NVRSESSIONID=" + nvrSessionId + "; Path=/; HttpOnly")
             response.addHeader("Set-Cookie", "PRODUCTID=" + productId + "; Path=/; HttpOnly")
-           // response.getWriter().write('[{"authority": "ROLE_CLIENT"}]')
             loginSuccess(userName)
         } else {
         //    response.getWriter().write('[{"authority": "ROLE_ADMIN"}]')

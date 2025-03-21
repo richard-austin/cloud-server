@@ -1,13 +1,19 @@
 import {Component, Inject, OnInit} from '@angular/core';
-import {MAT_DIALOG_DATA, MatDialogRef} from "@angular/material/dialog";
+import {MAT_DIALOG_DATA, MatDialogActions, MatDialogContent, MatDialogRef, MatDialogTitle} from '@angular/material/dialog';
 import {UserIdleService} from "../angular-user-idle/angular-user-idle.service";
 import {UtilsService} from "../shared/utils.service";
+import {MatButton} from '@angular/material/button';
 
 @Component({
     selector: 'app-idle-timeout-modal',
     templateUrl: './idle-timeout-modal.component.html',
     styleUrls: ['./idle-timeout-modal.component.scss'],
-    standalone: false
+  imports: [
+    MatButton,
+    MatDialogActions,
+    MatDialogContent,
+    MatDialogTitle
+  ]
 })
 export class IdleTimeoutModalComponent implements OnInit {
 

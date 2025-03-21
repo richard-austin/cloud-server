@@ -6,7 +6,6 @@ import {HttpClient, provideHttpClient, withInterceptorsFromDi} from '@angular/co
 import {BaseUrl} from "./shared/BaseUrl/BaseUrl";
 import { NavComponent } from './nav/nav.component';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { IdleTimeoutModalComponent } from './idle-timeout-modal/idle-timeout-modal.component';
 import {UserIdleModule} from "./angular-user-idle/angular-user-idle.module";
 import {DateAdapter, MAT_DATE_LOCALE} from '@angular/material/core';
 import {Platform} from "@angular/cdk/platform";
@@ -18,7 +17,6 @@ import {SharedAngularMaterialModule} from './shared/shared-angular-material/shar
   declarations: [
       AppComponent,
       NavComponent,
-      IdleTimeoutModalComponent
   ],
     bootstrap: [AppComponent],
     imports: [BrowserModule,

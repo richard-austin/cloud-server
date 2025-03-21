@@ -91,15 +91,17 @@ export class ConfigSetupComponent implements CanComponentDeactivate, OnInit, Aft
     @ViewChild('scrollable_content') scrollableContent!: ElementRef<HTMLElement> | null
     @ViewChildren(RecordingSetupComponent) recordingSetupComponents!: QueryList<RecordingSetupComponent>
 
+    // Warn the user if they try to close the browser when there are pending changes to the config
     @HostListener('window:beforeunload', ['$event'])
     unloadNotification($event: BeforeUnloadEvent) {
         if (this.dataHasChanged() || this.anyInvalid()) {
-            $event.preventDefault();
+            $event.preventDefault();  // Makes the warning modal dialogue box come up
         }
     }
 
     @HostListener('window:unload', ['$event'])
-        beforeunload($event: any) {
+        beforeunload($event: BeforeUnloadEvent) {
+        document.cookie = "NVRSESSIONID=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
     }
 
     downloading: boolean = true;

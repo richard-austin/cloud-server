@@ -148,6 +148,7 @@ class CloudService {
                 is = conn.getErrorStream()
             }
 
+            String x = conn.getHeaderField("Cookie")
             // get the response or error message from the relevant stream and store as a string
             def bis = new BufferedInputStream(is)
             final char[] buffer = new char[0x10000]
