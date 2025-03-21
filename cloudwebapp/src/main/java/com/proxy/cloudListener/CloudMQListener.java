@@ -437,8 +437,6 @@ public class CloudMQListener {
                         Objects.equals(level, "TRACE") ? Level.TRACE :
                                 Objects.equals(level, "WARN") ? Level.WARN :
                                         Objects.equals(level, "ERROR") ? Level.ERROR :
-                                                Objects.equals(level, "OFF") ? Level.OFF :
-                                                        Objects.equals(level, "ALL") ? Level.ALL : Level.OFF);
+                                                Level.OFF);
     }
-
 }
