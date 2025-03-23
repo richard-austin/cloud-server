@@ -100,9 +100,12 @@ export class ConfigSetupComponent implements CanComponentDeactivate, OnInit, Aft
     }
 
     @HostListener('window:unload', ['$event'])
-        beforeunload($event: BeforeUnloadEvent) {
-        document.cookie = "NVRSESSIONID=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+        async beforeunload($event: BeforeUnloadEvent) {
+
+       // Only call changeInstanceCount when browser is closed, not on refresh
+        await this.utils.changeInstanceCount(false).toPromise();
     }
+
 
     downloading: boolean = true;
     updating: boolean = false;

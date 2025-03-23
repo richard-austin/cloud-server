@@ -51,6 +51,8 @@ class CloudAuthSuccessHandler implements AuthenticationSuccessHandler {
             response.addHeader("Set-Cookie", "PRODUCTID=" + productId + "; Path=/; HttpOnly")
             loginSuccess(userName)
         } else {
+            response.addHeader("Set-Cookie", "NVRSESSIONID=; expires=Thu, 01 Jan 1970 00:00:00 UTC; Path=/; HttpOnly")
+            response.addHeader("Set-Cookie", "PRODUCTID=; expires=Thu, 01 Jan 1970 00:00:00 UTC; Path=/; HttpOnly")
         //    response.getWriter().write('[{"authority": "ROLE_ADMIN"}]')
         }
         response.setContentType("application/json")

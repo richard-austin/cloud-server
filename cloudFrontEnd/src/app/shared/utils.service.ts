@@ -172,6 +172,11 @@ export class UtilsService {
     window.location.href = 'logout';
   }
 
+  changeInstanceCount(increment: boolean) : Observable<any> {
+     const params: {increment: boolean} = {"increment": increment}
+     return this.http.post<any>(this._baseUrl.getLink("cloud", "changeInstanceCount"), params, this.httpJSONOptions);
+  }
+
   getTemperature(): Observable<Temperature> {
     return this.http.post<Temperature>(this._baseUrl.getLink("cloud", "getTemperature"), '', this.httpJSONOptions).pipe(
        catchError((err: HttpErrorResponse) => throwError(err))

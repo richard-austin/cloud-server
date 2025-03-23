@@ -3,7 +3,7 @@ import {CameraService, cameraType} from '../cameras/camera.service';
 import {Camera, Stream} from '../cameras/Camera';
 import {ReportingComponent} from '../reporting/reporting.component';
 import {HttpErrorResponse} from '@angular/common/http';
-import {Subscription} from 'rxjs';
+import {Subscription, timer} from 'rxjs';
 import {IdleTimeoutStatusMessage, Message, messageType, UtilsService} from '../shared/utils.service';
 import {MatDialog, MatDialogRef} from '@angular/material/dialog';
 import {IdleTimeoutModalComponent} from '../idle-timeout-modal/idle-timeout-modal.component';
@@ -25,20 +25,20 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
 
   routerOutletClassName!: string;
   @HostListener('window:beforeunload', ['$event'])
-  unloadNotification($event: BeforeUnloadEvent) {
+  async unloadNotification($event: BeforeUnloadEvent) {
     if(this.routerOutletClassName !== "_ConfigSetupComponent") {
       // ConfigSetupComponent also handles this, but with a conditional on whether there are outstanding changes and the user can
       //  opt to not exit the application, so removing NVRSESSIONID would finish the session.
-      this.utilsService.logout();
+      // document.cookie = "NVRSESSIONID=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      //await this.utilsService.decrementInstanceCountOnExit().toPromise();
 
-      document.cookie = "NVRSESSIONID=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-     }
+     await this.utilsService.changeInstanceCount(false).toPromise();
+    }
   }
 
-  // @HostListener('window:unload', ['$event'])
-  // beforeunload($event: any) {
-  //   window.location.href = "/logout"
-  // }
+  @HostListener('window:unload', ['$event'])
+  async beforeunload($event: any) {
+  }
 
   onActivate($event: any) {
     this.routerOutletClassName = $event.constructor.name;
@@ -222,6 +222,7 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
     this.utilsService.isTransportActive().subscribe();  // Sets the status flag in utils service
     switch (auth) {
       case 'ROLE_CLIENT':
+  //      this.utilsService.changeInstanceCount(true).subscribe();
         this.cameraSvc.initialiseCameras();  // Load the cameras data
         this.cameraSvc.getPublicKey();
         this.idleTimeoutActive = this.callGetTemp = true;
@@ -287,7 +288,8 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
     return this.cameraSvc.getCameras();
   }
 
-  ngOnInit(): void {
+  ngOnInit() {
+    this.utilsService.changeInstanceCount(true).subscribe();
     this.utilsService.getUserAuthorities().pipe(
       map((auths: { authority: string }[]) => {
         return auths !== null && auths.length > 0 ? auths[0]?.authority : 'ROLE_ANONYMOUS';
