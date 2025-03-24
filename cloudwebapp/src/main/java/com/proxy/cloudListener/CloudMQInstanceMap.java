@@ -1,6 +1,7 @@
 package com.proxy.cloudListener;
 
 import com.cloudwebapp.beans.AppContextManager;
+import com.cloudwebapp.messaging.UpdateMessage;
 import com.proxy.CloudMQ;
 import org.springframework.boot.configurationprocessor.json.JSONException;
 import org.springframework.boot.configurationprocessor.json.JSONObject;
@@ -12,8 +13,6 @@ import java.util.Timer;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class CloudMQInstanceMap {
-    //   private final Logger logger = (Logger) LoggerFactory.getLogger("CLOUD");
-    private final long nvrSessionTimeout = 20 * 1000;  // Remove NVR session references after 20 seconds without a heartbeat.
     ConcurrentHashMap<String, CloudMQ> map;
     // List of keys by CloudMQ instance value, used for remove by value
     Map<String, Timer> timers;
@@ -42,7 +41,8 @@ public class CloudMQInstanceMap {
      * @return: The CloudMQ instance
      */
     CloudMQ put(String key, CloudMQ cloud) {
-        brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", update);
+        final var putCloudMQ = new UpdateMessage(key, "putCloudMQ", "");
+        brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", putCloudMQ);
         createNVRSessionTimer(cloud.getProductId());
         return map.put(key, cloud);
     }
@@ -64,7 +64,8 @@ public class CloudMQInstanceMap {
      * @return: The CloudMQ instance
      */
     public CloudMQ remove(String key) {
-        brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", update);
+        final var removeCloudMQ = new UpdateMessage(key, "removeCloudMQ", "");
+        brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", removeCloudMQ);
         Timer timer = timers.remove(key);
         if(timer != null)
             timer.cancel();
@@ -119,6 +120,9 @@ public class CloudMQInstanceMap {
     private void createNVRSessionTimer(String productId) {
         NVRSessionTimerTask task = new NVRSessionTimerTask(productId, this);
         Timer timer = new Timer(productId);
+        //   private final Logger logger = (Logger) LoggerFactory.getLogger("CLOUD");
+        // Remove NVR session references after 20 seconds without a heartbeat.
+        final long nvrSessionTimeout = 20 * 1000;
         timer.schedule(task, nvrSessionTimeout);
         timers.put(productId, timer);
     }
