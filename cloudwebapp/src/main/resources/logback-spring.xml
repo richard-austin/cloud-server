@@ -11,6 +11,9 @@
     <springProperty scope="context" name="cloudLogFile" source="cloud.logFileName" default="/var/log/cloud/cloud-server.log"/>
     <springProperty scope="context" name="cloudLogLevel" source="cloud.logLevel"/>
 
+    <springProperty scope="context" name="cloudMqLogFile" source="cloud.mqLogFileName" default="/var/log/cloud/cloud-mq-listener.log"/>
+    <springProperty scope="context" name="cloudMqLogLevel" source="cloud.mqLogLevel"/>
+
     <appender name="STDOUT" class="ConsoleAppender">
         <encoder class="PatternLayoutEncoder">
             <pattern>%d{yyyy-MM-dd} %d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} -%kvp- %msg%n</pattern>
@@ -30,9 +33,9 @@
     </appender>
 
     <appender name="ROLLING_FILE2" class="RollingFileAppender">
-        <file>${cloudProxyLogFile}</file>
+        <file>${cloudMqLogFile}</file>
         <rollingPolicy class="SizeAndTimeBasedRollingPolicy">
-            <fileNamePattern>${cloudProxyLogFile}-%d{yyyy-MM-dd}.%i</fileNamePattern>
+            <fileNamePattern>${cloudMqLogFile}-%d{yyyy-MM-dd}.%i</fileNamePattern>
             <maxFileSize>10MB</maxFileSize>
             <maxHistory>30</maxHistory>
         </rollingPolicy>
@@ -41,8 +44,13 @@
         </encoder>
     </appender>
 
-    <logger name="CAM" level="${cloudLogLevel}">
+    <logger name="CLOUD" level="${cloudLogLevel}">
         <appender-ref ref="ROLLING_FILE"/>
+        <appender-ref ref="org.springframework.web"/>
+    </logger>
+
+    <logger name="CLOUD-MQ" level="${cloudMqLogLevel}">
+        <appender-ref ref="ROLLING_FILE2"/>
         <appender-ref ref="org.springframework.web"/>
     </logger>
 

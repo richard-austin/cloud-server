@@ -1,4 +1,4 @@
-import {ChangeDetectorRef, ViewChild} from '@angular/core';
+import {ViewChild} from '@angular/core';
 import {ElementRef} from '@angular/core';
 import {Component, OnInit} from '@angular/core';
 import {MatCheckboxChange} from '@angular/material/checkbox';
@@ -131,7 +131,6 @@ export class AccountAdminComponent implements OnInit {
                         row.userName = msgObj.value;
                         row.email = msgObj.value2;
                         row.accountCreated = row.accountEnabled = true;
-                       // slice[idx] = row;
                       }
                       else { // Row not preset (NVR not connected), must be added (This would never normally be used as it's not possible
                              // to add a user with the NVR offline
@@ -139,7 +138,9 @@ export class AccountAdminComponent implements OnInit {
                        row.userName = msgObj.value;
                        row.email = msgObj.value2;
                        row.accountCreated = row.accountEnabled = true;
-                       row.nvrConnected = false;
+                       row.nvrConnected = true;
+                       row.usersConnected = 0;
+                       row.productId = msgObj.productId;
                        slice.push(row);
                       }
                       break;
@@ -149,10 +150,9 @@ export class AccountAdminComponent implements OnInit {
                         if(row.nvrConnected) { // Don't remove the row if the NVR is connected, just clear the user and email
                           row.userName = row.email = "";
                           row.accountCreated = row.accountEnabled = false;
-                        //  slice[idx] = row;
                         }
                         else { // NVR not connected, so nothing to show on the row, we remove it
-                          slice = slice.splice(idx, idx);
+                          slice.splice(idx, 1);
                         }
                       }
                       break;
@@ -165,8 +165,8 @@ export class AccountAdminComponent implements OnInit {
                     case "changeEmail":
                       if(idx != -1) {
                         const row = slice[idx];
-                        row.accountEnabled = msgObj.value;
-                        this.ngOnInit();
+                        row.email = msgObj.value;
+                        //this.ngOnInit();
                       }
                       break;
                     case "putCloudMQ":
@@ -179,6 +179,7 @@ export class AccountAdminComponent implements OnInit {
                         let row = new Account();
                         row.nvrConnected = true;
                         row.accountCreated = false;
+                        row.usersConnected = 0;
                         row.productId = msgObj.productId;
                         slice.push(row);
                       }
@@ -189,7 +190,7 @@ export class AccountAdminComponent implements OnInit {
                         if(row.accountCreated)
                           row.nvrConnected = false;
                         else
-                          slice = slice.splice(idx, idx);
+                          slice.splice(idx, 1);
                       }
                       break;
                   }

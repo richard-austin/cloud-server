@@ -31,7 +31,7 @@ import java.util.function.BiFunction;
 
 public class CloudMQListener {
     private final CloudProperties cloudProperties = CloudProperties.getInstance();
-    private final Logger logger = (Logger) LoggerFactory.getLogger("CLOUD");
+    private final Logger logger = (Logger) LoggerFactory.getLogger("CLOUD-MQ");
     final private static Queue<ByteBuffer> bufferQueue = new ConcurrentLinkedQueue<>();
     public static final int BUFFER_SIZE = 16384;
     final private CloudMQInstanceMap instances = new CloudMQInstanceMap();
