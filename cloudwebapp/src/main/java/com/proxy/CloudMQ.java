@@ -3,6 +3,7 @@ package com.proxy;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import com.cloudwebapp.beans.AppContextManager;
+import com.cloudwebapp.messaging.UpdateMessage;
 import com.proxy.cloudListener.*;
 import com.proxy.cloudListener.CloudMQListener;
 import org.slf4j.LoggerFactory;
@@ -534,7 +535,8 @@ public class CloudMQ {
         if (!nvressionid.isEmpty() && !sessionCountTimers.containsKey(nvressionid)) {
             var timer = createTimer(nvressionid);
             sessionCountTimers.put(nvressionid, timer);
-            brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", update);
+            var updateMessage = new UpdateMessage(productId, "usersConnected", sessionCountTimers.size());
+            brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", updateMessage);
         }
     }
 
@@ -543,7 +545,8 @@ public class CloudMQ {
             sessionCountTimers.get(nvrSessionId).cancel();
             sessionCountTimers.get(nvrSessionId).purge();
             sessionCountTimers.remove(nvrSessionId);
-            brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", update);
+            var updateMessage = new UpdateMessage(productId, "usersConnected", sessionCountTimers.size());
+            brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", updateMessage);
         }
     }
 

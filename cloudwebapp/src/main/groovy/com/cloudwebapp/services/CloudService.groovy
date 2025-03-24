@@ -6,6 +6,7 @@ import com.cloudwebapp.dao.UserRepository
 import com.cloudwebapp.enums.PassFail
 import com.cloudwebapp.interfaceobjects.ObjectCommandResponse
 import com.cloudwebapp.interfaceobjects.RestfulResponse
+import com.cloudwebapp.messaging.ExtendedMessage
 import com.cloudwebapp.model.User
 import com.proxy.CloudMQ
 import com.proxy.cloudListener.CloudMQListener
@@ -192,8 +193,8 @@ class CloudService {
                 userRepository.save(u)
             } else
                 throw new Exception("Cannot find an NVR for product ID ${cmd.productId}")
-
-            brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", update)
+            def registerUserMessage = new ExtendedMessage(cmd.productId, "addUser", cmd.username, "email", cmd.email)
+            brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", registerUserMessage)
         }
         catch (Exception ex) {
             logService.cloud.error(ex.getClass().getName() + " in CloudService.register: " + ex.getMessage())
@@ -205,7 +206,7 @@ class CloudService {
 
     /**
      * getAccounts: Get all the registered accounts and online NVR's with no registered account
-     * @return: Account data
+     * @return: Accounts data
      */
     ObjectCommandResponse getAccounts() {
         ObjectCommandResponse response = new ObjectCommandResponse()

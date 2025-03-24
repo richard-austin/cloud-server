@@ -1,6 +1,7 @@
 package com.proxy.cloudListener;
 
 import com.cloudwebapp.beans.AppContextManager;
+import com.cloudwebapp.messaging.UpdateMessage;
 import com.proxy.CloudMQ;
 import org.springframework.boot.configurationprocessor.json.JSONException;
 import org.springframework.boot.configurationprocessor.json.JSONObject;
@@ -42,7 +43,8 @@ public class CloudMQInstanceMap {
      * @return: The CloudMQ instance
      */
     CloudMQ put(String key, CloudMQ cloud) {
-        brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", update);
+        final var putCloudMQ = new UpdateMessage(key, "putCloudMQ", "");
+        brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", putCloudMQ);
         createNVRSessionTimer(cloud.getProductId());
         return map.put(key, cloud);
     }
@@ -64,7 +66,8 @@ public class CloudMQInstanceMap {
      * @return: The CloudMQ instance
      */
     public CloudMQ remove(String key) {
-        brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", update);
+        final var removeCloudMQ = new UpdateMessage(key, "removeCloudMQ", "");
+        brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", removeCloudMQ);
         Timer timer = timers.remove(key);
         if(timer != null)
             timer.cancel();
