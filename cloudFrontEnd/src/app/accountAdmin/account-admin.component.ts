@@ -1,4 +1,4 @@
-import {ViewChild} from '@angular/core';
+import {ChangeDetectorRef, ViewChild} from '@angular/core';
 import {ElementRef} from '@angular/core';
 import {Component, OnInit} from '@angular/core';
 import {MatCheckboxChange} from '@angular/material/checkbox';
