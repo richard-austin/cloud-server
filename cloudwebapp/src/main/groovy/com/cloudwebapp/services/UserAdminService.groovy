@@ -216,7 +216,7 @@ class UserAdminService {
     }
 
     /**
-     * changeEmail: Change the admin users email
+     * changeEmail: Change own email (admin or client)
      * @param cmd
      * @return
      */
@@ -229,6 +229,11 @@ class UserAdminService {
             User user = userRepo.findByUsername(userName)
             user.setEmail(cmd.getNewEmail())
             userRepo.save(user)
+
+            if(user.getAuthorities().find((ga) -> {ga.authority == 'ROLE_CLIENT'}) != null) {
+                def changeEmail = new UpdateMessage(user.productid, "changeEmail", user.email)
+                brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", changeEmail)
+            }
         }
         catch (Exception ex) {
             logService.cloud.error("Exception in changeEmail: " + ex.getCause() + ' ' + ex.getMessage())
