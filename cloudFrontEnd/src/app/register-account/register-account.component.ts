@@ -5,6 +5,7 @@ import {timer} from 'rxjs';
 import {SharedModule} from '../shared/shared.module';
 import {SharedAngularMaterialModule} from '../shared/shared-angular-material/shared-angular-material.module';
 import {ProductIdInputComponent} from './product-id-input/product-id-input.component';
+import {ReportingComponent} from '../reporting/reporting.component';
 
 @Component({
     selector: 'app-register-account',
@@ -20,9 +21,9 @@ export class RegisterAccountComponent implements OnInit, AfterViewInit {
   email: string = '';
   confirmEmail: string = '';
   accountRegistrationForm!: FormGroup;
-  errorMessage: string = '';
-  successMessage: string = '';
   @ViewChild('username') usernameInput!: ElementRef<HTMLInputElement>
+  @ViewChild(ReportingComponent) reporting!:ReportingComponent;
+  success: boolean = false;
 
   constructor(private utilsService: UtilsService) { }
 
@@ -83,15 +84,16 @@ export class RegisterAccountComponent implements OnInit, AfterViewInit {
   }
 
   register() {
-    this.successMessage = this.errorMessage = '';
+    this.success = false;
     this.username = this.getFormControl('username').value;
     this.productId = this.getFormControl('productId').value;
 
     this.utilsService.register(this.username, this.productId, this.password, this.confirmPassword, this.email, this.confirmEmail).subscribe((result) => {
-      this.successMessage = result.message;
+      this.reporting.successMessage = result.message;
+      this.success = true;
     },
       (reason) => {
-        this.errorMessage = reason.error.reason;
+          this.reporting.errorMessage = reason;
       });
   }
 

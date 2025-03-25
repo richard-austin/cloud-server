@@ -87,7 +87,7 @@ class CloudController {
      */
     @RequestMapping("register")
     def register(@RequestBody RegisterUserCommand cmd) {
-        def gv = new GeneralValidator(cmd, new RegisterUserCommandValidator())
+        def gv = new GeneralValidator(cmd, new RegisterUserCommandValidator(userRepository))
         def result = gv.validate()
 
         if (result.hasErrors()) {

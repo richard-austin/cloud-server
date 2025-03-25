@@ -1,11 +1,18 @@
 package com.cloudwebapp.validators
 
 import com.cloudwebapp.commands.RegisterUserCommand
+import com.cloudwebapp.dao.UserRepository
 import com.cloudwebapp.services.UtilsService
 import org.springframework.validation.Errors
 import org.springframework.validation.Validator
 
 class RegisterUserCommandValidator implements Validator {
+    final UserRepository ur
+
+    RegisterUserCommandValidator(UserRepository ur) {
+        this.ur = ur
+    }
+
     @Override
     boolean supports(Class<?> clazz) {
         return clazz == RegisterUserCommand.class
@@ -43,6 +50,8 @@ class RegisterUserCommandValidator implements Validator {
                 errors.rejectValue("email", "email cannot be null or blank")
             else if(!target.email.matches(UtilsService.emailRegex))
                 errors.rejectValue("email", "email address is invalid")
+            else if(ur.findByEmail(target.email) != null)
+                errors.rejectValue("email", "Cannot use this email address")
 
             if(target.confirmEmail != target.email)
                 errors.rejectValue("confirmEmail", "confirmEmail must match email address")
