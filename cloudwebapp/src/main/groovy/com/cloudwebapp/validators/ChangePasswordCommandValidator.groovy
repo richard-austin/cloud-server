@@ -1,6 +1,8 @@
 package com.cloudwebapp.validators
 
 import com.cloudwebapp.commands.ChangePasswordCommand
+import com.cloudwebapp.dao.UserRepository
+import com.cloudwebapp.model.User
 import com.cloudwebapp.services.UtilsService
 import org.springframework.security.authentication.AuthenticationManager
 import org.springframework.security.authentication.AuthenticationProvider
@@ -8,14 +10,17 @@ import org.springframework.security.authentication.BadCredentialsException
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.Authentication
 import org.springframework.security.core.context.SecurityContextHolder
+import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.validation.Errors
 import org.springframework.validation.Validator
 
 class ChangePasswordCommandValidator implements Validator {
-    AuthenticationManager authenticationManager
+    UserRepository userRepository
+    PasswordEncoder passwordEncoder
 
-    ChangePasswordCommandValidator(AuthenticationManager authenticationManager) {
-        this.authenticationManager = authenticationManager
+    ChangePasswordCommandValidator(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+        this.userRepository = userRepository
+        this.passwordEncoder = passwordEncoder
     }
 
     @Override
@@ -35,12 +40,9 @@ class ChangePasswordCommandValidator implements Validator {
                 if (principal) {
                     String userName = auth.getName()
 
-                    try {
-                        authenticationManager.authenticate new UsernamePasswordAuthenticationToken(userName, target.oldPassword)
-                    }
-                    catch (BadCredentialsException ignore) {
+                    User u = userRepository.findByUsername(userName)
+                    if (!passwordEncoder.matches(target.oldPassword, u.password))
                         errors.rejectValue("oldPassword", "The old password given is incorrect")
-                    }
                 }
             }
 

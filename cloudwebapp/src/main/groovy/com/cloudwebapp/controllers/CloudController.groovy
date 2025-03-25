@@ -39,7 +39,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.annotation.Secured
-import org.springframework.security.authentication.AuthenticationManager
+import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.validation.BindingResult
 import org.springframework.web.bind.annotation.CookieValue
 import org.springframework.web.bind.annotation.RequestBody
@@ -63,7 +63,9 @@ class CloudController {
     @Autowired
     UserRepository userRepository
     @Autowired
-    TwoFactorAuthProvider authenticationManager
+    PasswordEncoder passwordEncoder
+
+    CloudController() {}
 
     /**
      * getTemperature: Get the core temperature (Raspberry pi only). This is called at intervals to keep the session alive
@@ -107,7 +109,7 @@ class CloudController {
     @Secured(['ROLE_CLIENT', 'ROLE_ADMIN'])
     @RequestMapping("/changePassword")
     def changePassword(@RequestBody ChangePasswordCommand cmd) {
-        def gv = new GeneralValidator(cmd, new ChangePasswordCommandValidator(authenticationManager as AuthenticationManager))
+        def gv = new GeneralValidator(cmd, new ChangePasswordCommandValidator(userRepository, passwordEncoder))
         def bindingResult = gv.validate()
         ObjectCommandResponse result
 
@@ -259,7 +261,7 @@ class CloudController {
     @Secured(['ROLE_ADMIN', 'ROLE_CLIENT'])
     @RequestMapping("/changeEmail")
     def changeEmail(@RequestBody ChangeEmailCommand cmd) {
-        def gv = new GeneralValidator(cmd, new ChangeEmailCommandValidator(authenticationManager as AuthenticationManager, userRepository))
+        def gv = new GeneralValidator(cmd, new ChangeEmailCommandValidator(passwordEncoder, userRepository))
         def bindingResult = gv.validate()
 
         ObjectCommandResponse result

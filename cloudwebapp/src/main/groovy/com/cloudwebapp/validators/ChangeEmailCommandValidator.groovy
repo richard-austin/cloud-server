@@ -2,21 +2,23 @@ package com.cloudwebapp.validators
 
 import com.cloudwebapp.commands.ChangeEmailCommand
 import com.cloudwebapp.dao.UserRepository
+import com.cloudwebapp.model.User
 import com.cloudwebapp.services.UtilsService
 import org.springframework.security.authentication.AuthenticationManager
 import org.springframework.security.authentication.BadCredentialsException
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.Authentication
 import org.springframework.security.core.context.SecurityContextHolder
+import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.validation.Errors
 import org.springframework.validation.Validator
 
 class ChangeEmailCommandValidator implements Validator {
-    private final AuthenticationManager authenticationManager
+    private final PasswordEncoder passwordEncoder
     private final UserRepository userRepository
 
-    ChangeEmailCommandValidator(AuthenticationManager authenticationManager, UserRepository userRepository) {
-        this.authenticationManager = authenticationManager
+    ChangeEmailCommandValidator(PasswordEncoder passwordEncoder, UserRepository userRepository) {
+        this.passwordEncoder = passwordEncoder
         this.userRepository = userRepository
     }
 
@@ -37,12 +39,9 @@ class ChangeEmailCommandValidator implements Validator {
                 if (principal) {   // No principal in dev mode
                     String userName = auth.getName()
 
-                    try {
-                        authenticationManager.authenticate new UsernamePasswordAuthenticationToken(userName, target.password)
-                    }
-                    catch (BadCredentialsException ignored) {
+                    User u = userRepository.findByUsername(userName)
+                    if (!passwordEncoder.matches(target.password, u.password))
                         errors.rejectValue("password", "The password is incorrect")
-                    }
                 }
             }
 
