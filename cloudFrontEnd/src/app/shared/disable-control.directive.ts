@@ -4,7 +4,6 @@ import {timer} from "rxjs";
 
 @Directive({
     selector: '[disableControl]',
-    standalone: false
 })
 export class DisableControlDirective {
   @Input() set disableControl(condition: boolean) {

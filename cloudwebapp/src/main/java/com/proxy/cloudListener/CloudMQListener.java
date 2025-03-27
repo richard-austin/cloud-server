@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import jakarta.jms.*;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -30,7 +31,7 @@ import java.util.function.BiFunction;
 
 public class CloudMQListener {
     private final CloudProperties cloudProperties = CloudProperties.getInstance();
-    private final Logger logger = (Logger) LoggerFactory.getLogger("CLOUD");
+    private final Logger logger = (Logger) LoggerFactory.getLogger("CLOUD-MQ");
     final private static Queue<ByteBuffer> bufferQueue = new ConcurrentLinkedQueue<>();
     public static final int BUFFER_SIZE = 16384;
     final private CloudMQInstanceMap instances = new CloudMQInstanceMap();
@@ -302,14 +303,15 @@ public class CloudMQListener {
 
     private final String productIdRegex = "^(?:[A-Z0-9]{4}-){3}[A-Z0-9]{4}$";
 
+    final public static BiFunction<String, String, String> cookieFinder = (String cookie, String key) -> {
+        final int idx = cookie.indexOf(key) + (key + "=").length();
+        int idx2 = cookie.indexOf(';', idx);
+        if (idx2 == -1)
+            idx2 = cookie.length();
+        return cookie.substring(idx, idx2);
+    };
+
     final void readFromBrowser(SocketChannel channel, final int token) {
-        final BiFunction<String, String, String> cookieFinder = (String cookie, String key) -> {
-            final int idx = cookie.indexOf(key) + (key + "=").length();
-            int idx2 = cookie.indexOf(';', idx);
-            if (idx2 == -1)
-                idx2 = cookie.length();
-            return cookie.substring(idx, idx2);
-        };
         browserReadExecutor.submit(() -> {
             ByteBuffer buf = getBuffer();
             try {
@@ -320,20 +322,23 @@ public class CloudMQListener {
                     HttpMessage msg = new HttpMessage(buf);
                     List<String> cookies = msg.get("cookie");
                     String PRODUCTID = "";
-                    String NVRSESSIONID = "";
+                    String nvrSessionId = "";   // This is not the session ID assigned at login to a cloud session, this is a
+                                                  //  long term key that the NVR sets up for a browser to enable counting of
+                                                  //  cloud sessions on an NVR
                     final String key = "PRODUCTID";
                     final String sessionIdKey = "NVRSESSIONID";
                     for (String cookie : cookies) {
                         if (cookie.contains(key))
                             PRODUCTID = cookieFinder.apply(cookie, key);
-                        if (cookie.contains(sessionIdKey))
-                            NVRSESSIONID = cookieFinder.apply(cookie, sessionIdKey);
+                        if (!Objects.equals(PRODUCTID, "0000-0000-0000-0000") && cookie.contains(sessionIdKey))
+                            nvrSessionId = cookieFinder.apply(cookie, sessionIdKey);  // Get the "permanent" cloud session ID from the NVR
                     }
+
                     if (PRODUCTID.matches(productIdRegex)) {
                         CloudMQ inst = instances.get(PRODUCTID);
                         if (inst != null)
                             // Call readFromBrowser on the CloudMQ instance if there is one for this session ID
-                            inst.readFromBrowser(channel, buf, token, NVRSESSIONID);
+                            inst.readFromBrowser(channel, buf, token, nvrSessionId);
                         else {
                             recycle(buf);  // No CloudMQ instance for this product ID, just ignore this message
                             sendErrorResponseToBrowser("No CloudMQ instance for this product ID", channel);
@@ -390,10 +395,8 @@ public class CloudMQListener {
     public String authenticate(String productId) {
         if (instances.containsKey(productId)) {
             CloudMQ inst = instances.get(productId);
-            String nvrSessionId = inst.authenticate();
-            inst.incSessionCount(nvrSessionId);
 
-            return nvrSessionId;
+            return inst.authenticate();
         }
 
         return "";
@@ -401,17 +404,8 @@ public class CloudMQListener {
 
     public void logoff(String cookie) {
         try {
-            int startIndex = cookie.indexOf("NVRSESSIONID");
-            int endIndex = cookie.indexOf(";", startIndex);
-            endIndex = endIndex == -1 ? cookie.length() : endIndex;
-            startIndex += "NVRSESSIONID=".length();
-            final String nvrSessionId = cookie.substring(startIndex, endIndex);
-
-            final int piStartIndex = cookie.indexOf("PRODUCTID");
-            int piEndIndex = cookie.indexOf(";", piStartIndex);
-            piEndIndex = piEndIndex == -1 ? cookie.length() : piEndIndex;
-            final String productid = cookie.substring(piStartIndex + "PRODUCTID=".length(), piEndIndex);
-
+            final String nvrSessionId = cookieFinder.apply(cookie, "NVRSESSIONID");
+            final String productid = cookieFinder.apply(cookie, "PRODUCTID");
 
             final CloudMQ inst = instances.get(productid);
             inst.decSessionCount(nvrSessionId);
@@ -443,8 +437,6 @@ public class CloudMQListener {
                         Objects.equals(level, "TRACE") ? Level.TRACE :
                                 Objects.equals(level, "WARN") ? Level.WARN :
                                         Objects.equals(level, "ERROR") ? Level.ERROR :
-                                                Objects.equals(level, "OFF") ? Level.OFF :
-                                                        Objects.equals(level, "ALL") ? Level.ALL : Level.OFF);
+                                                Level.OFF);
     }
-
 }

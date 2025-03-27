@@ -4,6 +4,7 @@ import com.cloudwebapp.commands.AddOrUpdateActiveMQCredsCmd
 import com.cloudwebapp.commands.AdminChangeEmailCommand
 import com.cloudwebapp.commands.AdminChangePasswordCommand
 import com.cloudwebapp.commands.ChangeEmailCommand
+import com.cloudwebapp.commands.ChangeInstanceCountCommand
 import com.cloudwebapp.commands.ChangePasswordCommand
 import com.cloudwebapp.commands.DeleteAccountCommand
 import com.cloudwebapp.commands.RegisterUserCommand
@@ -24,7 +25,6 @@ import com.cloudwebapp.services.ValidationErrorService
 import com.cloudwebapp.validators.AddOrUpdateActiveMQCredsCmdValidator
 import com.cloudwebapp.validators.AdminChangeEmailCommandValidator
 import com.cloudwebapp.validators.AdminChangePasswordCommandValidator
-import com.cloudwebapp.validators.BadRequestResult
 import com.cloudwebapp.validators.ChangeEmailCommandValidator
 import com.cloudwebapp.validators.ChangePasswordCommandValidator
 import com.cloudwebapp.validators.DeleteAccountCommandValidator
@@ -39,8 +39,9 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.annotation.Secured
-import org.springframework.security.authentication.AuthenticationManager
+import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.validation.BindingResult
+import org.springframework.web.bind.annotation.CookieValue
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
@@ -62,7 +63,9 @@ class CloudController {
     @Autowired
     UserRepository userRepository
     @Autowired
-    TwoFactorAuthProvider authenticationManager
+    PasswordEncoder passwordEncoder
+
+    CloudController() {}
 
     /**
      * getTemperature: Get the core temperature (Raspberry pi only). This is called at intervals to keep the session alive
@@ -86,7 +89,7 @@ class CloudController {
      */
     @RequestMapping("register")
     def register(@RequestBody RegisterUserCommand cmd) {
-        def gv = new GeneralValidator(cmd, new RegisterUserCommandValidator())
+        def gv = new GeneralValidator(cmd, new RegisterUserCommandValidator(userRepository))
         def result = gv.validate()
 
         if (result.hasErrors()) {
@@ -106,7 +109,7 @@ class CloudController {
     @Secured(['ROLE_CLIENT', 'ROLE_ADMIN'])
     @RequestMapping("/changePassword")
     def changePassword(@RequestBody ChangePasswordCommand cmd) {
-        def gv = new GeneralValidator(cmd, new ChangePasswordCommandValidator(authenticationManager as AuthenticationManager))
+        def gv = new GeneralValidator(cmd, new ChangePasswordCommandValidator(userRepository, passwordEncoder))
         def bindingResult = gv.validate()
         ObjectCommandResponse result
 
@@ -258,7 +261,7 @@ class CloudController {
     @Secured(['ROLE_ADMIN', 'ROLE_CLIENT'])
     @RequestMapping("/changeEmail")
     def changeEmail(@RequestBody ChangeEmailCommand cmd) {
-        def gv = new GeneralValidator(cmd, new ChangeEmailCommandValidator(authenticationManager as AuthenticationManager, userRepository))
+        def gv = new GeneralValidator(cmd, new ChangeEmailCommandValidator(passwordEncoder, userRepository))
         def bindingResult = gv.validate()
 
         ObjectCommandResponse result
@@ -376,6 +379,38 @@ class CloudController {
             return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body([transportActive: resp.responseObject] )
         else
             throw new CloudRestMethodException(resp.error, "/cloud/isTransportActive")
+    }
+
+    /**
+     * changeInstanceCount: This is called on closing the browser when logged in as a client. It decrements the
+     *                               session count (as shown on Accounts Admin page in admin mode), and  removes the
+     *                               NVRSESSIONID from the browser. The call is made as an async call to ensure it
+     *                               returns before the browser closes/
+     * @param productId : Product ID (received as cookie)
+     * @param nvrSessionId : NVRSESSIONID (received as cookie)
+     * @param cmd : The count is incremented if increment is true, otherwise it is decremented.
+     * @return
+     */
+    @RequestMapping("/changeInstanceCount")
+    def changeInstanceCount(@CookieValue(value = "PRODUCTID", defaultValue = "empty") String productId,
+                            @CookieValue(value = "NVRSESSIONID", defaultValue = "empty") String nvrSessionId,
+                            @RequestBody ChangeInstanceCountCommand cmd) {
+        try {
+            if (productId != "empty" && nvrSessionId != "empty") {
+                def cloudMq = cloudService.cloudListener.instances.get(productId)
+                if (cmd.increment)
+                    cloudMq.incSessionCount(nvrSessionId)
+                else
+                    cloudMq.decSessionCount(nvrSessionId)
+            } else {
+                logService.cloud.error("Error in changeInstanceCount. no value for cookie (PRODUCTID = ${productId}, NVRSESSIONID = ${nvrSessionId})")
+            }
+        }
+        catch (Exception ex) {
+            logService.cloud.error("${ex.getClass().getName()} in changeInstanceCount. ${ex.getMessage()}")
+        }
+
+        // httpResp.setHeader("Set-Cookie", "NVRSESSIONID=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;")
     }
 
     /**

@@ -2,22 +2,22 @@ import {AfterViewInit, Component, ElementRef, OnInit, ViewChild} from '@angular/
 import {FormControl, FormGroup, Validators} from "@angular/forms";
 import {LoggedInMessage, UtilsService} from "../shared/utils.service";
 import {timer} from 'rxjs';
+import {SharedAngularMaterialModule} from '../shared/shared-angular-material/shared-angular-material.module';
+import {SharedModule} from '../shared/shared.module';
 
 @Component({
     selector: 'app-login',
-    templateUrl: './login.component.html',
-    styleUrls: ['./login.component.scss'],
-    standalone: false
+    templateUrl: './user-login.component.html',
+    styleUrls: ['./user-login.component.scss'],
+    imports: [SharedModule, SharedAngularMaterialModule]
 })
-export class LoginComponent implements OnInit, AfterViewInit {
-
+export class UserLoginComponent implements OnInit, AfterViewInit {
   username: string = '';
   password: string = '';
   rememberMe: boolean = false;
   loginForm!: FormGroup;
   errorMessage: string = '';
   @ViewChild('username') usernameInput!: ElementRef<HTMLInputElement>
-
 
   constructor(public utilsService: UtilsService) { }
   login()

@@ -1,12 +1,14 @@
 import { Component, OnInit } from '@angular/core';
 import {AbstractControl, FormControl, FormGroup, ValidationErrors, ValidatorFn, Validators} from '@angular/forms';
 import { UtilsService } from 'src/app/shared/utils.service';
+import {SharedAngularMaterialModule} from '../../shared/shared-angular-material/shared-angular-material.module';
+import {SharedModule} from '../../shared/shared.module';
 
 @Component({
     selector: 'app-forgotten-password',
     templateUrl: './forgotten-password.component.html',
     styleUrls: ['./forgotten-password.component.scss'],
-    standalone: false
+    imports: [SharedModule, SharedAngularMaterialModule]
 })
 export class ForgottenPasswordComponent implements OnInit {
   forgottenPasswordForm!: FormGroup;

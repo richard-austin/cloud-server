@@ -7,12 +7,14 @@ import {WifiDetails} from '../shared/wifi-details';
 import {WifiUtilsService} from '../shared/wifi-utils.service';
 import {AfterViewInit} from '@angular/core';
 import {UtilsService} from "../shared/utils.service";
+import {SharedAngularMaterialModule} from '../shared/shared-angular-material/shared-angular-material.module';
+import {SharedModule} from '../shared/shared.module';
 
 @Component({
     selector: 'app-get-local-wifi-details',
     templateUrl: './get-local-wifi-details.component.html',
     styleUrls: ['./get-local-wifi-details.component.scss'],
-    standalone: false
+    imports: [SharedModule, SharedAngularMaterialModule]
 })
 export class GetLocalWifiDetailsComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild(ReportingComponent) reporting!: ReportingComponent;

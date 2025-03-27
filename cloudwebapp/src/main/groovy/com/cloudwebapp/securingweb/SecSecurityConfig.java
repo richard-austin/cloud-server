@@ -2,6 +2,7 @@ package com.cloudwebapp.securingweb;
 
 import com.cloudwebapp.beans.CloudAuthFailureHandler;
 import com.cloudwebapp.beans.CloudAuthSuccessHandler;
+import com.cloudwebapp.beans.MyRememberMeServices;
 import com.cloudwebapp.dao.UserRepository;
 import com.cloudwebapp.security.MyUserDetailsService;
 import com.cloudwebapp.security.TwoFactorAuthProvider;
@@ -24,7 +25,7 @@ public class SecSecurityConfig {
     boolean enabled;
 
 
-    SecSecurityConfig(RememberMeServices rememberMeServices,
+    SecSecurityConfig(MyRememberMeServices rememberMeServices,
                       MyUserDetailsService myUserDetailsService,
                       LogService logService,
                       CloudAuthSuccessHandler cloudAuthSuccessHandler,
@@ -83,7 +84,7 @@ public class SecSecurityConfig {
                     .logout(httpSecurityLogoutConfigurer ->
                             httpSecurityLogoutConfigurer
                                     .logoutUrl("/logout")
-                                   // .addLogoutHandler(secCamSecurityEventListener)
+                                    .addLogoutHandler(cloudAuthFailureHandler)
                                     .logoutSuccessUrl("/")
                                     .permitAll());
         }

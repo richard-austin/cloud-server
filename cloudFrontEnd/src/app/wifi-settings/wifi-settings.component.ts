@@ -10,12 +10,14 @@ import {WifiConnectResult} from '../shared/wifi-connect-result';
 import {HttpErrorResponse} from '@angular/common/http';
 import {UntypedFormControl, UntypedFormGroup, Validators} from '@angular/forms';
 import { MatSelect } from '@angular/material/select';
+import {SharedModule} from '../shared/shared.module';
+import {SharedAngularMaterialModule} from '../shared/shared-angular-material/shared-angular-material.module';
 
 @Component({
     selector: 'app-wifi-settings',
     templateUrl: './wifi-settings.component.html',
     styleUrls: ['./wifi-settings.component.scss'],
-    standalone: false
+    imports: [SharedModule, SharedAngularMaterialModule]
 })
 export class WifiSettingsComponent implements OnInit, OnDestroy {
   @ViewChild('selector') selector!: MatSelect;

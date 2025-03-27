@@ -1,12 +1,14 @@
 import {Component, OnInit, ViewChild} from '@angular/core';
 import {UtilsService} from "../shared/utils.service";
 import {ReportingComponent} from "../reporting/reporting.component";
+import {SharedModule} from '../shared/shared.module';
+import {SharedAngularMaterialModule} from '../shared/shared-angular-material/shared-angular-material.module';
 
 @Component({
     selector: 'app-remove-local-nvr',
     templateUrl: './remove-local-nvr-account.component.html',
     styleUrls: ['./remove-local-nvr-account.component.scss'],
-    standalone: false
+    imports: [SharedModule, SharedAngularMaterialModule]
 })
 export class RemoveLocalNvrAccountComponent implements OnInit {
 

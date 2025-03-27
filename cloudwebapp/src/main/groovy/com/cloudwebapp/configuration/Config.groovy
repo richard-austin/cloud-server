@@ -38,6 +38,8 @@ class Config implements IConfig {
     String browserFacingPort
     String logLevel
     String logFileName
+    String mqLogFileName
+    String mqLogLevel
 
     @Autowired
     Mail mail

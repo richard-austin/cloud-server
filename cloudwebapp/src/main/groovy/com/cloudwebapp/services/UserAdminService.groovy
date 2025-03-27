@@ -12,6 +12,7 @@ import com.cloudwebapp.commands.SetAccountEnabledStatusCommand
 import com.cloudwebapp.dao.UserRepository
 import com.cloudwebapp.enums.PassFail
 import com.cloudwebapp.interfaceobjects.ObjectCommandResponse
+import com.cloudwebapp.messaging.UpdateMessage
 import com.cloudwebapp.model.User
 import com.cloudwebapp.utils.ResetPasswordParameterTimerTask
 import com.google.gson.JsonObject
@@ -140,7 +141,8 @@ class UserAdminService {
             if (user != null) {
                 user.setEnabled(cmd.accountEnabled)
                 userRepo.save(user)
-                brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", update)
+                final def setEnabledStatus = new UpdateMessage(user.productid, "setAccountEnabledStatus", cmd.accountEnabled)
+                brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", setEnabledStatus)
             } else {
                 response.status = PassFail.FAIL
                 response.error = "Could not find user ${cmd.username}"
@@ -170,13 +172,19 @@ class UserAdminService {
         return result
     }
 
+    /**
+     * adminChangeEmail: Admin changes a users email
+     * @param cmd
+     * @return
+     */
     ObjectCommandResponse adminChangeEmail(AdminChangeEmailCommand cmd) {
         ObjectCommandResponse result = new ObjectCommandResponse()
         try {
             User user = userRepo.findByUsername(cmd.username)
             user.setEmail(cmd.email)
             userRepo.save(user)
-            brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", update)
+            final def changeEmail = new UpdateMessage(user.productid, "changeEmail", cmd.email)
+            brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", changeEmail)
         }
         catch (Exception ex) {
             logService.cloud.error("${ex.getClass().getName()} in adminChangeEmail: ${ex.getCause()} ${ex.getMessage()}")
@@ -208,7 +216,7 @@ class UserAdminService {
     }
 
     /**
-     * changeEmail: Change the admin users email
+     * changeEmail: Change own email (admin or client)
      * @param cmd
      * @return
      */
@@ -221,6 +229,11 @@ class UserAdminService {
             User user = userRepo.findByUsername(userName)
             user.setEmail(cmd.getNewEmail())
             userRepo.save(user)
+
+            if(user.getAuthorities().find((ga) -> {ga.authority == 'ROLE_CLIENT'}) != null) {
+                def changeEmail = new UpdateMessage(user.productid, "changeEmail", user.email)
+                brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", changeEmail)
+            }
         }
         catch (Exception ex) {
             logService.cloud.error("Exception in changeEmail: " + ex.getCause() + ' ' + ex.getMessage())
@@ -235,9 +248,9 @@ class UserAdminService {
         ObjectCommandResponse result = new ObjectCommandResponse()
         try {
             User user = userRepo.findByUsername(cmd.username)
-
+            def deleteAccountMessage = new UpdateMessage(user.productid, "removeUser", user.username)
             userRepo.delete(user)
-            brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", update)
+            brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", deleteAccountMessage)
         }
         catch (Exception ex) {
             logService.cloud.error("${ex.getClass().getName()} in adminDeleteAccount: ${ex.getCause()} ${ex.getMessage()}")

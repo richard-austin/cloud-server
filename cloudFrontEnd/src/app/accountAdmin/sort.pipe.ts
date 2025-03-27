@@ -3,7 +3,6 @@ import {Account} from "../shared/utils.service";
 
 @Pipe({
     name: 'sort',
-    standalone: false
 })
 export class SortPipe implements PipeTransform {
 

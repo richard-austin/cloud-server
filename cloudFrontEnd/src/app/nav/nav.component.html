@@ -162,9 +162,11 @@
     <button mat-raised-button color="cancel" (click)="logOff(false)">Cancel</button>
   </mat-card-content>
 </mat-card>
-<div *ngIf="!utilsService.activeMQTransportActive" class="no-transport-warning">
-  <div>
-    <mat-card-title>Not Connected To Transport</mat-card-title>
-  </div>
-</div>
-<router-outlet></router-outlet>
+@if (!utilsService.activeMQTransportActive) {
+    <div class="no-transport-warning">
+      <div>
+        <mat-card-title>Not Connected To Transport</mat-card-title>
+      </div>
+    </div>
+}
+<router-outlet (activate)="onActivate($event)"></router-outlet>

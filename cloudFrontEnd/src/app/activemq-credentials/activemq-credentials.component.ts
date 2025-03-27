@@ -2,12 +2,14 @@ import {Component, OnInit, ViewChild} from '@angular/core';
 import {AbstractControl, FormControl, FormGroup, ValidationErrors, ValidatorFn, Validators} from "@angular/forms";
 import {UtilsService} from "../shared/utils.service";
 import {ReportingComponent} from "../reporting/reporting.component";
+import {SharedModule} from '../shared/shared.module';
+import {SharedAngularMaterialModule} from '../shared/shared-angular-material/shared-angular-material.module';
 
 @Component({
     selector: 'app-activemq-credentials',
     templateUrl: './activemq-credentials.component.html',
     styleUrls: ['./activemq-credentials.component.scss'],
-    standalone: false
+    imports: [SharedModule, SharedAngularMaterialModule]
 })
 export class ActivemqCredentialsComponent implements OnInit {
   public title = ''

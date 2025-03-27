@@ -3,6 +3,7 @@ package com.proxy;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import com.cloudwebapp.beans.AppContextManager;
+import com.cloudwebapp.messaging.UpdateMessage;
 import com.proxy.cloudListener.*;
 import com.proxy.cloudListener.CloudMQListener;
 import org.slf4j.LoggerFactory;
@@ -45,6 +46,7 @@ public class CloudMQ {
     private ExecutorService browserReadExecutor = null;
     private ExecutorService sendToCloudProxyExecutor = null;
     private ScheduledExecutorService cloudConnectionCheckExecutor;
+    private final Set<String> loggingOff = new HashSet<>();
 
     final Map<Integer, SocketChannel> tokenSocketMap = new ConcurrentHashMap<>();
 
@@ -54,10 +56,6 @@ public class CloudMQ {
     final private String productId;
     private final CloudProperties cloudProperties = CloudProperties.getInstance();
     private final CloudMQInstanceMap instances;
-    // Remove browser (nvrSessionId) references after 120 seconds with no call coming in.
-    //  This is twice the time between getTemperature calls which will refresh the timer as they come in, as
-    //  will any other new request from the browser,
-    private final long browserSessionTimeout = 120 * 1000;
 
     final private Map<String, Timer> sessionCountTimers;
     SimpMessagingTemplate brokerMessagingTemplate;
@@ -118,14 +116,13 @@ public class CloudMQ {
     }
 
     private class CloudProxyReaderWriter implements MessageListener {
-        private Destination cloudProxyTopic = null;
         private Destination cloudProxyResponseTopic;
         private MessageConsumer cloudProxyConsumer = null;
         private MessageProducer cloudProxyProducer = null;
 
         CloudProxyReaderWriter() {
             try {
-                cloudProxyTopic = cloudProxySession.createTopic(productId);   // Create a queue with the NVR product id as the name
+                Destination cloudProxyTopic = cloudProxySession.createTopic(productId);   // Create a queue with the NVR product id as the name
                 cloudProxyResponseTopic = cloudProxySession.createTemporaryTopic();
 
                 cloudProxyProducer = cloudProxySession.createProducer(cloudProxyTopic);
@@ -224,13 +221,12 @@ public class CloudMQ {
                         "Content-Length: " + payload.length() + "\r\n\r\n" +
                         payload + "\r\n";
 
-                System.out.print(output);
                 BytesMessage response = doRequestResponse(output);
 
                 if (response != null) {
                     HttpMessage hdrs = new HttpMessage(response);
                     var l = hdrs.getHeader("location");
-                    String location = (l != null && l.size() == 1) ? l.get(0) : null;
+                    String location = (l != null && l.size() == 1) ? l.getFirst() : null;
                     if (location != null && !location.contains("authfail")) {
                         List<String> setCookie = hdrs.getHeader("set-cookie");
                         for (String cookie : setCookie) {
@@ -238,6 +234,7 @@ public class CloudMQ {
                                 final int startIdx = "NVRSESSIONID=".length();
                                 final int sessionIdLen = 32;
                                 NVRSESSIONID = cookie.substring(startIdx, startIdx + sessionIdLen);
+                                incSessionCount(NVRSESSIONID);
                                 break;
                             }
                         }
@@ -260,14 +257,15 @@ public class CloudMQ {
     /**
      * logoff: Finish the session on the NVR
      *
-     * @param cookie: The NVR session cookie
+     * @param nvrSessionId: The NVR session cookie
      * @return: true on success
      */
-    public boolean logoff(String cookie) {
+    public boolean logoff(String nvrSessionId) {
         boolean retVal = true;
+        loggingOff.add(nvrSessionId);
         if (cloudProxySession != null) {
             try {
-                String logoff = "GET /logoff HTTP/1.1\r\n" +
+                String logoff = "GET /logout HTTP/1.1\r\n" +
                         "Host: host\r\n" +
                         "Connection: keep-alive\r\n" +
                         "sec-ch-ua: \" Not A;Brand\";v=\"99\", \"Chromium\";v=\"96\", \"Google Chrome\";v=\"96\"\r\n" +
@@ -283,7 +281,7 @@ public class CloudMQ {
                         "Referer: http://localhost:8083/\r\n" +
                         "Accept-Encoding: gzip, deflate, br\r\n" +
                         "Accept-Language: en-GB,en-US;q=0.9,en;q=0.8\r\n" +
-                        "Cookie: NVRSESSIONID=" + cookie + "\r\n\r\n";
+                        "Cookie: NVRSESSIONID=" + nvrSessionId + "\r\n\r\n";
 
                 System.out.println(logoff);
                 TextMessage response = (TextMessage) doRequestResponse(logoff);
@@ -529,38 +527,64 @@ public class CloudMQ {
                         Objects.equals(level, "TRACE") ? Level.TRACE :
                                 Objects.equals(level, "WARN") ? Level.WARN :
                                         Objects.equals(level, "ERROR") ? Level.ERROR :
-                                                Objects.equals(level, "OFF") ? Level.OFF :
-                                                        Objects.equals(level, "ALL") ? Level.ALL : Level.OFF);
+                                                Level.OFF);
+
     }
 
-    public void incSessionCount(String nvrSessionId) {
-        if (!sessionCountTimers.containsKey(nvrSessionId)) {
-            createSessionTimeout(nvrSessionId);
-            brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", update);
+    public void incSessionCount(String nvressionid) {
+        if (!nvressionid.isEmpty() && !sessionCountTimers.containsKey(nvressionid)) {
+            var timer = createTimer(nvressionid);
+            sessionCountTimers.put(nvressionid, timer);
+            var updateMessage = new UpdateMessage(productId, "usersConnected", sessionCountTimers.size());
+            brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", updateMessage);
         }
     }
 
     public void decSessionCount(String nvrSessionId) {
-        if (sessionCountTimers.containsKey(nvrSessionId)) {
+        if (!nvrSessionId.isEmpty() && sessionCountTimers.containsKey(nvrSessionId)) {
             sessionCountTimers.get(nvrSessionId).cancel();
             sessionCountTimers.get(nvrSessionId).purge();
             sessionCountTimers.remove(nvrSessionId);
-            brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", update);
+            var updateMessage = new UpdateMessage(productId, "usersConnected", sessionCountTimers.size());
+            brokerMessagingTemplate.convertAndSend("/topic/accountUpdates", updateMessage);
         }
     }
 
     void createSessionTimeout(String nvrSessionId) {
+        if (!nvrSessionId.isEmpty()) {
+            if (!loggingOff.contains(nvrSessionId)) {  // Prevent the session count timer being reset if we are logging off
+                if (sessionCountTimers.containsKey(nvrSessionId)) {
+                    Timer timer = createTimer(nvrSessionId);
+                    sessionCountTimers.get(nvrSessionId).cancel();
+                    sessionCountTimers.put(nvrSessionId, timer);
+                }
+            } else {
+                // Delay the removal of the session id from the logging off set as other calls may occur with that ID as well as logoff
+                Timer timer = new Timer();
+                timer.schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        loggingOff.remove(nvrSessionId);
+                    }
+                }, 2000); // Delay for two seconds
+            }
+        }
+    }
+
+    Timer createTimer(String nvrSessionId) {
         TimerTask task = new SessionCountTimerTask(nvrSessionId, this);
-
         Timer timer = new Timer(nvrSessionId);
+        // Remove browser (nvrSessionId) references after 120 seconds with no call coming in.
+        //  This is twice the time between getTemperature calls which will refresh the timer as they come in, as
+        //  will any other new request from the browser,
+        long browserSessionTimeout = 120 * 1000;
         timer.schedule(task, browserSessionTimeout);
-        if (sessionCountTimers.containsKey(nvrSessionId))
-            sessionCountTimers.get(nvrSessionId).cancel();
-
-        sessionCountTimers.put(nvrSessionId, timer);
+        return timer;
     }
 
     public int getSessionCount() {
+        System.out.println("getSessionCount: " + sessionCountTimers.size());
+        sessionCountTimers.forEach((uniqueId, sessionCountTimer) -> System.out.println("       SessionID: " + uniqueId));
         return sessionCountTimers.size();
     }
 }

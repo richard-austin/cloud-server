@@ -4,12 +4,13 @@ import {AbstractControl, FormControl, FormGroup, ValidationErrors} from "@angula
 import { UtilsService } from '../shared/utils.service';
 import {HttpErrorResponse} from "@angular/common/http";
 import {ChangePasswordService} from "../change-password/change-password.service";
+import {SharedAngularMaterialModule} from '../shared/shared-angular-material/shared-angular-material.module';
 
 @Component({
     selector: 'app-reset-password',
     templateUrl: './reset-password.component.html',
     styleUrls: ['./reset-password.component.scss'],
-    standalone: false
+  imports: [SharedAngularMaterialModule]
 })
 export class ResetPasswordComponent implements OnInit {
   uniqueId: string = "";

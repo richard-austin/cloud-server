@@ -1,108 +1,85 @@
-import {Component, OnInit, } from '@angular/core';
-import {AbstractControl, FormControl, FormGroup, ValidationErrors, Validators} from "@angular/forms";
-import {ChangePasswordService} from "./change-password.service";
-import {HttpErrorResponse} from "@angular/common/http";
-import { UtilsService } from '../shared/utils.service';
+import {Component, OnInit, ViewChild} from '@angular/core';
+import {AbstractControl, UntypedFormControl, UntypedFormGroup, Validators} from "@angular/forms";
+import {ReportingComponent} from "../reporting/reporting.component";
+import { HttpErrorResponse } from "@angular/common/http";
+import {SharedAngularMaterialModule} from "../shared/shared-angular-material/shared-angular-material.module";
+import {SharedModule} from "../shared/shared.module";
+import {ChangePasswordService} from './change-password.service';
 
 @Component({
-    selector: 'app-change-password',
-    templateUrl: './change-password.component.html',
-    styleUrls: ['./change-password.component.scss'],
-    standalone: false
+  selector: 'app-change-password2',
+  templateUrl: './change-password.component.html',
+  styleUrls: ['./change-password.component.scss'],
+  imports:[SharedModule, SharedAngularMaterialModule]
 })
 export class ChangePasswordComponent implements OnInit {
 
-  changePasswordForm!: FormGroup;
-  oldPassword: string = '';
-  newPassword: string = '';
-  confirmNewPassword: string = '';
-  errorMessage: string = '';
-  successMessage: string = '';
+  changePasswordForm!: UntypedFormGroup;
+  @ViewChild(ReportingComponent) reporting!:ReportingComponent;
 
-  constructor(private changePasswordService: ChangePasswordService, private utilsService:UtilsService) {
+  constructor(private changePasswordService: ChangePasswordService) { }
+
+  changePasswordButtonDisabled():boolean {
+    return this.anyInvalid();
   }
 
-  hasError = (controlName: string, errorName: string): boolean | undefined => {
+  hasError = (controlName: string, errorName: string):boolean =>{
     return this.changePasswordForm.controls[controlName].hasError(errorName);
   }
 
-  getFormControl(fcName: string): FormControl {
-    return this.changePasswordForm.get(fcName) as FormControl;
-  }
-
   formSubmitted() {
-    this.errorMessage = this.successMessage = '';
-    this.oldPassword = this.getFormControl('oldPassword').value;
-    this.changePasswordService.changePassword(this.oldPassword, this.newPassword, this.confirmNewPassword).subscribe(() => {
-        this.successMessage = "Password changed";
-      },
-      (reason: HttpErrorResponse) => {
-        if (reason.status === 400) {
-          for (const key of Object.keys(reason.error)) {
-            if (key === 'oldPassword')
-              this.invalidPassword();
+    let oldPassword:AbstractControl = this.changePasswordForm.controls['oldPassword'];
+    let newPassword:AbstractControl = this.changePasswordForm.controls['newPassword'];
+    let confirmNewPassword: AbstractControl = this.changePasswordForm.controls['confirmNewPassword'];
+
+    this.changePasswordService.changePassword(oldPassword.value, newPassword.value, confirmNewPassword.value).subscribe(() => {
+          this.reporting.successMessage="Password changed";
+        },
+        (reason: HttpErrorResponse) => {
+          if(reason.status === 400)
+          {
+            for(const key of Object.keys(reason.error)) {
+              if(key === 'oldPassword')
+                this.invalidPassword();
+            }
+            this.reporting.errorMessage = reason;
           }
-        } else
-          this.errorMessage = reason.error;
-      });
+          else
+            this.reporting.errorMessage = reason;
+        });
   }
 
-  invalidPassword() {
+  invalidPassword()
+  {
     let oldPasswordCtl: AbstractControl = this.changePasswordForm.controls['oldPassword'];
-    let errors: { [key: string]: any } = {pattern: {badPassword: "Password Incorrect"}};
+    let errors:{[key: string]: any} = {pattern: {badPassword:"Password Incorrect"}};
     oldPasswordCtl.setErrors(errors);
     oldPasswordCtl.markAsTouched({onlySelf: true}); //updateValueAndValidity({onlySelf: true, emitEvent: true});
   }
-
-  passwordValidator = (control: AbstractControl): ValidationErrors | null => {
-    this.newPassword = control.value;
-    // Update the validation status of the confirmPassword field
-    if (this.confirmNewPassword !== "") {
-      let cpControl: AbstractControl | null = this.changePasswordForm.get("confirmNewPassword");
-      cpControl?.updateValueAndValidity();
-    }
-
-    let value: string = control.value;
-    if(value !== "") {
-      if(value.length < 8)
-        return {tooShort: {value: value}};
-      const ok = !this.utilsService.passwordRegex.test(value);
-      return ok ? {pattern: {value: control.value}} : null;
-    }
-    else
-      return {required: {value: value}};
-  };
 
   /**
    * comparePasswords: Custom form field validator to check new password and confirm new password
    *                   are equal
    * @param control
    */
-  comparePasswords = (control: AbstractControl): ValidationErrors | null => {
-    this.confirmNewPassword = control.value;
-    let fg: FormGroup = control.parent as FormGroup;
+  comparePasswords(control: AbstractControl): { [key: string]: boolean } | null {
+    let fg: UntypedFormGroup=control.parent as UntypedFormGroup;
     let ac: AbstractControl = fg?.controls['newPassword'];
-    if (control.value == "")
-      return {required: {value: control.value}}
-    if (control.value == "" || control.value !== ac?.value) {
-      return {confirmNewPassword: {value: control.value}};
+    if (control.value !== undefined && control.value !== ac?.value) {
+      return { 'confirmNewPassword': true };
     }
     return null;
   }
 
-  anyInvalid(): boolean {
+  anyInvalid(): boolean{
     return this.changePasswordForm.invalid;
   }
 
-  exit() {
-    window.location.href = "#/"
-  }
-
   ngOnInit(): void {
-    this.changePasswordForm = new FormGroup({
-      oldPassword: new FormControl(this.oldPassword, [Validators.required]),
-      newPassword: new FormControl(this.newPassword, [this.passwordValidator]),
-      confirmNewPassword: new FormControl(this.confirmNewPassword, [this.comparePasswords])
+    this.changePasswordForm = new UntypedFormGroup({
+      oldPassword: new UntypedFormControl('', [Validators.required]),
+      newPassword: new UntypedFormControl('', [Validators.required, Validators.pattern(/^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,64}$/)]),
+      confirmNewPassword: new UntypedFormControl('', [Validators.required, this.comparePasswords])
     }, {updateOn: "change"});
     this.changePasswordForm.markAllAsTouched();
   }

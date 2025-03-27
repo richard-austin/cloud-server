@@ -16,7 +16,7 @@ public class HttpMessage extends HashMap<String, List<String>> {
 
     public HttpMessage(ByteBuffer httpMessage)
     {
-        this.httpMessage = new String(httpMessage.array(), 0, httpMessage.limit());
+        this.httpMessage = new String(httpMessage.array(), 0, httpMessage.position());
         final int indexOfCrLf = indexOf(crlfcrlf, 0);
         if(indexOfCrLf != -1)
             headersLength = indexOfCrLf+crlfcrlf.length;

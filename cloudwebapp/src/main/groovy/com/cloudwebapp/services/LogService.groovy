@@ -19,9 +19,7 @@ class LogService {
                      level=='DEBUG' ? Level.DEBUG :
                      level=='TRACE' ? Level.TRACE :
                      level=='WARN' ? Level.WARN :
-                     level=='ERROR' ? Level.ERROR :
-                     level=='OFF' ? Level.OFF :
-                     level=='ALL' ? Level.ALL : Level.OFF)
+                     level=='ERROR' ? Level.ERROR : Level.OFF)
     }
 
     LogService() {

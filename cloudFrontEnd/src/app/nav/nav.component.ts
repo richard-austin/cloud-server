@@ -1,9 +1,9 @@
-import {AfterViewInit, Component, ElementRef, OnDestroy, OnInit, ViewChild} from '@angular/core';
+import {AfterViewInit, Component, ElementRef, HostListener, OnDestroy, OnInit, ViewChild} from '@angular/core';
 import {CameraService, cameraType} from '../cameras/camera.service';
 import {Camera, Stream} from '../cameras/Camera';
 import {ReportingComponent} from '../reporting/reporting.component';
 import {HttpErrorResponse} from '@angular/common/http';
-import {Subscription} from 'rxjs';
+import {Subscription, timer} from 'rxjs';
 import {IdleTimeoutStatusMessage, Message, messageType, UtilsService} from '../shared/utils.service';
 import {MatDialog, MatDialogRef} from '@angular/material/dialog';
 import {IdleTimeoutModalComponent} from '../idle-timeout-modal/idle-timeout-modal.component';
@@ -22,6 +22,27 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
 
   @ViewChild(ReportingComponent) errorReporting!: ReportingComponent;
   @ViewChild('navbarCollapse') navbarCollapse!: ElementRef<HTMLDivElement>;
+
+  routerOutletClassName!: string;
+  @HostListener('window:beforeunload', ['$event'])
+  async unloadNotification($event: BeforeUnloadEvent) {
+    if(this.routerOutletClassName !== "_ConfigSetupComponent") {
+      // ConfigSetupComponent also handles this, but with a conditional on whether there are outstanding changes and the user can
+      //  opt to not exit the application, so removing NVRSESSIONID would finish the session.
+      // document.cookie = "NVRSESSIONID=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      //await this.utilsService.decrementInstanceCountOnExit().toPromise();
+
+     await this.utilsService.changeInstanceCount(false).toPromise();
+    }
+  }
+
+  @HostListener('window:unload', ['$event'])
+  async beforeunload($event: any) {
+  }
+
+  onActivate($event: any) {
+    this.routerOutletClassName = $event.constructor.name;
+  }
 
   confirmLogout: boolean = false;
   pingHandle!: Subscription;
@@ -72,19 +93,19 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   getActiveIPAddresses() {
-    window.location.href = '#/general/getactiveipaddresses';
+    window.location.href = '#/getactiveipaddresses';
   }
 
   getLocalWifiDetails() {
-    window.location.href = '#/wifi/getlocalwifidetails';
+    window.location.href = '#/getlocalwifidetails';
   }
 
   wifiSettings() {
-    window.location.href = '#/wifi/wifisettings';
+    window.location.href = '#/wifisettings';
   }
 
   localAdminFunctionsForNVR() {
-    window.location.href = '#/general/cua';
+    window.location.href = '#/cua';
   }
 
   multiCamView() {
@@ -104,11 +125,11 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   about() {
-    window.location.href = '#/general/about';
+    window.location.href = '#/about';
   }
 
   aboutCCTVCloud() {
-    window.location.href = '#/general/about/true';
+    window.location.href = '#/about/true';
   }
 
 
@@ -144,19 +165,19 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   setIp() {
-    window.location.href = '#/general/setip';
+    window.location.href = '#/setip';
   }
 
   registerLocalNVRAccount() {
-    window.location.href = '#/account/registerlocalnvraccount';
+    window.location.href = '#/registerlocalnvraccount';
   }
 
   removeLocalNVRAccount() {
-    window.location.href = '#/account/removelocalnvraccount';
+    window.location.href = '#/removelocalnvraccount';
   }
 
   drawdownCalc() {
-    window.location.href = '#/general/dc';
+    window.location.href = '#/dc';
   }
 
   configSetup() {
@@ -201,6 +222,7 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
     this.utilsService.isTransportActive().subscribe();  // Sets the status flag in utils service
     switch (auth) {
       case 'ROLE_CLIENT':
+  //      this.utilsService.changeInstanceCount(true).subscribe();
         this.cameraSvc.initialiseCameras();  // Load the cameras data
         this.cameraSvc.getPublicKey();
         this.idleTimeoutActive = this.callGetTemp = true;
@@ -260,13 +282,14 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   setActiveMQCreds() {
-    window.location.href = '#/general/registerActiveMQAccount';
+    window.location.href = '#/registerActiveMQAccount';
   }
   get cameras(): Map<string, Camera> {
-    return this.cameraSvc.cameras;
+    return this.cameraSvc.getCameras();
   }
 
-  ngOnInit(): void {
+  ngOnInit() {
+    this.utilsService.changeInstanceCount(true).subscribe();
     this.utilsService.getUserAuthorities().pipe(
       map((auths: { authority: string }[]) => {
         return auths !== null && auths.length > 0 ? auths[0]?.authority : 'ROLE_ANONYMOUS';

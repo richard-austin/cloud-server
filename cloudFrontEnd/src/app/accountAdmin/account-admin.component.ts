@@ -6,8 +6,12 @@ import {UtilsService, Account} from "../shared/utils.service";
 import {animate, state, style, transition, trigger} from "@angular/animations";
 import {AbstractControl, FormControl, FormGroup, ValidationErrors, ValidatorFn, Validators} from "@angular/forms";
 import {ReportingComponent} from "../reporting/reporting.component";
-import { Sort } from '@angular/material/sort';
+import {MatSort, Sort} from '@angular/material/sort';
 import {Client, StompSubscription} from '@stomp/stompjs';
+import {SharedModule} from '../shared/shared.module';
+import {SharedAngularMaterialModule} from '../shared/shared-angular-material/shared-angular-material.module';
+import {FilterPipe} from './filter.pipe';
+import {SortPipe} from './sort.pipe';
 
 @Component({
     selector: 'app-nvradmin',
@@ -20,7 +24,7 @@ import {Client, StompSubscription} from '@stomp/stompjs';
             transition('expanded <=> collapsed', animate('225ms cubic-bezier(0.4, 0.0, 0.2, 1)')),
         ])
     ],
-    standalone: false
+  imports: [SharedModule, SharedAngularMaterialModule, MatSort, FilterPipe, SortPipe]
 })
 export class AccountAdminComponent implements OnInit {
   downloading: boolean = false;
@@ -112,7 +116,87 @@ export class AccountAdminComponent implements OnInit {
           if (message.body) {
             let msgObj = JSON.parse(message.body);
             if (msgObj.message === "update") {
-              this.getAccounts();
+              let slice = this.accounts.slice();
+
+                const idx = slice.findIndex((acc:Account)=> acc.productId === msgObj.productId);
+                  switch (msgObj.field) {
+                    case "usersConnected":
+                      if(idx != -1) {
+                        slice[idx].usersConnected = msgObj.value;
+                      }
+                      break
+                    case "addUser":
+                      if(idx != -1) { // Row already present
+                        const row = slice[idx];
+                        row.userName = msgObj.value;
+                        row.email = msgObj.value2;
+                        row.accountCreated = row.accountEnabled = true;
+                      }
+                      else { // Row not preset (NVR not connected), must be added (This would never normally be used as it's not possible
+                             // to add a user with the NVR offline
+                       const row = new Account();
+                       row.userName = msgObj.value;
+                       row.email = msgObj.value2;
+                       row.accountCreated = row.accountEnabled = true;
+                       row.nvrConnected = true;
+                       row.usersConnected = 0;
+                       row.productId = msgObj.productId;
+                       slice.push(row);
+                      }
+                      break;
+                    case "removeUser":
+                      if(idx != -1) {
+                        const row = slice[idx];
+                        if(row.nvrConnected) { // Don't remove the row if the NVR is connected, just clear the user and email
+                          row.userName = row.email = "";
+                          row.accountCreated = row.accountEnabled = false;
+                        }
+                        else { // NVR not connected, so nothing to show on the row, we remove it
+                          slice.splice(idx, 1);
+                        }
+                      }
+                      break;
+                    case "setAccountEnabledStatus":
+                      if(idx != -1) {
+                        const row = slice[idx];
+                        row.accountEnabled = msgObj.value;
+                      }
+                      break;
+                    case "changeEmail":
+                      if(idx != -1) {
+                        const row = slice[idx];
+                        row.email = msgObj.value;
+                        //this.ngOnInit();
+                      }
+                      break;
+                    case "putCloudMQ":
+                      if(idx != -1) {
+                        const row = slice[idx];
+                        row.nvrConnected = true;
+                        slice[idx] = row;
+                      }
+                      else {
+                        let row = new Account();
+                        row.nvrConnected = true;
+                        row.accountCreated = false;
+                        row.usersConnected = 0;
+                        row.productId = msgObj.productId;
+                        slice.push(row);
+                      }
+                      break;
+                    case "removeCloudMQ":
+                      if(idx != -1) {
+                        const row = slice[idx];
+                        if(row.accountCreated)
+                          row.nvrConnected = false;
+                        else
+                          slice.splice(idx, 1);
+                      }
+                      break;
+                  }
+                  this.accounts = slice;
+
+              // this.getAccounts();
               this.expandedElement = undefined;
               console.log(message.body);
             }
