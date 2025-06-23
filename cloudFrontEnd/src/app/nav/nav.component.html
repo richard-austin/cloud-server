@@ -73,14 +73,30 @@
     <div class="float-right-on-full-width" *ngIf="utilsService.loggedIn">
       <button mat-button [matMenuTriggerFor]="menuGeneral">General</button>
       <mat-menu #menuGeneral="matMenu">
-        <button *ngIf="!utilsService.isAdmin" mat-menu-item (click)="configSetup();menuClosed()"
+        @if (!utilsService.isAdmin) {
+          <button mat-menu-item (click)="configSetup();menuClosed()"
                 matTooltip="Discover and configure the cameras for live view, recording, audio back channel and various other features."
                 matTooltipClass="tooltip">
           Cameras Configuration
         </button>
+        }
         <button mat-menu-item (click)="confirmLogoff();menuClosed()">
           Log Off
         </button>
+        @if (!utilsService.isAdmin) {
+          <div mat-menu-item
+               matTooltip="Enable or disable H264 hardware decoding. In some cases hardware decoding adds latency on H264, in other cases hardware decoding is required to decode it at all. Set this for the best performance on the platform/browser you are using."
+               matTooltipClass="tooltip"
+               (click)="$event.stopPropagation(); hardwareDecodingCheckBox.toggle()"
+               (keydown.enter)="$event.stopPropagation(); hardwareDecodingCheckBox.toggle()">
+            <mat-checkbox class="mat-menu__checkbox"
+                          labelPosition="before"
+                          (click)="hardwareDecoding(hardwareDecodingCheckBox.checked);$event.stopPropagation()"
+                          #hardwareDecodingCheckBox>
+              H264 Hardware Decoding
+            </mat-checkbox>
+          </div>
+        }
         <button mat-menu-item (click)="changePassword();menuClosed()"
                 matTooltip="Change the password for the {{utilsService.isAdmin ?  'admin' : 'Cloud'}} account. {{!utilsService.isAdmin ? 'To change the password on the NVR, use the Admin Functions menu, and select \'Create or Update User Account\'.' : ''}}"
                 matTooltipClass="tooltip">
@@ -91,12 +107,14 @@
                 matTooltipClass="tooltip">
           Change {{ utilsService.isAdmin ? "Admin " : "Cloud " }}Account Email
         </button>
-        <button mat-menu-item *ngIf="utilsService.isAdmin"
+        @if (utilsService.isAdmin) {
+          <button mat-menu-item
                 (click)="setActiveMQCreds();menuClosed()"
                 matTooltip="Set up ActiveMQ credentials and host"
                 matTooltipClass="tooltip">
           Set ActiveMQ Credentials
         </button>
+        }
         <div *ngIf="!utilsService.isAdmin" class="dropdown-divider"></div>
         <button *ngIf="!utilsService.isAdmin" mat-menu-item (click)="setIp();menuClosed()"
                 matTooltip="Register the current public IP address of your internet account. If that address subsequewntly changes, you will be sent warning emails to your registered email address (on the NVR)"
