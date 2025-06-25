@@ -11,6 +11,7 @@ import {UserIdleConfig} from '../angular-user-idle/angular-user-idle.config';
 import {UserIdleService} from '../angular-user-idle/angular-user-idle.service';
 import {map} from 'rxjs/operators';
 import {Client, StompSubscription} from '@stomp/stompjs';
+import {MatCheckbox} from '@angular/material/checkbox';
 
 @Component({
     selector: 'app-nav',
@@ -22,6 +23,7 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
 
   @ViewChild(ReportingComponent) errorReporting!: ReportingComponent;
   @ViewChild('navbarCollapse') navbarCollapse!: ElementRef<HTMLDivElement>;
+  @ViewChild('hardwareDecodingCheckBox') hardwareDecodingCheckBox!: MatCheckbox
 
   routerOutletClassName!: string;
   @HostListener('window:beforeunload', ['$event'])
@@ -84,7 +86,7 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
     let suuid = 'suuid=';
     let uri = stream.recording.recording_src_url;
     let index = uri.indexOf(suuid);
-    let streamName = uri.substring(index + suuid.length);
+    let streamName = uri.substring(index + suuid.length, uri.length-1);
     window.location.href = '#/recording/' + streamName;
   }
 
@@ -114,6 +116,32 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
 
   confirmLogoff(): void {
     this.confirmLogout = true;
+  }
+
+  hardwareDecoding(checked: boolean) {
+    this.setCookie("hardwareDecoding", checked ? "true" : "false", 600);
+  }
+
+  setCookie(cname:string, cvalue:string, exdays:number) {
+    const d = new Date();
+    d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
+    let expires = "expires="+d.toUTCString();
+    document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+  }
+
+  static getCookie(cname:string) {
+    let name = cname + "=";
+    let ca = document.cookie.split(';');
+    for(let i = 0; i < ca.length; i++) {
+      let c = ca[i];
+      while (c.charAt(0) == ' ') {
+        c = c.substring(1);
+      }
+      if (c.indexOf(name) == 0) {
+        return c.substring(name.length, c.length);
+      }
+    }
+    return "";
   }
 
   logOff(logoff: boolean): void {
@@ -363,6 +391,16 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngAfterViewInit(): void {
+    let hwdc = NavComponent.getCookie("hardwareDecoding");
+    if (hwdc === "") {
+      this.setCookie("hardwareDecoding", "true", 600);
+      hwdc = "true";
+    }
+    const sub = timer(30).subscribe(() => {
+      sub.unsubscribe();
+      this.hardwareDecodingCheckBox.checked = hwdc === "true";
+    });
+
     // If the camera service got any errors while getting the camera setup, then we report it here.
     this.cameraSvc.errorEmitter.subscribe((error: HttpErrorResponse) => this.errorReporting.errorMessage = error);
   }
