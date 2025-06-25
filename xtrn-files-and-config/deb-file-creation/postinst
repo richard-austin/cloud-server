@@ -80,7 +80,6 @@ find /var/cloud-server -type f -print0 | xargs -0 chmod 664
 mv /tmp/install-cert.sh /var/cloud-server/
 chown root:root /var/cloud-server/install-cert.sh
 chown -R tomcat:tomcat /var/log/tomcat10
-chown -R tomcat:tomcat /var/log/cloud-server
 
 chgrp -R grp-cloud /var/cloud-server/
 
