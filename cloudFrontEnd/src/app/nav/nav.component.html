@@ -4,12 +4,14 @@
   </a>
 
   <div>
-    <div *ngIf="!noTemperature && !utilsService.isAdmin" [ngClass]="tempAlertClass">Core Temp: {{ temperature }}°C
-    </div>
+    @if (!noTemperature && !utilsService.isAdmin) {
+      <div [ngClass]="tempAlertClass">Core Temp: {{ temperature }}°C
+      </div>
+    }
   </div>
 
   <button mat-button class="navbar-toggler" type="button" (click)="toggleMenu()"
-          aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+    aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
     <mat-icon>menu</mat-icon>
   </button>
   <div #navbarCollapse class="collapse" id="navbarSupportedContent">
@@ -18,13 +20,13 @@
         Select Camera
       </button>
       <mat-menu #menuSelectCamera="matMenu">
-        <ng-container *ngFor="let camKV of cameras | keyvalue">
-          <ng-container *ngFor="let streamKV of camKV.value.streams | keyvalue">
+        @for (camKV of cameras | keyvalue; track camKV) {
+          @for (streamKV of camKV.value.streams | keyvalue; track streamKV) {
             <button mat-menu-item (click)="setVideoStream(camKV.value, streamKV.value);menuClosed()">
               {{ camKV.value.name + " (" + streamKV.value.descr + ")" }}
             </button>
-          </ng-container>
-        </ng-container>
+          }
+        }
         <button mat-menu-item (click)="multiCamView();menuClosed()">Multi Camera View</button>
       </mat-menu>
     </div>
@@ -32,159 +34,193 @@
     <div [style]="'display:'+ ((utilsService.loggedIn && !utilsService.isAdmin) ? 'inherit' : 'none')">
       <button mat-button [matMenuTriggerFor]="$any(menuSelectRecording)">Select Recording</button>
       <mat-menu #menuSelectRecording="matMenu">
-        <ng-container *ngFor="let camKV of cameras | keyvalue">
-          <ng-container *ngFor="let streamKV of camKV.value.streams | keyvalue">
-            <button mat-menu-item (click)="showRecording(camKV.value, streamKV.value);menuClosed()"
-                    *ngIf="streamKV.value.recording.enabled">
-              {{ camKV.value.name + " (" + streamKV.value.descr + ")" }}
-            </button>
-          </ng-container>
-        </ng-container>
+        @for (camKV of cameras | keyvalue; track camKV) {
+          @for (streamKV of camKV.value.streams | keyvalue; track streamKV) {
+            @if (streamKV.value.recording.enabled) {
+              <button mat-menu-item (click)="showRecording(camKV.value, streamKV.value);menuClosed()"
+                >
+                {{ camKV.value.name + " (" + streamKV.value.descr + ")" }}
+              </button>
+            }
+          }
+        }
       </mat-menu>
     </div>
 
     <div [style]="'display:'+ ((utilsService.loggedIn && !utilsService.isAdmin) ? 'inherit' : 'none')">
       <button mat-button [matMenuTriggerFor]="menuCameraSettings">Camera Settings</button>
       <mat-menu #menuCameraSettings="matMenu">
-        <ng-container *ngFor="let camKV of cameras | keyvalue">
-          <button *ngIf="camKV.value.address!=''&&camKV.value.cameraParamSpecs.camType !== cameraTypes.none"
-                  mat-menu-item
-                  (click)="cameraControl(camKV.value);menuClosed()">
-            {{ camKV.value.name }}
+        @for (camKV of cameras | keyvalue; track camKV) {
+          @if (camKV.value.address!=''&&camKV.value.cameraParamSpecs.camType !== cameraTypes.none) {
+            <button
+              mat-menu-item
+              (click)="cameraControl(camKV.value);menuClosed()">
+              {{ camKV.value.name }}
+            </button>
+          }
+        }
+      </mat-menu>
+    </div>
+
+    @if ((utilsService.loggedIn && utilsService.isAdmin)) {
+      <div>
+        <button mat-button [matMenuTriggerFor]="admin">Admin</button>
+        <mat-menu #admin=matMenu>
+          <button mat-menu-item (click)="accountsAdmin(); menuClosed()">
+            Accounts admin
           </button>
-        </ng-container>
-      </mat-menu>
-    </div>
+        </mat-menu>
+      </div>
+    }
 
-    <div *ngIf="(utilsService.loggedIn && utilsService.isAdmin)">
-      <button mat-button [matMenuTriggerFor]="admin">Admin</button>
-      <mat-menu #admin=matMenu>
-        <button mat-menu-item (click)="accountsAdmin(); menuClosed()">
-          Accounts admin
-        </button>
-      </mat-menu>
-    </div>
+    @if (!utilsService.loggedIn) {
+      <div class="no-session-menus">
+        <button mat-button (click)="login();menuClosed()">Log in</button>
+        <button mat-button (click)="registerAccount();menuClosed()">Create Account</button>
+      </div>
+    }
 
-    <div class="no-session-menus" *ngIf="!utilsService.loggedIn">
-      <button mat-button (click)="login();menuClosed()">Log in</button>
-      <button mat-button (click)="registerAccount();menuClosed()">Create Account</button>
-    </div>
-
-    <div class="float-right-on-full-width" *ngIf="utilsService.loggedIn">
-      <button mat-button [matMenuTriggerFor]="menuGeneral">General</button>
-      <mat-menu #menuGeneral="matMenu">
-        @if (!utilsService.isAdmin) {
-          <button mat-menu-item (click)="configSetup();menuClosed()"
-                matTooltip="Discover and configure the cameras for live view, recording, audio back channel and various other features."
-                matTooltipClass="tooltip">
-          Cameras Configuration
-        </button>
-        }
-        <button mat-menu-item (click)="confirmLogoff();menuClosed()">
-          Log Off
-        </button>
-        @if (!utilsService.isAdmin) {
-          <div mat-menu-item
-               matTooltip="Enable or disable H264 hardware decoding. In some cases hardware decoding adds latency on H264, in other cases hardware decoding is required to decode it at all. Set this for the best performance on the platform/browser you are using."
-               matTooltipClass="tooltip"
-               (click)="$event.stopPropagation(); hardwareDecodingCheckBox.toggle()"
-               (keydown.enter)="$event.stopPropagation(); hardwareDecodingCheckBox.toggle()">
-            <mat-checkbox class="mat-menu__checkbox"
-                          labelPosition="before"
-                          (click)="hardwareDecoding(hardwareDecodingCheckBox.checked);$event.stopPropagation()"
-                          #hardwareDecodingCheckBox>
-              H264 Hardware Decoding
-            </mat-checkbox>
-          </div>
-        }
-        <button mat-menu-item (click)="changePassword();menuClosed()"
-                matTooltip="Change the password for the {{utilsService.isAdmin ?  'admin' : 'Cloud'}} account. {{!utilsService.isAdmin ? 'To change the password on the NVR, use the Admin Functions menu, and select \'Create or Update User Account\'.' : ''}}"
-                matTooltipClass="tooltip">
-          Change {{ utilsService.isAdmin ? "Admin " : "Cloud " }} Account Password
-        </button>
-        <button mat-menu-item (click)="changeEmail();menuClosed()"
-                matTooltip="Change the email address for the {{utilsService.isAdmin ?  'admin' : 'Cloud'}} account. {{!utilsService.isAdmin ? 'To change the email address on the NVR, use the Admin Functions menu, and select \'Create or Update User Account\'.' : ''}}"
-                matTooltipClass="tooltip">
-          Change {{ utilsService.isAdmin ? "Admin " : "Cloud " }}Account Email
-        </button>
-        @if (utilsService.isAdmin) {
-          <button mat-menu-item
-                (click)="setActiveMQCreds();menuClosed()"
-                matTooltip="Set up ActiveMQ credentials and host"
-                matTooltipClass="tooltip">
-          Set ActiveMQ Credentials
-        </button>
-        }
-        <div *ngIf="!utilsService.isAdmin" class="dropdown-divider"></div>
-        <button *ngIf="!utilsService.isAdmin" mat-menu-item (click)="setIp();menuClosed()"
-                matTooltip="Register the current public IP address of your internet account. If that address subsequewntly changes, you will be sent warning emails to your registered email address (on the NVR)"
-                matTooltipClass="tooltip">
-          Save Current Public IP
-        </button>
-        <button *ngIf="utilsService.isAdmin" mat-menu-item (click)="setUpSMTPClient();menuClosed()"
-                matTooltip="Set up the SMTP client used for password reset emails for the admin and all client accounts"
-                matTooltipClass="tooltip">
-          Set Up SMTP Client
-        </button>
-        <button *ngIf="!utilsService.isAdmin" mat-menu-item (click)="getActiveIPAddresses(); menuClosed()"
-                matTooltip="Get the NVR's active IP addresses and their associated network adapters."
-                matTooltipClass="tooltip">
-          Get Active Local IP Address(es)
-        </button>
-        <ng-container *ngIf="!utilsService.isAdmin">
-          <button mat-menu-item [matMenuTriggerFor]="wifiAdmin">Wifi Admin</button>
-          <mat-menu #wifiAdmin="matMenu">
-            <button mat-menu-item (click)="getLocalWifiDetails(); menuClosed()"
-                    matTooltip="List the WiFi access points and their details in range of the NVR."
-                    matTooltipClass="tooltip">
-              Local Wifi Details
+    @if (utilsService.loggedIn) {
+      <div class="float-right-on-full-width">
+        <button mat-button [matMenuTriggerFor]="menuGeneral">General</button>
+        <mat-menu #menuGeneral="matMenu">
+          @if (!utilsService.isAdmin) {
+            <button mat-menu-item (click)="configSetup();menuClosed()"
+              matTooltip="Discover and configure the cameras for live view, recording, audio back channel and various other features."
+              matTooltipClass="tooltip">
+              Cameras Configuration
             </button>
-            <button mat-menu-item (click)="wifiSettings(); menuClosed()"
-                    matTooltip="Configure NVR WiFi (Must be connected through Ethernet to use this)."
-                    matTooltipClass="tooltip">
-              Wifi Settings
+          }
+          <button mat-menu-item (click)="confirmLogoff();menuClosed()">
+            Log Off
+          </button>
+          @if (!utilsService.isAdmin) {
+            <div mat-menu-item
+              matTooltip="Enable or disable H264 hardware decoding. In some cases hardware decoding adds latency on H264, in other cases hardware decoding is required to decode it at all. Set this for the best performance on the platform/browser you are using."
+              matTooltipClass="tooltip"
+              (click)="$event.stopPropagation(); hardwareDecodingCheckBox.toggle()"
+              (keydown.enter)="$event.stopPropagation(); hardwareDecodingCheckBox.toggle()">
+              <mat-checkbox class="mat-menu__checkbox"
+                labelPosition="before"
+                (click)="hardwareDecoding(hardwareDecodingCheckBox.checked);$event.stopPropagation()"
+                #hardwareDecodingCheckBox>
+                H264 Hardware Decoding
+              </mat-checkbox>
+            </div>
+          }
+          <button mat-menu-item (click)="changePassword();menuClosed()"
+            matTooltip="Change the password for the {{utilsService.isAdmin ?  'admin' : 'Cloud'}} account. {{!utilsService.isAdmin ? 'To change the password on the NVR, use the Admin Functions menu, and select \'Create or Update User Account\'.' : ''}}"
+            matTooltipClass="tooltip">
+            Change {{ utilsService.isAdmin ? "Admin " : "Cloud " }} Account Password
+          </button>
+          <button mat-menu-item (click)="changeEmail();menuClosed()"
+            matTooltip="Change the email address for the {{utilsService.isAdmin ?  'admin' : 'Cloud'}} account. {{!utilsService.isAdmin ? 'To change the email address on the NVR, use the Admin Functions menu, and select \'Create or Update User Account\'.' : ''}}"
+            matTooltipClass="tooltip">
+            Change {{ utilsService.isAdmin ? "Admin " : "Cloud " }}Account Email
+          </button>
+          @if (utilsService.isAdmin) {
+            <button mat-menu-item
+              (click)="setActiveMQCreds();menuClosed()"
+              matTooltip="Set up ActiveMQ credentials and host"
+              matTooltipClass="tooltip">
+              Set ActiveMQ Credentials
             </button>
-          </mat-menu>
-        </ng-container>
-        <div *ngIf="!utilsService.isAdmin"
-             matTooltip="Change local NVR user account password/username/email and/or set up local NVR SMTP details"
-             matTooltipClass="tooltip">
-          <button mat-menu-item (click)="localAdminFunctionsForNVR();menuClosed()">Admin Functions</button>
-        </div>
-        <button *ngIf="!utilsService.isAdmin && !utilsService.hasLocalAccount" mat-menu-item
-                (click)="registerLocalNVRAccount(); menuClosed()">Register Local NVR Account
-        </button>
-        <button *ngIf="!utilsService.isAdmin && utilsService.hasLocalAccount" mat-menu-item
-                (click)="removeLocalNVRAccount(); menuClosed()">Remove Local NVR Account
-        </button>
-        <button *ngIf="!utilsService.isAdmin" mat-menu-item (click)="drawdownCalc();menuClosed()">
-          Pension Drawdown Calculator
-        </button>
-        <div *ngIf="!utilsService.isAdmin" class="dropdown-divider"></div>
-        <button *ngIf="!utilsService.isAdmin" mat-menu-item (click)="about();menuClosed()">
-          About NVR
-        </button>
-        <button *ngIf="utilsService.isAdmin" mat-menu-item (click)="aboutCCTVCloud();menuClosed()">
-          About CCTV Cloud
-        </button>
-      </mat-menu>
-    </div>
+          }
+          @if (!utilsService.isAdmin) {
+            <div class="dropdown-divider"></div>
+          }
+          @if (!utilsService.isAdmin) {
+            <button mat-menu-item (click)="setIp();menuClosed()"
+              matTooltip="Register the current public IP address of your internet account. If that address subsequewntly changes, you will be sent warning emails to your registered email address (on the NVR)"
+              matTooltipClass="tooltip">
+              Save Current Public IP
+            </button>
+          }
+          @if (utilsService.isAdmin) {
+            <button mat-menu-item (click)="setUpSMTPClient();menuClosed()"
+              matTooltip="Set up the SMTP client used for password reset emails for the admin and all client accounts"
+              matTooltipClass="tooltip">
+              Set Up SMTP Client
+            </button>
+          }
+          @if (!utilsService.isAdmin) {
+            <button mat-menu-item (click)="getActiveIPAddresses(); menuClosed()"
+              matTooltip="Get the NVR's active IP addresses and their associated network adapters."
+              matTooltipClass="tooltip">
+              Get Active Local IP Address(es)
+            </button>
+          }
+          @if (!utilsService.isAdmin) {
+            <button mat-menu-item [matMenuTriggerFor]="wifiAdmin">Wifi Admin</button>
+            <mat-menu #wifiAdmin="matMenu">
+              <button mat-menu-item (click)="getLocalWifiDetails(); menuClosed()"
+                matTooltip="List the WiFi access points and their details in range of the NVR."
+                matTooltipClass="tooltip">
+                Local Wifi Details
+              </button>
+              <button mat-menu-item (click)="wifiSettings(); menuClosed()"
+                matTooltip="Configure NVR WiFi (Must be connected through Ethernet to use this)."
+                matTooltipClass="tooltip">
+                Wifi Settings
+              </button>
+            </mat-menu>
+          }
+          @if (!utilsService.isAdmin) {
+            <div
+              matTooltip="Change local NVR user account password/username/email and/or set up local NVR SMTP details"
+              matTooltipClass="tooltip">
+              <button mat-menu-item (click)="localAdminFunctionsForNVR();menuClosed()">Admin Functions</button>
+            </div>
+          }
+          @if (!utilsService.isAdmin && !utilsService.hasLocalAccount) {
+            <button mat-menu-item
+              (click)="registerLocalNVRAccount(); menuClosed()">Register Local NVR Account
+            </button>
+          }
+          @if (!utilsService.isAdmin && utilsService.hasLocalAccount) {
+            <button mat-menu-item
+              (click)="removeLocalNVRAccount(); menuClosed()">Remove Local NVR Account
+            </button>
+          }
+          @if (!utilsService.isAdmin) {
+            <button mat-menu-item (click)="drawdownCalc();menuClosed()">
+              Pension Drawdown Calculator
+            </button>
+          }
+          @if (!utilsService.isAdmin) {
+            <div class="dropdown-divider"></div>
+          }
+          @if (!utilsService.isAdmin) {
+            <button mat-menu-item (click)="about();menuClosed()">
+              About NVR
+            </button>
+          }
+          @if (utilsService.isAdmin) {
+            <button mat-menu-item (click)="aboutCCTVCloud();menuClosed()">
+              About CCTV Cloud
+            </button>
+          }
+        </mat-menu>
+      </div>
+    }
   </div>
 </div>
-<mat-card class="mat-elevation-z8 confirm-logout" *ngIf="confirmLogout">
-  <mat-card-subtitle>
-    Logout from Cloud, Are you sure?
-  </mat-card-subtitle>
-  <mat-card-content>
-    <button mat-raised-button color="warn" (click)="logOff(true)">Confirm</button>
-    <button mat-raised-button color="cancel" (click)="logOff(false)">Cancel</button>
-  </mat-card-content>
-</mat-card>
+@if (confirmLogout) {
+  <mat-card class="mat-elevation-z8 confirm-logout">
+    <mat-card-subtitle>
+      Logout from Cloud, Are you sure?
+    </mat-card-subtitle>
+    <mat-card-content>
+      <button mat-raised-button color="warn" (click)="logOff(true)">Confirm</button>
+      <button mat-raised-button color="cancel" (click)="logOff(false)">Cancel</button>
+    </mat-card-content>
+  </mat-card>
+}
 @if (!utilsService.activeMQTransportActive) {
-    <div class="no-transport-warning">
-      <div>
-        <mat-card-title>Not Connected To Transport</mat-card-title>
-      </div>
+  <div class="no-transport-warning">
+    <div>
+      <mat-card-title>Not Connected To Transport</mat-card-title>
     </div>
+  </div>
 }
 <router-outlet (activate)="onActivate($event)"></router-outlet>

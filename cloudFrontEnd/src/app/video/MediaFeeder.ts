@@ -1,6 +1,6 @@
 import Hls from "hls.js";
 import {Camera, Stream} from "../cameras/Camera";
-import {Subscription} from "rxjs";
+import {Subscription, timer} from "rxjs";
 import {ReportingComponent} from "../reporting/reporting.component";
 import {NavComponent} from "../nav/nav.component";
 
@@ -12,7 +12,7 @@ declare let AudioStream: any;
 
 initMSTG();  // Set up MediaStreamTrackGenerator for platforms which don't support it
 
-export class MediaFeeder {
+class MediaFeeder {
   isLive!: boolean;
   cam!: Camera;
   stream!: Stream;
@@ -25,11 +25,14 @@ export class MediaFeeder {
   videoWorker!: Worker;
   audioWorker!:Worker;
   // @ts-ignore
-  audioWorklet: AudioStream;
+  audioStream: AudioStream;
   muted: boolean = false;
+  private audioLatencyControl: boolean = true;
   volume: number = 0.4;
   isStalled: boolean = false;
   protected _noAudio: boolean = false;
+  audioLatencyOverrun: boolean = false;
+
 
   constructor() {
   }
@@ -100,20 +103,34 @@ export class MediaFeeder {
       let audio_sample_rate = parseInt(this.stream.audio_sample_rate);
       if (audio_sample_rate < 1000)
         audio_sample_rate *= 1000;
-      this.audioWorklet = this.stream.audio ? new AudioStream(audio_sample_rate) : undefined;
+      this.audioStream = this.stream.audio ? new AudioStream(audio_sample_rate) : undefined;
 
-      if(this.audioWorklet) {
+      if (this.audioStream) {
         // If selecting a cam immediately after another, keep the gian and muting status from beforer
-        this.audioWorklet.setMuting(this.muted);
-        this.audioWorklet.setGain(this.volume);
+        this.audioStream.setMuting(this.muted);
+        this.audioStream.setGain(this.volume);
+        this.audioStream.setAutoLatencyControl(this.audioLatencyControl);
       }
-      const audioTrack = this.audioWorklet?.getTrack();
 
+      const audioTrack = this.audioStream?.getTrack();
       const audioWriter = audioTrack?.writable?.getWriter();
 
       this.video.srcObject = new MediaStream([videoTrack]);
       this.video.onloadedmetadata = () => {
         this.video.play().then();
+        // @ts-ignore
+        if(this.audioStream?.underlyingSink?.node?.port) {
+          // @ts-ignore
+          this.audioStream.underlyingSink.node.port.onmessage = ({data}) => {
+            this.audioLatencyOverrun = true;
+            const sub = timer(4000).subscribe(() => {
+              sub.unsubscribe();
+              this.audioLatencyOverrun = false;
+            });
+            console.log("LatencyChasingEvent: " + data);
+          };
+          this.audioStream.setAutoLatencyControl(this.audioLatencyControl);
+        }
       }
       this.video.preload = "none";
 
@@ -209,39 +226,55 @@ export class MediaFeeder {
     }
   }
 
+  /**
+   * setAutoLatencyControl: Enable/disable auto audio latency limiting on live streams
+   * @param autoLatencyControl
+   */
+  setAutoLatencyControl(autoLatencyControl: boolean) {
+    this.audioStream?.setAutoLatencyControl(autoLatencyControl);
+    this.audioLatencyControl = autoLatencyControl;
+  }
+
+  getAudioLatencyControl() {
+    return this.audioStream?.getAudioLatencyControl();
+  }
+
   set gain(volume: number) {
-    this.audioWorklet?.setGain(volume);
+    this.audioStream?.setGain(volume);
     this.volume = volume;
   }
 
   get gain(): number {
-    return this.audioWorklet?.getGain()
+    return this.audioStream?.getGain();
   }
 
   mute(muted: boolean = true) {
-    this.audioWorklet?.setMuting(muted);
+    this.audioStream?.setMuting(muted);
     this.muted = muted;
   }
 
   get isMuted() {
-    return this.audioWorklet?.isMuted();
+    return this.audioStream?.isMuted();
   }
 
   get hasCam(): boolean {
     return this.cam !== null && this.cam !== undefined;
   }
+
   get hasStream(): boolean {
     return this.stream !== null && this.stream !== undefined;
   }
+
   get backchannelAudioSupported(): boolean {
-    return this.hasCam && this.cam.backchannelAudioSupported
+    return this.hasCam && this.cam.backchannelAudioSupported;
   }
+
   get camName(): string {
     return this.hasCam ? this.cam.name : 'NO CAMERA!!';
   }
 
   get streamDescr() : string {
-    return this.hasStream ? this.stream.descr : "NO STREAM!!"
+    return this.hasStream ? this.stream.descr : "NO STREAM!!";
   }
 
   get camera() : Camera {
@@ -252,3 +285,5 @@ export class MediaFeeder {
     return this._noAudio;
   }
 }
+
+export default MediaFeeder

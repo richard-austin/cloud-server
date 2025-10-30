@@ -15,8 +15,10 @@ import {
 } from '@angular/material/datepicker';
 import {SharedModule} from "../shared/shared.module";
 import {SharedAngularMaterialModule} from "../shared/shared-angular-material/shared-angular-material.module";
-import {AudioControlComponent} from "../video/audio-control/audio-control.component";
+import AudioControlComponent from "../video/audio-control/audio-control.component";
 import {animate, state, style, transition, trigger} from "@angular/animations";
+import {AudioSettings} from "../video/AudioSettings";
+import {NavComponent} from "../nav/nav.component";
 
 declare let saveAs: (blob: Blob, name?: string, type?: string) => {};
 
@@ -70,6 +72,7 @@ export class RecordingControlComponent implements OnInit, AfterViewInit, OnDestr
     showAudioControls: boolean = false;
     ctrlKeyDown = false;
     volume: number = 0.4;
+  private camKey: string = "";
 
     constructor(private route: ActivatedRoute, private cameraSvc: CameraService, private motionService: MotionService, private utilsService: UtilsService, private cd: ChangeDetectorRef) {
         // route.url.subscribe((u:UrlSegment[]) => {
@@ -181,6 +184,7 @@ export class RecordingControlComponent implements OnInit, AfterViewInit, OnDestr
                     (error) => {
                         this.reporting.errorMessage = error;
                     });
+        this.setInitialLevel(0.4, false, true)
             }
         } else {
             this.showInvalidInput(false);
@@ -361,10 +365,14 @@ export class RecordingControlComponent implements OnInit, AfterViewInit, OnDestr
             this.showAudioControls = false;
     };
 
-    toggleMuteAudio(muted: boolean) {
-        if (this.video.video)
+  mute(muted: boolean) {
+    if (this.video.video) {
             this.video.video.muted = muted;
         this.volume = this.video.mediaFeeder.isMuted ? 0 : this.video.video.volume;
+      const audioLatencyControl = this.video?.mediaFeeder?.audioStream?.getAudioLatencyControl();
+      const level = new AudioSettings(this.video.video.volume, muted, audioLatencyControl);
+      NavComponent.setCookie(this.camKey, JSON.stringify(level), 600);
+    }
     }
 
     isMuted(): boolean {
@@ -375,16 +383,51 @@ export class RecordingControlComponent implements OnInit, AfterViewInit, OnDestr
     }
 
     setVolume(volume: number) {
+    if (this?.video?.video) {
         this.volume = volume;
         this.video.video.volume = this.volume;
+      const audioLatencyControl = this.video?.mediaFeeder?.audioStream?.getAudioLatencyControl();
+      const level = new AudioSettings(volume, this.isMuted(), audioLatencyControl);
+      NavComponent.setCookie(this.camKey, JSON.stringify(level), 600);
+    }
+  }
+
+  /**
+   * getCamKey: Get key for level setting cookie name
+   */
+  getCamKey(): void {
+    let camKey = '';
+    const searchTerm = "?suuid=";
+    const camIdx = this.stream.media_server_input_uri.indexOf(searchTerm);
+    if (camIdx > -1) {
+      const dashIdx = this.stream.media_server_input_uri.indexOf('-', camIdx);
+      if (dashIdx > -1) {
+        camKey = this.stream.media_server_input_uri.substring(camIdx + searchTerm.length, dashIdx);
+      }
+    }
+    this.camKey = "rec-" + camKey;
+  }
+
+  setInitialLevel(level: number, muted: boolean, audioLatencyControl: boolean) {
+    this.getCamKey();
+    let audioLevel: AudioSettings = new AudioSettings(level, muted, audioLatencyControl);
+    if (this.camKey !== "") {
+      const strLevel = NavComponent.getCookie(this.camKey)
+      if (strLevel !== "") {
+        audioLevel = JSON.parse(strLevel);
+      }
+    }
+    this.setVolume(audioLevel.level);
+    this.mute(audioLevel.mute);
+    this.volume = audioLevel.mute ? 0 : audioLevel.level;
     }
 
     toggleShowAudioControls() {
         if(this.ctrlKeyDown) {
-            this.toggleMuteAudio(!this.video?.video?.muted)
+      this.mute(!this.video?.video?.muted)
             this.showAudioControls = false;
-        }
-        else
+      this.volume = this.video?.video?.muted ? 0 : this.video.video.volume;
+    } else
             this.showAudioControls = !this.showAudioControls;
     }
 
@@ -415,4 +458,6 @@ export class RecordingControlComponent implements OnInit, AfterViewInit, OnDestr
         window.removeEventListener("keyup", this.keyHandler)
         this.video.video.controls = true; // Enable controls again
     }
+
+  protected readonly UtilsService = UtilsService;
 }

@@ -3,6 +3,11 @@ import {MatCard} from "@angular/material/card";
 import {MatSlider, MatSliderThumb} from "@angular/material/slider";
 import {FormsModule} from "@angular/forms";
 import {MatIcon} from "@angular/material/icon";
+import {MatIconButton} from "@angular/material/button";
+import {MatCheckbox, MatCheckboxChange} from "@angular/material/checkbox";
+import {NgStyle} from "@angular/common";
+import {MatTooltip} from "@angular/material/tooltip";
+import {UtilsService} from "../../shared/utils.service";
 
 @Component({
   selector: 'app-audio-control',
@@ -11,16 +16,22 @@ import {MatIcon} from "@angular/material/icon";
     MatIcon,
     MatSlider,
     FormsModule,
-    MatSliderThumb
+    MatSliderThumb,
+    MatIconButton,
+    MatCheckbox,
+    NgStyle,
+    MatTooltip
   ],
   templateUrl: './audio-control.component.html',
   styleUrl: './audio-control.component.scss'
 })
-export class AudioControlComponent implements AfterViewInit {
+class AudioControlComponent implements AfterViewInit {
   @Output() muteAudio = new EventEmitter<boolean>();
-  @Output() setLevel= new EventEmitter<number>();
+  @Output() setLevel = new EventEmitter<number>();
+  @Output() setAudioLatencyLimiting = new EventEmitter<boolean>();
   @Input() mute: boolean = false;
   @Input() level!: number;
+  @Input() audioLatencyLimiting!: boolean;
   lastLevel!: number;
 
   toggleMuteAudio() {
@@ -28,14 +39,12 @@ export class AudioControlComponent implements AfterViewInit {
     if (this.mute) {
       this.lastLevel = this.level;
       this.level = 0;
-    }
-    else
+    } else
       this.level = this.lastLevel;
     this.muteAudio.emit(this.mute);
   }
 
-  setVolume($event: Event) {
-    this.level = ($event.target as HTMLInputElement).valueAsNumber;
+  setVolume() {
     this.setLevel.emit(this.level);
   }
 
@@ -46,4 +55,13 @@ export class AudioControlComponent implements AfterViewInit {
   zeroTo100(value: number) {
     return `${Math.round(value * 100)}`;
   }
+
+  setLatencyLimiting($event: MatCheckboxChange) {
+    this.audioLatencyLimiting = $event.checked;
+    this.setAudioLatencyLimiting.emit($event.checked);
+  }
+
+  protected readonly UtilsService = UtilsService;
 }
+
+export default AudioControlComponent

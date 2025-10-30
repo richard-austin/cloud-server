@@ -142,7 +142,7 @@ export class UtilsService {
   {
     return this._hasLocalAccount;
   }
-
+  public static readonly toolTipDelay = 1000;
   constructor(private http: HttpClient, private _baseUrl: BaseUrl) {
     // Initialise the speakActive state
     this.audioInUse().subscribe();
