@@ -4,7 +4,7 @@ import {
   ElementRef,
   Input,
   OnDestroy,
-  OnInit,
+  OnInit, signal,
   ViewChild
 } from '@angular/core';
 import {Camera, Stream} from '../cameras/Camera';
@@ -19,7 +19,6 @@ import {SharedModule} from "../shared/shared.module";
 import {SharedAngularMaterialModule} from "../shared/shared-angular-material/shared-angular-material.module";
 import {FormsModule} from "@angular/forms";
 import AudioControlComponent from "./audio-control/audio-control.component";
-import {animate, state, style, transition, trigger} from "@angular/animations";
 import {NavComponent} from "../nav/nav.component";
 import {AudioSettings} from './AudioSettings';
 import {AudioInputPipe} from './audio-input.pipe';
@@ -29,14 +28,7 @@ import {AudioInputPipe} from './audio-input.pipe';
     selector: 'app-video',
     templateUrl: './video.component.html',
     styleUrls: ['./video.component.scss'],
-  animations: [
-    trigger('detailExpand', [
-      state('collapsed', style({width: '0px', minWidth: '0'})),
-      state('expanded', style({width: '*'})),
-      transition('expanded <=> collapsed', animate('225ms cubic-bezier(0.4, 0.0, 0.2, 1)')),
-    ])
-    ],
-  imports: [SharedModule, SharedAngularMaterialModule, FormsModule, AudioControlComponent, AudioControlComponent, AudioInputPipe]
+   imports: [SharedModule, SharedAngularMaterialModule, FormsModule, AudioControlComponent, AudioControlComponent, AudioInputPipe]
 })
 export class VideoComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('video') videoEl!: ElementRef<HTMLVideoElement>;
@@ -58,6 +50,8 @@ export class VideoComponent implements OnInit, AfterViewInit, OnDestroy {
   showAudioControls: boolean = false;
   ctrlKeyDown = false;
   camKey: string = "";
+  enterClass=signal('enter-animation');
+  farewell=signal('leaving')
 
   constructor(public utilsService: UtilsService) {
     this.mediaFeeder = new MediaFeeder();

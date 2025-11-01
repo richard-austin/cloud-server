@@ -87,7 +87,7 @@
           @if (hasAudio()) {
             <div class="audio-controls-dialogue">
               @if (showAudioControls) {
-                <div style="transition: height 10s" [animate.enter]="enterClass()" [animate.leave]="farewell()">
+                <div [animate.enter]="enterClass()" [animate.leave]="farewell()">
                   <app-audio-control [mute]="isMuted()"
                                      (muteAudio)="mute($event)" [level]="volume"
                                      (setLevel)="setVolume($event.valueOf())">

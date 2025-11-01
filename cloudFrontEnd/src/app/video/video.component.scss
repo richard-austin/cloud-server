@@ -148,3 +148,34 @@ mat-icon {
   margin-top: -10px;
   margin-bottom: -10px;
 }
+
+.enter-animation {
+  animation: fade-in 0.5s;
+}
+
+$cursor-origin: 17px;
+@keyframes fade-in {
+  from {
+    transform: scalex(0);
+    transform-origin: $cursor-origin;
+  }
+  to {
+    transform: scalex(1);
+    transform-origin: $cursor-origin;
+  }
+}
+
+.leaving {
+  animation: fade-out 0.5s;
+}
+
+@keyframes fade-out {
+  from {
+    transform: scalex(1);
+    transform-origin: $cursor-origin;
+  }
+  to {
+    transform: scalex(0);
+    transform-origin: $cursor-origin;
+  }
+}
