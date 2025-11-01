@@ -1,4 +1,4 @@
-import {AfterViewInit, ChangeDetectorRef, Component, ElementRef, OnDestroy, OnInit, ViewChild} from '@angular/core';
+import {AfterViewInit, ChangeDetectorRef, Component, signal, ElementRef, OnDestroy, OnInit, ViewChild} from '@angular/core';
 import {VideoComponent} from '../video/video.component';
 import {Camera, Stream} from '../cameras/Camera';
 import {CameraService, DateSlot, LocalMotionEvent, LocalMotionEvents} from '../cameras/camera.service';
@@ -16,7 +16,6 @@ import {
 import {SharedModule} from "../shared/shared.module";
 import {SharedAngularMaterialModule} from "../shared/shared-angular-material/shared-angular-material.module";
 import AudioControlComponent from "../video/audio-control/audio-control.component";
-import {animate, state, style, transition, trigger} from "@angular/animations";
 import {AudioSettings} from "../video/AudioSettings";
 import {NavComponent} from "../nav/nav.component";
 
@@ -38,14 +37,7 @@ Date.prototype.addDays = function (days: number): Date {
     selector: 'app-recording-control',
     templateUrl: './recording-control.component.html',
     styleUrls: ['./recording-control.component.scss'],
-    imports: [SharedModule, SharedAngularMaterialModule, VideoComponent, AudioControlComponent],
-    animations: [
-        trigger('detailExpand', [
-            state('collapsed', style({width: '0px', minWidth: '0'})),
-            state('expanded', style({width: '*'})),
-            transition('expanded <=> collapsed', animate('225ms cubic-bezier(0.4, 0.0, 0.2, 1)')),
-        ])
-    ],
+    imports: [SharedModule, SharedAngularMaterialModule, VideoComponent, AudioControlComponent, AudioControlComponent, AudioControlComponent, AudioControlComponent],
 })
 export class RecordingControlComponent implements OnInit, AfterViewInit, OnDestroy {
     @ViewChild(VideoComponent) video!: VideoComponent;
@@ -73,8 +65,10 @@ export class RecordingControlComponent implements OnInit, AfterViewInit, OnDestr
     ctrlKeyDown = false;
     volume: number = 0.4;
   private camKey: string = "";
+    enterClass=signal('enter-animation');
+    farewell=signal('leaving')
 
-    constructor(private route: ActivatedRoute, private cameraSvc: CameraService, private motionService: MotionService, private utilsService: UtilsService, private cd: ChangeDetectorRef) {
+  constructor(private route: ActivatedRoute, private cameraSvc: CameraService, private motionService: MotionService, private utilsService: UtilsService, private cd: ChangeDetectorRef) {
         // route.url.subscribe((u:UrlSegment[]) => {
         // });
         this.initialised = false;
