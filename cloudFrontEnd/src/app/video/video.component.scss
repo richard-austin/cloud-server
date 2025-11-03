@@ -150,32 +150,24 @@ mat-icon {
 }
 
 .enter-animation {
+  opacity: 0;
   animation: fade-in 0.5s;
 }
 
-$cursor-origin: 17px;
-@keyframes fade-in {
-  from {
-    transform: scalex(0);
-    transform-origin: $cursor-origin;
-  }
-  to {
-    transform: scalex(1);
-    transform-origin: $cursor-origin;
-  }
-}
-
-.leaving {
+.leaving-animation  {
+  opacity: 1;
   animation: fade-out 0.5s;
 }
 
-@keyframes fade-out {
-  from {
-    transform: scalex(1);
-    transform-origin: $cursor-origin;
-  }
+
+@keyframes fade-in {
   to {
-    transform: scalex(0);
-    transform-origin: $cursor-origin;
+    opacity: 1;
+  }
+}
+
+@keyframes fade-out {
+  to {
+    opacity: 0;
   }
 }

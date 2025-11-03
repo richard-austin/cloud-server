@@ -51,7 +51,7 @@ export class VideoComponent implements OnInit, AfterViewInit, OnDestroy {
   ctrlKeyDown = false;
   camKey: string = "";
   enterClass=signal('enter-animation');
-  farewell=signal('leaving')
+  farewell=signal('leaving-animation')
 
   constructor(public utilsService: UtilsService) {
     this.mediaFeeder = new MediaFeeder();

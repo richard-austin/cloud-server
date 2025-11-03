@@ -1,16 +1,15 @@
 import {
-    AfterViewInit,
-    ChangeDetectorRef,
-    Component,
-    ElementRef, HostListener,
-    OnDestroy,
-    OnInit, QueryList,
-    ViewChild, ViewChildren,
+  AfterViewInit,
+  ChangeDetectorRef,
+  Component,
+  ElementRef, HostListener,
+  OnDestroy,
+  OnInit, QueryList, signal,
+  ViewChild, ViewChildren,
 } from '@angular/core';
 import {CameraService} from '../cameras/camera.service';
 import {Camera, CameraParamSpec, Stream} from "../cameras/Camera";
 import {ReportingComponent} from '../reporting/reporting.component';
-import {animate, state, style, transition, trigger} from '@angular/animations';
 import {
     AbstractControl,
     UntypedFormArray,
@@ -50,28 +49,6 @@ export function validateTrueOrFalse(fieldCondition: {}): ValidatorFn {
     selector: 'app-config-setup',
     templateUrl: './config-setup.component.html',
     styleUrls: ['./config-setup.component.scss'],
-    animations: [
-        trigger('detailExpand', [
-            state('collapsed', style({height: '0px', minHeight: '0'})),
-            state('expanded', style({height: '*'})),
-            transition('expanded <=> collapsed', animate('225ms cubic-bezier(0.4, 0.0, 0.2, 1)')),
-        ]),
-        trigger('openClose', [
-            // ...
-            state('open', style({
-                transform: 'rotate(90deg)'
-            })),
-            state('closed', style({
-                transform: 'rotate(0deg)'
-            })),
-            transition('open => closed', [
-                animate('.2s')
-            ]),
-            transition('closed => open', [
-                animate('.2s')
-            ]),
-        ])
-    ],
     imports: [
         SharedModule,
         SharedAngularMaterialModule,
@@ -138,6 +115,9 @@ export class ConfigSetupComponent implements CanComponentDeactivate, OnInit, Aft
 
     constructor(public cameraSvc: CameraService, public utils: UtilsService, private sanitizer: DomSanitizer, private cd: ChangeDetectorRef) {
     }
+
+    animationEnter=signal('enter-animation');
+    animationLeave=signal('leaving-animation');
 
   validateSampleRate(): ValidatorFn {
     return (control: AbstractControl): ValidationErrors | null => {
@@ -796,6 +776,21 @@ export class ConfigSetupComponent implements CanComponentDeactivate, OnInit, Aft
             window.location.href = this.newUri;
     }
 
+  streamDeleteButtonToolTip(cam:{value: Camera, key: string}, stream: string) {
+    return cam.value.streams.size <= 1 ? 'Cannot delete last stream' : this.getStreamDeleteDisabledState(cam, stream) ? 'Cannot delete a stream used in recording' : 'Delete this stream';
+  }
+
+  protected expandableStreamStyle(bOpen: boolean, div: HTMLDivElement): string {
+    const height = div.scrollHeight;
+    console.log("scrollHeight = "+height);
+    const transitionStyle = "; transition: max-height 225ms; transition-timing-function: cubic-bezier(0.4, 0.0, 0.2, 1)";
+    const openStyle = "max-height: "+height+ "px"+transitionStyle;
+    const closedStyle = "max-height: 0"+transitionStyle;
+
+    return bOpen ? openStyle : closedStyle;
+  }
+
+
     ngOnInit(): void {
         // Set up the available streams/cameras for selection by the checkboxes
         this.cameraSvc.loadCameras().subscribe(cameras => {
@@ -818,9 +813,5 @@ export class ConfigSetupComponent implements CanComponentDeactivate, OnInit, Aft
     }
 
     ngOnDestroy() {
-    }
-
-    streamDeleteButtonToolTip(cam:{value: Camera, key: string}, stream: string) {
-        return cam.value.streams.size <= 1 ? 'Cannot delete last stream' : this.getStreamDeleteDisabledState(cam, stream) ? 'Cannot delete a stream used in recording' : 'Delete this stream';
     }
 }
