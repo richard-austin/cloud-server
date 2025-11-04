@@ -1,5 +1,6 @@
 import {Component, EventEmitter, Input, Output} from '@angular/core';
 import {SharedAngularMaterialModule} from "../../shared/shared-angular-material/shared-angular-material.module";
+import {UtilsService} from '../../shared/utils.service';
 
 @Component({
   selector: 'app-row-delete-confirm',
@@ -21,4 +22,6 @@ export class RowDeleteConfirmComponent {
         else
             this.hideDialogue.emit({cam: this.camKey, stream:this.streamKey});
     }
+
+  protected readonly UtilsService = UtilsService;
 }

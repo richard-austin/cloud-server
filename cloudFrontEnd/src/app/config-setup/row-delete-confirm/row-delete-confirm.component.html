@@ -4,12 +4,14 @@
         <span class="row-delete-confirm-group">
           <button color="cancel" mat-raised-button (click)="confirmRowDelete(false)"
                   matTooltip="Close this dialogue and leave {{camKey}} in place"
+                  [matTooltipShowDelay]="UtilsService.toolTipDelay"
                   matTooltipClass="tooltip">
             Cancel
           </button>
           <button color="warn" mat-raised-button
                   (click)="confirmRowDelete(true)"
                   matTooltip="Delete {{camKey}}"
+                  [matTooltipShowDelay]="UtilsService.toolTipDelay"
                   matTooltipClass="tooltip">
             Confirm
           </button>

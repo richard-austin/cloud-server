@@ -189,4 +189,6 @@ export class SetupSMTPClientComponent implements OnInit {
       }
     });
   }
+
+  protected readonly UtilsService = UtilsService;
 }

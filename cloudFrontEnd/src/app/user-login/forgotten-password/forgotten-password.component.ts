@@ -64,4 +64,5 @@ export class ForgottenPasswordComponent implements OnInit {
       this.forgottenPasswordForm.markAllAsTouched();
   }
 
+  protected readonly UtilsService = UtilsService;
 }

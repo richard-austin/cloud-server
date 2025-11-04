@@ -9,6 +9,7 @@
             [formControl]="getFormControl('username')"
             (beforeinput)="confirmOnReturn($event)"
             matTooltip="Enter a Cloud Service user name."
+            [matTooltipShowDelay]="UtilsService.toolTipDelay"
             matTooltipClass="tooltip"
             placeholder="New User name">
           <mat-label>User name for your Cloud account</mat-label>
@@ -24,6 +25,7 @@
             [formControl]="getFormControl('password')"
             (beforeinput)="confirmOnReturn($event)"
             matTooltip="Enter your Cloud Service password"
+            [matTooltipShowDelay]="UtilsService.toolTipDelay"
             matTooltipClass="tooltip"
             placeholder="Password">
           <mat-label>Password for the NVR account</mat-label>
@@ -40,6 +42,7 @@
             [formControl]="getFormControl('confirmPassword')"
             (beforeinput)="confirmOnReturn($event)"
             matTooltip="Confirm your Cloud Service password"
+            [matTooltipShowDelay]="UtilsService.toolTipDelay"
             matTooltipClass="tooltip"
             placeholder="Confirm Password">
           <mat-label>Confirm the password</mat-label>
@@ -55,6 +58,7 @@
             [formControl]="getFormControl('email')"
             (beforeinput)="confirmOnReturn($event)"
             matTooltip="Enter your email address. This is required to provide a means of resetting forgotten passwords"
+            [matTooltipShowDelay]="UtilsService.toolTipDelay"
             matTooltipClass="tooltip"
             placeholder="email address">
           <mat-label>Your email address</mat-label>

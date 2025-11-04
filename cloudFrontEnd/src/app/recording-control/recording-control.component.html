@@ -116,7 +116,8 @@
           <mat-button-toggle-group aria-label="Playback control" name="playbackControl"
                                    [(ngModel)]="selectedPlaybackMode">
             <button mat-button (click)="returnToStart()"
-                    matTooltip="Go back to the start of the recording" [matTooltipShowDelay]="UtilsService.toolTipDelay"
+                    matTooltip="Go back to the start of the recording"
+                    [matTooltipShowDelay]="UtilsService.toolTipDelay"
                     matTooltipClass="tooltip">
               <mat-icon>fast_rewind</mat-icon>
             </button>

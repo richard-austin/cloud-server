@@ -157,4 +157,6 @@ export class ActivemqCredentialsComponent implements OnInit {
     this.cloudCredsForm.markAllAsTouched();
     this.checkForActiveMQACreds();
   }
+
+  protected readonly UtilsService = UtilsService;
 }

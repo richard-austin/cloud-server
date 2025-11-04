@@ -413,4 +413,6 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
     this.client?.deactivate({force: false}).then(() => {
     });
   }
+
+  protected readonly UtilsService = UtilsService;
 }

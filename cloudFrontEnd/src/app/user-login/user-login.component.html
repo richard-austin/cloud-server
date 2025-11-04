@@ -11,6 +11,7 @@
             [formControl]="getFormControl('username')"
             (beforeinput)="confirmOnReturn($event)"
             matTooltip="Enter your Cloud Service user name."
+            [matTooltipShowDelay]="UtilsService.toolTipDelay"
             matTooltipClass="tooltip"
             placeholder="User name">
           <mat-hint>User name for your Cloud account</mat-hint>
@@ -29,6 +30,7 @@
           [formControl]="getFormControl('password')"
           (beforeinput)="confirmOnReturn($event)"
           matTooltip="Enter your Cloud Service password"
+          [matTooltipShowDelay]="UtilsService.toolTipDelay"
           matTooltipClass="tooltip"
           placeholder="Password">
         <mat-hint>Password for the Cloud account</mat-hint>
@@ -45,6 +47,7 @@
         <mat-checkbox
           [color]="'primary'"
           matTooltip="Remember me enables automatic login on future sessions"
+          [matTooltipShowDelay]="UtilsService.toolTipDelay"
           matTooltipClass="tooltip"
           (change)="rememberMe=$event.checked">Remember Me
         </mat-checkbox>
@@ -54,6 +57,7 @@
         <span>
           <button color="cancel" mat-raised-button (click)="hideLoginForm()"
             matTooltip="Close this dialogue and leave the existing user name and password in place"
+            [matTooltipShowDelay]="UtilsService.toolTipDelay"
             matTooltipClass="tooltip">
             Cancel
           </button>
@@ -62,6 +66,7 @@
             [disabled]="anyInvalid()"
             (click)="login()"
             matTooltip="Login into the CCTV Cloud Service with the given username and password"
+            [matTooltipShowDelay]="UtilsService.toolTipDelay"
             matTooltipClass="tooltip">
             Confirm
           </button>

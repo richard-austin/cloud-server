@@ -2,6 +2,7 @@ import {AfterViewInit, Component, ElementRef, forwardRef, Input, OnInit, ViewChi
 import {FormControl, NG_VALUE_ACCESSOR} from '@angular/forms';
 import {timer} from "rxjs";
 import {SharedAngularMaterialModule} from '../../shared/shared-angular-material/shared-angular-material.module';
+import {UtilsService} from '../../shared/utils.service';
 
 export const CUSTOM_CONROL_VALUE_ACCESSOR: any = {
   provide: NG_VALUE_ACCESSOR,
@@ -119,4 +120,6 @@ export class ProductIdInputComponent implements OnInit, AfterViewInit {
 
   ngAfterViewInit(): void {
   }
+
+  protected readonly UtilsService = UtilsService;
 }

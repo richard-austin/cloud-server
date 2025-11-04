@@ -9,6 +9,7 @@
             [formControl]="getFormControl('username')"
             (keydown)="confirmOnReturn($event)"
             matTooltip="Enter a Cloud Service user name."
+            [matTooltipShowDelay]="UtilsService.toolTipDelay"
             matTooltipClass="tooltip"
             placeholder="New User name">
           <mat-label>User name for your Cloud account</mat-label>
@@ -31,6 +32,7 @@
             [formControl]="getFormControl('password')"
             (keydown)="confirmOnReturn($event)"
             matTooltip="Enter your Cloud Service password (Upper, lower case, numbers and special chars)"
+            [matTooltipShowDelay]="UtilsService.toolTipDelay"
             matTooltipClass="tooltip"
             placeholder="Password">
           <mat-label>Password for the Cloud account</mat-label>
@@ -47,6 +49,7 @@
             [formControl]="getFormControl('confirmPassword')"
             (keydown)="confirmOnReturn($event)"
             matTooltip="Confirm your Cloud Service password"
+            [matTooltipShowDelay]="UtilsService.toolTipDelay"
             matTooltipClass="tooltip"
             placeholder="Confirm Password">
           <mat-label>Confirm the password</mat-label>
@@ -68,6 +71,7 @@
             [formControl]="getFormControl('email')"
             (keydown)="confirmOnReturn($event)"
             matTooltip="Enter your email address. This is required to provide a means of resetting forgotten passwords"
+            [matTooltipShowDelay]="UtilsService.toolTipDelay"
             matTooltipClass="tooltip"
             placeholder="email address">
           <mat-label>Your email address</mat-label>
@@ -84,6 +88,7 @@
             [formControl]="getFormControl('confirmEmail')"
             (keydown)="confirmOnReturn($event)"
             matTooltip="Confirm your email address"
+            [matTooltipShowDelay]="UtilsService.toolTipDelay"
             matTooltipClass="tooltip"
             placeholder="Confirm email address">
           <mat-label>Confirm email address</mat-label>
@@ -97,6 +102,7 @@
       <span class="cam-creds-confirm-group">
         <button color="cancel" mat-raised-button (click)="hideRegisterForm()"
           matTooltip="{{!success ? 'Close this dialogue and abandon setting up an account': 'Close this dialogue box'}}"
+          [matTooltipShowDelay]="UtilsService.toolTipDelay"
           matTooltipClass="tooltip">
           {{!success ? 'Cancel' : 'Exit' }}
         </button>
@@ -105,6 +111,7 @@
           [disabled]="anyInvalid() || success"
           (click)="register()"
           matTooltip="Login into the CCTV Cloud Service with the given username and password"
+          [matTooltipShowDelay]="UtilsService.toolTipDelay"
           matTooltipClass="tooltip">
           Register Account
         </button>

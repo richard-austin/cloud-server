@@ -24,6 +24,7 @@
                #filter
                (keyup)="updateFilter()"
                matTooltip="Enter a search term to filter the list"
+               [matTooltipShowDelay]="UtilsService.toolTipDelay"
                matTooltipClass="tooltip"
                placeholder="Filter">
         <!-- This invisible input is to prevent the filter input from being assigned user names from the browsers saved  credential pop-up-->
@@ -33,11 +34,13 @@
       <mat-checkbox class="filter-checkbox"
                     [color]="'primary'"
                     matTooltip="Only show rows for accounts where the NVR is offline"
+                    [matTooltipShowDelay]="UtilsService.toolTipDelay"
                     matTooltipClass="tooltip"
                     (change)="onlyNVROffline($event)">Only NVR Offline
       </mat-checkbox>
       <mat-checkbox class="filter-checkbox" [color]="'primary'"
                     matTooltip="Only show rows for NVRs where no account has yet been created"
+                    [matTooltipShowDelay]="UtilsService.toolTipDelay"
                     matTooltipClass="tooltip"
                     (change)="noAccountOnly($event)">Only No Account
       </mat-checkbox>
@@ -48,7 +51,9 @@
         <ng-container matColumnDef="changePassword">
           <th mat-header-cell *matHeaderCellDef>Change Password</th>
           <td class="buttons" mat-cell *matCellDef="let account">
-            <button mat-icon-button matTooltip="Change the password for this account" matTooltipClass="tooltip"
+            <button mat-icon-button matTooltip="Change the password for this account"
+                    [matTooltipShowDelay]="UtilsService.toolTipDelay"
+                    matTooltipClass="tooltip"
                     color="warn"
                     [disabled]="!account.accountCreated"
                     (click)="showChangePasswordForm(account)">
@@ -59,7 +64,9 @@
         <ng-container matColumnDef="changeEmail">
           <th mat-header-cell *matHeaderCellDef>Change Email Address</th>
           <td class="buttons" mat-cell *matCellDef="let account">
-            <button mat-icon-button matTooltip="Change the email address for this account" matTooltipClass="tooltip"
+            <button mat-icon-button matTooltip="Change the email address for this account"
+                    [matTooltipShowDelay]="UtilsService.toolTipDelay"
+                    matTooltipClass="tooltip"
                     color="warn"
                     [disabled]="!account.accountCreated"
                     (click)="showChangeEmailForm(account)">
@@ -72,6 +79,7 @@
           <td class="check-box" mat-cell *matCellDef="let account">
             <mat-checkbox color="accent"
                           [matTooltip]="(account.accountEnabled ? 'Disable':'Re-enable') + ' this account'"
+                          [matTooltipShowDelay]="UtilsService.toolTipDelay"
                           matTooltipClass="tooltip"
                           [checked]="account.accountEnabled"
                           [disabled]="!account.accountCreated"
@@ -84,6 +92,7 @@
           <th mat-header-cell *matHeaderCellDef>Delete Account</th>
           <td class="delete-button" mat-cell *matCellDef="let account">
             <button mat-icon-button matTooltip="Delete this account"
+                    [matTooltipShowDelay]="UtilsService.toolTipDelay"
                     matTooltipClass="tooltip"
                     color="warn"
                     [disabled]="!account.accountCreated"
@@ -95,6 +104,7 @@
         <ng-container matColumnDef="productId">
           <th mat-sort-header="productId" *matHeaderCellDef
               matTooltip="Sort by productId"
+              [matTooltipShowDelay]="UtilsService.toolTipDelay"
               matTooltipClass="tooltip">ProductId
           </th>
           <td mat-cell class="product-id" *matCellDef="let account; let i = dataIndex">
@@ -106,6 +116,7 @@
           <td mat-cell *matCellDef="let account; let i = dataIndex">
             <mat-icon
               matTooltip="{{account.accountCreated?'An account has been created':'No account has yet been created'}}"
+              [matTooltipShowDelay]="UtilsService.toolTipDelay"
               matTooltipClass="tooltip"
               [ngClass]="account.accountCreated?'status-ok':'status-warn'">
               {{ account.accountCreated ? 'account_circle' : 'notification_important' }}
@@ -115,6 +126,7 @@
         <ng-container matColumnDef="userName">
           <th mat-sort-header="username" *matHeaderCellDef
               matTooltip="Sort by userId"
+              [matTooltipShowDelay]="UtilsService.toolTipDelay"
               matTooltipClass="tooltip">Username
           </th>
           <td mat-cell *matCellDef="let account; let i = dataIndex">
@@ -125,6 +137,7 @@
           <th mat-header-cell *matHeaderCellDef>NVR Connected</th>
           <td mat-cell *matCellDef="let account; let i = dataIndex">
             <mat-icon matTooltip="{{account.nvrConnected?'NVR is connected':'NVR is not connected'}}"
+                      [matTooltipShowDelay]="UtilsService.toolTipDelay"
                       matTooltipClass="tooltip"
                       [ngClass]="account.nvrConnected?'status-ok':'status-warn'">
               {{ account.nvrConnected ? 'sync' : 'sync_problem' }}
@@ -150,6 +163,7 @@
                                      [formControl]="getFormControl(changePasswordForm, 'password')"
                                      autocomplete="new-password"
                                      matTooltip="Enter new password for user {{acc.userName}}"
+                                     [matTooltipShowDelay]="UtilsService.toolTipDelay"
                                      matTooltipClass="tooltip"
                                      placeholder="New Password">
                               <mat-label>New password for user {{ acc.userName }}</mat-label>
@@ -160,6 +174,7 @@
                                    [formControl]="getFormControl(changePasswordForm, 'confirmPassword')"
                                    autocomplete="new-password"
                                    matTooltip="Confirm new password"
+                                   [matTooltipShowDelay]="UtilsService.toolTipDelay"
                                    matTooltipClass="tooltip"
                                    placeholder="Confirm New Password">
                             <mat-label>Confirm New password</mat-label>
@@ -167,6 +182,7 @@
                           <div>
                             <button color="cancel" mat-raised-button (click)="showChangePasswordForm(acc)"
                                     matTooltip="Close the change password form"
+                                    [matTooltipShowDelay]="UtilsService.toolTipDelay"
                                     matTooltipClass="tooltip">
                               Cancel
                             </button>
@@ -175,6 +191,7 @@
                                     [disabled]="anyInvalid() || successMessage != ''"
                                     (click)="changePassword(acc)"
                                     matTooltip="Save the change to the {{acc.username}} account password"
+                                    [matTooltipShowDelay]="UtilsService.toolTipDelay"
                                     matTooltipClass="tooltip">
                               Reset Password
                             </button>
@@ -191,6 +208,7 @@
                               <input matInput type="text" [formControl]="getFormControl(changeEmailForm, 'email')"
                                      maxlength="70"
                                      matTooltip="Enter new email address for user {{acc.userName}}"
+                                     [matTooltipShowDelay]="UtilsService.toolTipDelay"
                                      matTooltipClass="tooltip"
                                      placeholder="New Email Address">
                               <mat-label>New Email Address For User {{ acc.userName }}</mat-label>
@@ -201,6 +219,7 @@
                                    [formControl]="getFormControl(changeEmailForm, 'confirmEmail')"
                                    maxlength="70"
                                    matTooltip="Confirm new email address"
+                                   [matTooltipShowDelay]="UtilsService.toolTipDelay"
                                    matTooltipClass="tooltip"
                                    placeholder="Confirm New Email Address">
                             <mat-label>Confirm New Email Address</mat-label>
@@ -208,6 +227,7 @@
                           <div>
                             <button color="cancel" mat-raised-button (click)="showChangeEmailForm(acc)"
                                     matTooltip="Close the change email address form"
+                                    [matTooltipShowDelay]="UtilsService.toolTipDelay"
                                     matTooltipClass="tooltip">
                               Cancel
                             </button>
@@ -216,6 +236,7 @@
                                     [disabled]="anyInvalidEmail() || successMessage != ''"
                                     (click)="changeEmail(acc)"
                                     matTooltip="Save the change to the {{acc.username}} account email address"
+                                    [matTooltipShowDelay]="UtilsService.toolTipDelay"
                                     matTooltipClass="tooltip">
                               Change Email Address
                             </button>
@@ -230,6 +251,7 @@
                           <span>
                             <button color="cancel" mat-raised-button (click)="confirmDelete(acc)"
                                     matTooltip="Close the delete account form, and leave the account active"
+                                    [matTooltipShowDelay]="UtilsService.toolTipDelay"
                                     matTooltipClass="tooltip">
                               Cancel
                             </button>
@@ -237,6 +259,7 @@
                             <button color="warn" mat-raised-button
                                     (click)="deleteAccount(acc)"
                                     matTooltip="Delete the {{acc.username}} account"
+                                    [matTooltipShowDelay]="UtilsService.toolTipDelay"
                                     matTooltipClass="tooltip">
                               Delete Account
                             </button>

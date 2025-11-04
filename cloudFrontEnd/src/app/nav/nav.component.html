@@ -87,6 +87,7 @@
           @if (!utilsService.isAdmin) {
             <button mat-menu-item (click)="configSetup();menuClosed()"
               matTooltip="Discover and configure the cameras for live view, recording, audio back channel and various other features."
+              [matTooltipShowDelay]="UtilsService.toolTipDelay"
               matTooltipClass="tooltip">
               Cameras Configuration
             </button>
@@ -97,6 +98,7 @@
           @if (!utilsService.isAdmin) {
             <div mat-menu-item
               matTooltip="Enable or disable H264 hardware decoding. In some cases hardware decoding adds latency on H264, in other cases hardware decoding is required to decode it at all. Set this for the best performance on the platform/browser you are using."
+              [matTooltipShowDelay]="UtilsService.toolTipDelay"
               matTooltipClass="tooltip"
               (click)="$event.stopPropagation(); hardwareDecodingCheckBox.toggle()"
               (keydown.enter)="$event.stopPropagation(); hardwareDecodingCheckBox.toggle()">
@@ -110,11 +112,13 @@
           }
           <button mat-menu-item (click)="changePassword();menuClosed()"
             matTooltip="Change the password for the {{utilsService.isAdmin ?  'admin' : 'Cloud'}} account. {{!utilsService.isAdmin ? 'To change the password on the NVR, use the Admin Functions menu, and select \'Create or Update User Account\'.' : ''}}"
+            [matTooltipShowDelay]="UtilsService.toolTipDelay"
             matTooltipClass="tooltip">
             Change {{ utilsService.isAdmin ? "Admin " : "Cloud " }} Account Password
           </button>
           <button mat-menu-item (click)="changeEmail();menuClosed()"
             matTooltip="Change the email address for the {{utilsService.isAdmin ?  'admin' : 'Cloud'}} account. {{!utilsService.isAdmin ? 'To change the email address on the NVR, use the Admin Functions menu, and select \'Create or Update User Account\'.' : ''}}"
+            [matTooltipShowDelay]="UtilsService.toolTipDelay"
             matTooltipClass="tooltip">
             Change {{ utilsService.isAdmin ? "Admin " : "Cloud " }}Account Email
           </button>
@@ -122,6 +126,7 @@
             <button mat-menu-item
               (click)="setActiveMQCreds();menuClosed()"
               matTooltip="Set up ActiveMQ credentials and host"
+              [matTooltipShowDelay]="UtilsService.toolTipDelay"
               matTooltipClass="tooltip">
               Set ActiveMQ Credentials
             </button>
@@ -132,6 +137,7 @@
           @if (!utilsService.isAdmin) {
             <button mat-menu-item (click)="setIp();menuClosed()"
               matTooltip="Register the current public IP address of your internet account. If that address subsequewntly changes, you will be sent warning emails to your registered email address (on the NVR)"
+              [matTooltipShowDelay]="UtilsService.toolTipDelay"
               matTooltipClass="tooltip">
               Save Current Public IP
             </button>
@@ -139,6 +145,7 @@
           @if (utilsService.isAdmin) {
             <button mat-menu-item (click)="setUpSMTPClient();menuClosed()"
               matTooltip="Set up the SMTP client used for password reset emails for the admin and all client accounts"
+              [matTooltipShowDelay]="UtilsService.toolTipDelay"
               matTooltipClass="tooltip">
               Set Up SMTP Client
             </button>
@@ -146,6 +153,7 @@
           @if (!utilsService.isAdmin) {
             <button mat-menu-item (click)="getActiveIPAddresses(); menuClosed()"
               matTooltip="Get the NVR's active IP addresses and their associated network adapters."
+              [matTooltipShowDelay]="UtilsService.toolTipDelay"
               matTooltipClass="tooltip">
               Get Active Local IP Address(es)
             </button>
@@ -155,11 +163,13 @@
             <mat-menu #wifiAdmin="matMenu">
               <button mat-menu-item (click)="getLocalWifiDetails(); menuClosed()"
                 matTooltip="List the WiFi access points and their details in range of the NVR."
+                [matTooltipShowDelay]="UtilsService.toolTipDelay"
                 matTooltipClass="tooltip">
                 Local Wifi Details
               </button>
               <button mat-menu-item (click)="wifiSettings(); menuClosed()"
                 matTooltip="Configure NVR WiFi (Must be connected through Ethernet to use this)."
+                [matTooltipShowDelay]="UtilsService.toolTipDelay"
                 matTooltipClass="tooltip">
                 Wifi Settings
               </button>
@@ -168,6 +178,7 @@
           @if (!utilsService.isAdmin) {
             <div
               matTooltip="Change local NVR user account password/username/email and/or set up local NVR SMTP details"
+              [matTooltipShowDelay]="UtilsService.toolTipDelay"
               matTooltipClass="tooltip">
               <button mat-menu-item (click)="localAdminFunctionsForNVR();menuClosed()">Admin Functions</button>
             </div>

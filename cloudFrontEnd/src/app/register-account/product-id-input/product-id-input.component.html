@@ -5,6 +5,7 @@
     (keydown)="handleKeyDown($event, productIdCtrl.nativeElement)"
     class="mono"
     matTooltip="Enter your NVR Product ID. This will have been provided on a note with your NVR"
+    [matTooltipShowDelay]="UtilsService.toolTipDelay"
     matTooltipClass="tooltip"
     placeholder="NVR Product ID">
   <mat-label>The 16 character product ID of your NVR</mat-label>

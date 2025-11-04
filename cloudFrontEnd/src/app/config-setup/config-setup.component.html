@@ -9,6 +9,7 @@ can be found in the LICENSE file at http://angular.io/license -->
   <mat-card-title>Configuration
     <span
       [matTooltip]="!haveOnvifCredentials ? 'Onvif credentials are not set, please enter a username and password. If your cameras do not use authentication for web admin or snapshots, this will not be required' : isGuest ? 'Disabled for guest' : 'Set or change the user name and password used For Onvif authentication. This is used for overall Onvif discovery.'"
+      [matTooltipShowDelay]="UtilsService.toolTipDelay"
       matTooltipClass="tooltip">
       <button (click)="toggleOnvifPasswordDialogue()" [disabled]="isGuest" class="change-password-button"
               mat-icon-button>
@@ -73,12 +74,14 @@ can be found in the LICENSE file at http://angular.io/license -->
               <button (click)="moveDown(cam)"
                       [disabled]="lastElement(cam) || anyInvalid() || confirmNew || confirmNewLookup || isGuest"
                       [matTooltip]="lastElement(cam) ? '' : 'Click to move '+cam.value.name+' down 1 step'"
+                      [matTooltipShowDelay]="UtilsService.toolTipDelay"
                       class="sort-button-icon" mat-icon-button matTooltipClass="tooltip">
                 <mat-icon class="sort-button-icon">arrow_downward</mat-icon>
               </button>
               <button (click)="moveUp(cam)"
                       [disabled]="cam.key=='camera1' || anyInvalid() || confirmNew || confirmNewLookup || isGuest"
                       [matTooltip]="cam.key=='camera1' ? '' : 'Click to move '+cam.value.name+' up 1 step'"
+                      [matTooltipShowDelay]="UtilsService.toolTipDelay"
                       class="sort-button-icon" mat-icon-button matTooltipClass="tooltip">
                 <mat-icon class="sort-button-icon">arrow_upward</mat-icon>
               </button>
@@ -91,6 +94,7 @@ can be found in the LICENSE file at http://angular.io/license -->
           <td (mousedown)="getSnapshot(cam)" *matCellDef="let cam"
               [style]="cam.value.snapshotUri != '' ? '  cursor: pointer;' : ''" class="snapshot" mat-cell
               matTooltip="The logical id of the camera (sequential numbering).{{cam.value.snapshotUri != '' ? ' Click to show a snapshot from this camera.' : ''}}"
+              [matTooltipShowDelay]="UtilsService.toolTipDelay"
               matTooltipClass="tooltip">
             {{ cam.key }}
             @if (snapShotKey == cam.key && cam.value.snapshotUri !== '') {
@@ -115,6 +119,7 @@ can be found in the LICENSE file at http://angular.io/license -->
               class="snapshot" mat-cell>
             <span
               [matTooltip]="cam.value.cred == '' ? 'Camera credentials are not set, please enter a username and password. If your cameras do not use authentication for web admin or snapshots, this will not be required' : isGuest ? 'Disabled for guest' : 'Set or change the user name and password used to access the cameras. All cameras should have the same user name and password.'"
+              [matTooltipShowDelay]="UtilsService.toolTipDelay"
               matTooltipClass="tooltip">
               <button (click)="togglePasswordDialogue(cam.key)" [disabled]="isGuest"
                       class="change-password-button2" mat-icon-button>
@@ -142,7 +147,9 @@ can be found in the LICENSE file at http://angular.io/license -->
           <td *matCellDef="let cam" mat-cell>
             <button (click)="toggleCameraDeleteConfirm(cam.key)"
                     [disabled]="getCameraDeleteDisabledState(cam)"
-                    mat-icon-button matTooltip="Delete {{cam.key}}" matTooltipClass="tooltip">
+                    mat-icon-button matTooltip="Delete {{cam.key}}"
+                    [matTooltipShowDelay]="UtilsService.toolTipDelay"
+                    matTooltipClass="tooltip">
               <mat-icon class="trash-can">delete</mat-icon>
             </button>
             <div class="popup-dialogue">
@@ -168,6 +175,7 @@ can be found in the LICENSE file at http://angular.io/license -->
           <td (click)="toggle(cam)" *matCellDef="let cam" mat-cell>
             <button mat-icon-button
                     matTooltip="{{expandedElement == cam.value ? 'Hide' : 'Show'}} the streams for {{cam.key}}"
+                    [matTooltipShowDelay]="UtilsService.toolTipDelay"
                     matTooltipClass="tooltip">
               <mat-icon class="expand"
                         [ngClass]="{'stream-open': expandedElement === cam.value, 'stream-closed': expandedElement !== cam.value}">
@@ -185,6 +193,7 @@ can be found in the LICENSE file at http://angular.io/license -->
               <input (change)="updateCamField(i, 'name')" [formControl]="getCamControl(i, 'name')"
                      autocomplete="off" matInput
                      matTooltip="Enter the name to identify {{cam.key}} in the menus"
+                     [matTooltipShowDelay]="UtilsService.toolTipDelay"
                      matTooltipClass="tooltip" maxlength="25" placeholder="Camera Name" type="text">
               @if (getCamControl(i, 'name').invalid) {
                 <mat-error>Camera name is required</mat-error>
@@ -198,6 +207,7 @@ can be found in the LICENSE file at http://angular.io/license -->
           <td *matCellDef="let cam; let i = dataIndex" mat-cell>
             <mat-form-field [style.width.px]="185" appearance="outline"
                             matTooltip="Select the camera type to enable control of image text and infra red status from the web application. Set to 'Not Listed' to disable this feature, or if the camera type is not listed."
+                            [matTooltipShowDelay]="UtilsService.toolTipDelay"
                             matTooltipClass="tooltip">
               <mat-label>Camera type (if listed)</mat-label>
               <!--Call setUpTableFormControls after  updateCamField on changed selection to ensure the address field

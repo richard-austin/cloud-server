@@ -34,4 +34,6 @@ export class RemoveLocalNvrAccountComponent implements OnInit {
     this.reporting.dismiss();
     window.location.href = '#/';
   }
+
+  protected readonly UtilsService = UtilsService;
 }

@@ -108,4 +108,6 @@ export class ResetPasswordComponent implements OnInit {
     }, {updateOn: "change"});
     this.resetPasswordForm.markAllAsTouched();
   }
+
+  protected readonly UtilsService = UtilsService;
 }
