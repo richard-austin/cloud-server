@@ -100,7 +100,7 @@
             <label class="video-buttons"
                    [matTooltip]="'Click to '+(!showAudioControls ? 'show' : 'hide')+' audio controls, or Ctrl click to ' + (isMuted() ? 'unmute' : 'mute') + ' sound'"
                    [matTooltipShowDelay]="UtilsService.toolTipDelay"
-                   matTooltipClass="video-buttons-tooltip">
+                   matTooltipClass="tooltip">
               <mat-icon (click)="toggleShowAudioControls()">{{ isMuted() ? 'volume_off' : 'volume_up' }}
               </mat-icon>
             </label>
@@ -108,7 +108,7 @@
           <label class="video-buttons"
                  matTooltip="Set full screen"
                  [matTooltipShowDelay]="UtilsService.toolTipDelay"
-                 matTooltipClass="video-buttons-tooltip">
+                 matTooltipClass="tooltip">
             <mat-icon (click)="video.setFullScreen()">fullscreen</mat-icon>
           </label>
         </div>
