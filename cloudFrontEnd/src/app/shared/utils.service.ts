@@ -494,4 +494,20 @@ export class UtilsService {
   async isGuest(): Promise<GuestStatus> {
     return new GuestStatus(this.isGuestAccount);
   }
+
+  /**
+   * expandableStreamStyle: Open and close list sections with vertical transition
+   * @param bOpen Open if true, else close
+   * @param div The div enclosing the list
+   */
+  static expandableStreamStyle(bOpen: boolean, div: HTMLDivElement): string {
+    const height = div.scrollHeight;
+    const transitionStyle = "; transition: max-height 225ms; transition-timing-function: cubic-bezier(0.4, 0.0, 0.2, 1)";
+    const openStyle = "max-height: "+height+ "px"+transitionStyle;
+    const closedStyle = "max-height: 0"+transitionStyle;
+
+    return bOpen ? openStyle : closedStyle;
+  }
+
+
 }

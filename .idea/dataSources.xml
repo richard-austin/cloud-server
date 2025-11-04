@@ -21,7 +21,7 @@
       <jdbc-url>jdbc:h2:/var/cloud-server/db/prodDb;LOCK_TIMEOUT=10000;DB_CLOSE_ON_EXIT=FALSE</jdbc-url>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
-    <data-source source="LOCAL" name="jdbc:h2:/var/cloud-server/db/prodDb;LOCK_TIMEOUT=10000;DB_CLOSE_ON_EXIT=FALSE [DEBUG]" group="​cloud-server:cloudwebapp [bootRun]" uuid="6d6eb6f6-976a-4c84-8373-c7c0141c91af">
+    <data-source source="LOCAL" name="jdbc:h2:/var/cloud-server/db/prodDb;LOCK_TIMEOUT=10000;DB_CLOSE_ON_EXIT=FALSE [DEBUG]" group="​cloud-server:cloudwebapp [bootRun]" uuid="6a0aa60a-a37b-4a59-9913-7082461f0008">
       <driver-ref>h2.unified</driver-ref>
       <synchronize>true</synchronize>
       <imported>true</imported>

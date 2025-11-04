@@ -1,4 +1,4 @@
-import {AfterViewInit, Component, OnDestroy, OnInit, QueryList, ViewChild, ViewChildren} from '@angular/core';
+import {AfterViewInit, Component, OnDestroy, OnInit, QueryList, signal, ViewChild, ViewChildren} from '@angular/core';
 import {CameraService} from '../cameras/camera.service';
 import {Camera, Stream} from '../cameras/Camera';
 import {MatCheckboxChange} from '@angular/material/checkbox';
@@ -6,7 +6,6 @@ import {ReportingComponent} from '../reporting/reporting.component';
 import {VideoComponent} from '../video/video.component';
 import { HttpErrorResponse } from '@angular/common/http';
 import {timer} from 'rxjs';
-import {animate, state, style, transition, trigger} from '@angular/animations';
 import {IdleTimeoutStatusMessage, UtilsService} from '../shared/utils.service';
 import {SharedModule} from "../shared/shared.module";
 import {SharedAngularMaterialModule} from "../shared/shared-angular-material/shared-angular-material.module";
@@ -16,28 +15,6 @@ import {SharedAngularMaterialModule} from "../shared/shared-angular-material/sha
     templateUrl: './multi-cam-view.component.html',
     styleUrls: ['./multi-cam-view.component.scss'],
     imports: [SharedModule, SharedAngularMaterialModule, VideoComponent],
-    animations: [
-        trigger('openClose', [
-            // ...
-            state('open', style({
-                transform: 'rotate(90deg)'
-            })),
-            state('closed', style({
-                transform: 'rotate(0deg)'
-            })),
-            transition('open => closed', [
-                animate('.2s')
-            ]),
-            transition('closed => open', [
-                animate('.2s')
-            ]),
-        ]),
-        trigger('detailExpand', [
-            state('collapsed', style({ height: '0px', minHeight: '0' })),
-            state('expanded', style({ height: '*' })),
-            transition('expanded <=> collapsed', animate('225ms cubic-bezier(0.4, 0.0, 0.2, 1)')),
-        ])
-    ],
 })
 export class MultiCamViewComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChildren(VideoComponent) videos!: QueryList<VideoComponent>;
@@ -51,6 +28,8 @@ export class MultiCamViewComponent implements OnInit, AfterViewInit, OnDestroy {
   constructor(public cameraSvc: CameraService, private utilsService: UtilsService) {
     this.numColumns = cameraSvc.numColumns;
   }
+  animationEnter = signal('enter-animation');
+  animationLeave = signal('leaving-animation');
 
   cams: Map<string, Camera> = new Map<string, Camera>();
   showStreamSelector: boolean = false;
@@ -179,4 +158,6 @@ export class MultiCamViewComponent implements OnInit, AfterViewInit, OnDestroy {
     // Re-enable the user idle service
     this.utilsService.sendMessage(new IdleTimeoutStatusMessage(true));
   }
+
+  protected readonly UtilsService = UtilsService;
 }
