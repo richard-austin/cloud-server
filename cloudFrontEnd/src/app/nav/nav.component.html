@@ -48,7 +48,27 @@
     </div>
 
     <div [style]="'display:'+ ((utilsService.loggedIn && !utilsService.isAdmin) ? 'inherit' : 'none')">
-      <button mat-button [matMenuTriggerFor]="menuCameraSettings">Camera Settings</button>
+      <button mat-button [matMenuTriggerFor]="cameraSettings">Camera Settings</button>
+      <mat-menu #cameraSettings>
+        <button mat-menu-item [matMenuTriggerFor]="$any(menuCameraSettings)">Quick Camera Setup</button>
+        <button mat-menu-item [matMenuTriggerFor]="$any(menuCameraAdmin)">Camera Admin</button>
+        @if (enableAdHocDeviceHosting && utilsService.adHocDevices && utilsService.adHocDevices.length > 0) {
+          <button mat-menu-item [matMenuTriggerFor]="$any(menuAdHocDevices)">Ad Hoc Device Admin</button>
+        }
+        <div mat-menu-item
+             matTooltip="Enable or disable browser caching for device admin service hosting. In some cases there can be problems when caching is on due to devices with different web admin code sharing the same url via the proxy. If in doubt, turn it off!"
+             [matTooltipShowDelay]="UtilsService.toolTipDelay"
+             matTooltipClass="tooltip"
+             (click)="$event.stopPropagation(); useCachingCheckBox.toggle()"
+             (keydown.enter)="$event.stopPropagation(); useCachingCheckBox.toggle()">
+          <mat-checkbox class="mat-menu__checkbox"
+                        labelPosition="before"
+                        (click)="useCaching(useCachingCheckBox.checked);$event.stopPropagation()"
+                        #useCachingCheckBox>
+            Use Browser Caching
+          </mat-checkbox>
+        </div>
+      </mat-menu>
       <mat-menu #menuCameraSettings="matMenu">
         @for (camKV of cameras | keyvalue; track camKV) {
           @if (camKV.value.address!=''&&camKV.value.cameraParamSpecs.camType !== cameraTypes.none) {
@@ -58,6 +78,26 @@
               {{ camKV.value.name }}
             </button>
           }
+        }
+      </mat-menu>
+      <mat-menu #menuCameraAdmin>
+        @for (camKV of cameras | keyvalue: cameraSvc.compareFn; track camKV) {
+          <span>
+            @if (camKV.value.address != '') {
+              <button mat-menu-item
+                      (click)="cameraAdmin(camKV.value);menuClosed()">
+                {{ camKV.value.name }}
+              </button>
+            }
+          </span>
+        }
+      </mat-menu>
+      <mat-menu #menuAdHocDevices>
+        @for (device of utilsService.adHocDevices; track device) {
+          <button mat-menu-item
+                  (click)="adHocDeviceAdmin(device);menuClosed()">
+            {{ device.name }}
+          </button>
         }
       </mat-menu>
     </div>
@@ -95,6 +135,15 @@
           <button mat-menu-item (click)="confirmLogoff();menuClosed()">
             Log Off
           </button>
+          @if (enableAdHocDeviceHosting) {
+            <button mat-menu-item
+                    matTooltip="Maintain a list of web admin sites on the local network (intranet) to make available through the NVR on the general internet."
+                    [matTooltipShowDelay]="UtilsService.toolTipDelay"
+                    matTooltipClass="tooltip"
+                    (click)="adHocHostingConfiguration()">Ad Hoc Hosting
+            </button>
+          }
+
           @if (!utilsService.isAdmin) {
             <div mat-menu-item
               matTooltip="Enable or disable H264 hardware decoding. In some cases hardware decoding adds latency on H264, in other cases hardware decoding is required to decode it at all. Set this for the best performance on the platform/browser you are using."

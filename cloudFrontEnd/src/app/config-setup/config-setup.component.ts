@@ -34,7 +34,7 @@ import {SharedModule} from '../shared/shared.module';
 import {RecordingSetupComponent} from './recording-setup/recording-setup.component';
 import {CanComponentDeactivate, CanDeactivateType} from '../guards/can-deactivate.guard';
 import {ConfirmCanDeactivateComponent} from './confirm-can-deactivate/confirm-can-deactivate.component';
-import {RowDeleteConfirmComponent} from './row-delete-confirm/row-delete-confirm.component';
+import {RowDeleteConfirmComponent} from './row-delete-confirm/row-delete-confirm/row-delete-confirm.component';
 
 declare let objectHash: (obj: Object) => string;
 

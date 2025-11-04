@@ -4,7 +4,7 @@ import {Camera, Stream} from '../cameras/Camera';
 import {ReportingComponent} from '../reporting/reporting.component';
 import {HttpErrorResponse} from '@angular/common/http';
 import {Subscription, timer} from 'rxjs';
-import {IdleTimeoutStatusMessage, Message, messageType, UtilsService} from '../shared/utils.service';
+import {Device, IdleTimeoutStatusMessage, Message, messageType, UtilsService} from '../shared/utils.service';
 import {MatDialog, MatDialogRef} from '@angular/material/dialog';
 import {IdleTimeoutModalComponent} from '../idle-timeout-modal/idle-timeout-modal.component';
 import {UserIdleConfig} from '../angular-user-idle/angular-user-idle.config';
@@ -62,6 +62,7 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
   private cloudClient!: Client;
   talkOffSubscription!: StompSubscription;
   transportWarningSubscription!: StompSubscription;
+  readonly enableAdHocDeviceHosting = true;
 
   constructor(public cameraSvc: CameraService, public utilsService: UtilsService, private userIdle: UserIdleService, private dialog: MatDialog) {
   }
@@ -94,6 +95,14 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
     window.location.href = '#/cameraparams/' + btoa(cam.address);
   }
 
+  cameraAdmin(cam: Camera) {
+    window.location.href = '#/camadmin/' + btoa(cam.address);
+  }
+
+  adHocDeviceAdmin(device: Device) {
+    window.location.href = '#/camadmin/' +btoa(device.ipAddress);
+  }
+
   getActiveIPAddresses() {
     window.location.href = '#/getactiveipaddresses';
   }
@@ -120,6 +129,12 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
 
   hardwareDecoding(checked: boolean) {
     NavComponent.setCookie("hardwareDecoding", checked ? "true" : "false", 600);
+  }
+
+  useCaching(checked: boolean) {
+    NavComponent.setCookie("useCaching", checked ? "true" : "false", 600);
+    this.cameraSvc.setUseCaching(checked).subscribe((resp) => {
+    });
   }
 
   static setCookie(cname:string, cvalue:string, exdays:number) {
@@ -388,6 +403,10 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
         this.utilsService.getUserAuthorities().subscribe();
       }  // Used as a heartbeat keep alive call
     });
+  }
+
+  adHocHostingConfiguration() {
+    window.location.href = "#/adhochostingconfig"
   }
 
   ngAfterViewInit(): void {

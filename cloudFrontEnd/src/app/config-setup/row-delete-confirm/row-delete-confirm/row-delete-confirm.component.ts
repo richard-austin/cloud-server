@@ -1,6 +1,6 @@
 import {Component, EventEmitter, Input, Output} from '@angular/core';
-import {SharedAngularMaterialModule} from "../../shared/shared-angular-material/shared-angular-material.module";
-import {UtilsService} from '../../shared/utils.service';
+import {SharedAngularMaterialModule} from '../../../shared/shared-angular-material/shared-angular-material.module';
+import {UtilsService} from 'src/app/shared/utils.service'
 
 @Component({
   selector: 'app-row-delete-confirm',
@@ -15,6 +15,7 @@ export class RowDeleteConfirmComponent {
     @Output() delete: EventEmitter<{cam: string, stream: string}> = new EventEmitter<{cam: string, stream: string}>();
     @Input() camKey!: string;
     @Input() streamKey!: string;
+    @Input() name!: string;
 
     confirmRowDelete(deleteRow: boolean) {
         if(deleteRow)

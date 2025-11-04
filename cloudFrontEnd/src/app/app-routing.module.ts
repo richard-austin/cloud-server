@@ -14,6 +14,8 @@ const routes: Routes = [
   {path: 'changepassword', loadComponent: () => import('./change-password/change-password.component').then(m => m.ChangePasswordComponent)},
   {path: 'cameraparams/:camera', loadComponent: () => import('./camera-params/camera-params.component').then(m => m.CameraParamsComponent)},
   {path: 'configsetup', canDeactivate: [canDeactivateGuard], loadComponent: () => import('./config-setup/config-setup.component').then(m => m.ConfigSetupComponent)},
+  {path: 'adhochostingconfig', loadComponent: () => import('./ad-hoc-hosting-config/ad-hoc-hosting-config.component').then(m => m.AdHocHostingConfigComponent), canActivate: [OnlyClientUsersService]},
+  {path: 'camadmin/:camera', loadComponent: () => import('./camera-admin-page-hosting/camera-admin-page-hosting.component').then(m => m.CameraAdminPageHostingComponent), canActivate: [OnlyClientUsersService]},
   {path: 'setip', loadComponent: () => import('./set-ip/set-ip.component').then(m => m.SetIpComponent), canActivate: [OnlyClientUsersService]},
   {path: 'cua', loadComponent: () => import('./create-user-account-container/create-user-account-container.component').then(m => m.CreateUserAccountContainerComponent), canActivate: [OnlyClientUsersService]},
   {path: 'registerActiveMQAccount', loadComponent: () => import('./activemq-credentials/activemq-credentials.component').then(m=>m.ActivemqCredentialsComponent), canActivate: [OnlyAdminUsersService]},
