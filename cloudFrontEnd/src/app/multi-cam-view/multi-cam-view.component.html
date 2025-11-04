@@ -6,10 +6,9 @@
           matTooltipClass="tooltip">
     <mat-icon>settings</mat-icon>
   </button>
-  @if (showStreamSelector) {
-    <div class="mat-elevation-z15"
-         [animate.enter]="animationEnter()"
-         [animate.leave]="animationLeave()">
+    <div #streamSelectList
+         [style]="UtilsService.expandableStreamStyle(showStreamSelector, streamSelectList)"
+         class="mat-elevation-z15">
       <div>
         <div>
         </div>
@@ -97,7 +96,6 @@
         </mat-card>
       </div>
     </div>
-  }
 </div>
 <app-reporting></app-reporting>
 <div class="flex-container-vid">
