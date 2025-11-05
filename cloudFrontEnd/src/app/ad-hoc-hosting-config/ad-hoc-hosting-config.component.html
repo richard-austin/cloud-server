@@ -9,21 +9,25 @@
           <td *matCellDef="let device; let i = index" mat-cell>
             <button (click)="toggleDeviceDeleteConfirm(i)"
                     [disabled]="getDeviceDeleteDisabledState(device)"
-                    mat-icon-button matTooltip="Delete {{device.name}}" [matTooltipShowDelay]="UtilsService.toolTipDelay" matTooltipClass="tooltip">
+                    mat-icon-button matTooltip="Delete {{device.name}}"
+                    [matTooltipShowDelay]="UtilsService.toolTipDelay" matTooltipClass="tooltip">
               <mat-icon class="trash-can">delete</mat-icon>
             </button>
             <div class="popup-dialogue">
-              <div [@detailExpand]="showDeviceDeleteConfirm===i ? 'expanded' : 'collapsed'"
-                   [ngClass]="{'mat-elevation-z15': showDeviceDeleteConfirm===i}">
-                <div>
+              @if (showDeviceDeleteConfirm === i) {
+                <div [animate.enter]="animationEnter()"
+                     [animate.leave]="animationLeave()"
+                     [ngClass]="{'mat-elevation-z15': showDeviceDeleteConfirm===i}">
+                  <div>
+                  </div>
+                  <app-row-delete-confirm [camKey]="i"
+                                          [streamKey]="''"
+                                          [name]="device.name"
+                                          (delete)="deleteDevice(i);toggleDeviceDeleteConfirm(i)"
+                                          (hideDialogue)="toggleDeviceDeleteConfirm(i)">
+                  </app-row-delete-confirm>
                 </div>
-                <app-row-delete-confirm [camKey]="i"
-                                        [streamKey]="''"
-                                        [name]="device.name"
-                                        (delete)="deleteDevice(i);toggleDeviceDeleteConfirm(i)"
-                                        (hideDialogue)="toggleDeviceDeleteConfirm(i)">
-                </app-row-delete-confirm>
-              </div>
+              }
             </div>
           </td>
         </ng-container>
@@ -82,7 +86,7 @@
                 <mat-error>Enter the IP port</mat-error>
               } @else if (ipPortCtrl.hasError('max')) {
                 <mat-error>IP port should be <= 65535</mat-error>
-              } @else if(ipPortCtrl.hasError('min')) {
+              } @else if (ipPortCtrl.hasError('min')) {
                 <mat-error>IP port should be >= 80</mat-error>
               }
             </mat-form-field>
@@ -99,10 +103,11 @@
               <mat-icon>add</mat-icon>
             </button>
 
-            <span matTooltip="{{isGuest ? 'Disabled for guest' : 'Commit the current ad hoc devices configuration in this editor'}}"
-                  [matTooltipShowDelay]="UtilsService.toolTipDelay"
-                  matTooltipClass="tooltip">
-              @if (!confirmSave && !confirmRestore ) {
+            <span
+              matTooltip="{{isGuest ? 'Disabled for guest' : 'Commit the current ad hoc devices configuration in this editor'}}"
+              [matTooltipShowDelay]="UtilsService.toolTipDelay"
+              matTooltipClass="tooltip">
+              @if (!confirmSave && !confirmRestore) {
                 <button (click)="confirmSave=true"
                         [disabled]="!dataHasChanged() || anyInvalid() || confirmNew || isGuest"
                         mat-icon-button>

@@ -1,4 +1,4 @@
-import {AfterViewInit, Component, OnDestroy, OnInit, QueryList, signal, ViewChild, ViewChildren} from '@angular/core';
+import {AfterViewInit, Component, OnDestroy, OnInit, QueryList, ViewChild, ViewChildren} from '@angular/core';
 import {CameraService} from '../cameras/camera.service';
 import {Camera, Stream} from '../cameras/Camera';
 import {MatCheckboxChange} from '@angular/material/checkbox';
@@ -28,8 +28,6 @@ export class MultiCamViewComponent implements OnInit, AfterViewInit, OnDestroy {
   constructor(public cameraSvc: CameraService, private utilsService: UtilsService) {
     this.numColumns = cameraSvc.numColumns;
   }
-  animationEnter = signal('enter-animation');
-  animationLeave = signal('leaving-animation');
 
   cams: Map<string, Camera> = new Map<string, Camera>();
   showStreamSelector: boolean = false;

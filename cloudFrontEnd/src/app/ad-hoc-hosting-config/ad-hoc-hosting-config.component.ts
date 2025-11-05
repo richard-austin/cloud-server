@@ -1,8 +1,7 @@
-import {Component, OnInit, ViewChild} from '@angular/core';
+import {Component, OnInit, signal, ViewChild} from '@angular/core';
 import {SharedAngularMaterialModule} from "../shared/shared-angular-material/shared-angular-material.module";
 import {UntypedFormArray, UntypedFormControl, UntypedFormGroup, Validators} from "@angular/forms";
 import {BehaviorSubject} from "rxjs";
-import {animate, state, style, transition, trigger} from "@angular/animations";
 import {Device, UtilsService} from "../shared/utils.service";
 import {HttpErrorResponse} from "@angular/common/http";
 import {ReportingComponent} from "../reporting/reporting.component";
@@ -16,13 +15,6 @@ declare let objectHash: (obj: Object) => string;
   imports: [SharedAngularMaterialModule, SharedModule, RowDeleteConfirmComponent, RowDeleteConfirmComponent],
   templateUrl: './ad-hoc-hosting-config.component.html',
   styleUrl: './ad-hoc-hosting-config.component.scss',
-  animations: [
-    trigger('detailExpand', [
-      state('collapsed', style({height: '0px', minHeight: '0'})),
-      state('expanded', style({height: '*'})),
-      transition('expanded <=> collapsed', animate('225ms cubic-bezier(0.4, 0.0, 0.2, 1)')),
-    ])
-  ],
 })
 export class AdHocHostingConfigComponent implements OnInit {
   columns: string[] = ['delete', 'devicename', 'ipaddress', 'ipport'];
@@ -41,6 +33,8 @@ export class AdHocHostingConfigComponent implements OnInit {
   downloading: boolean = true;
   constructor(private utils: UtilsService) {
   }
+  animationEnter = signal('enter-animation');
+  animationLeave = signal('leaving-animation');
 
   dataHasChanged(): boolean {
     return this.devices && objectHash(this.devices) !== this.savedDataHash;
