@@ -23,7 +23,8 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
 
   @ViewChild(ReportingComponent) errorReporting!: ReportingComponent;
   @ViewChild('navbarCollapse') navbarCollapse!: ElementRef<HTMLDivElement>;
-  @ViewChild('hardwareDecodingCheckBox') hardwareDecodingCheckBox!: MatCheckbox
+  @ViewChild('hardwareDecodingCheckBox') hardwareDecodingCheckBox!: MatCheckbox;
+  @ViewChild("useCachingCheckBox") useCachingCheckBox!: MatCheckbox;
 
   routerOutletClassName!: string;
   @HostListener('window:beforeunload', ['$event'])
@@ -420,6 +421,16 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
       this.hardwareDecodingCheckBox.checked = hwdc === "true";
     });
 
+    let useCaching = NavComponent.getCookie("useCaching");
+    if (useCaching === "") {
+      NavComponent.setCookie("useCaching", "true", 600);
+      useCaching = "false";
+    }
+    const sub2 = timer(30).subscribe(() => {
+      sub2.unsubscribe();
+      this.useCachingCheckBox.checked = useCaching === "true";
+      this.useCaching(useCaching === "true");
+    });
     // If the camera service got any errors while getting the camera setup, then we report it here.
     this.cameraSvc.errorEmitter.subscribe((error: HttpErrorResponse) => this.errorReporting.errorMessage = error);
   }
