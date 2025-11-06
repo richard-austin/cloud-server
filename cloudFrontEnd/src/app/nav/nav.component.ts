@@ -14,28 +14,29 @@ import {Client, StompSubscription} from '@stomp/stompjs';
 import {MatCheckbox} from '@angular/material/checkbox';
 
 @Component({
-    selector: 'app-nav',
-    templateUrl: './nav.component.html',
-    styleUrls: ['./nav.component.scss'],
-    standalone: false
+  selector: 'app-nav',
+  templateUrl: './nav.component.html',
+  styleUrls: ['./nav.component.scss'],
+  standalone: false
 })
 export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
 
   @ViewChild(ReportingComponent) errorReporting!: ReportingComponent;
   @ViewChild('navbarCollapse') navbarCollapse!: ElementRef<HTMLDivElement>;
   @ViewChild('hardwareDecodingCheckBox') hardwareDecodingCheckBox!: MatCheckbox;
-  @ViewChild("useCachingCheckBox") useCachingCheckBox!: MatCheckbox;
+  @ViewChild('useCachingCheckBox') useCachingCheckBox!: MatCheckbox;
 
   routerOutletClassName!: string;
+
   @HostListener('window:beforeunload', ['$event'])
   async unloadNotification($event: BeforeUnloadEvent) {
-    if(this.routerOutletClassName !== "_ConfigSetupComponent") {
+    if (this.routerOutletClassName !== '_ConfigSetupComponent') {
       // ConfigSetupComponent also handles this, but with a conditional on whether there are outstanding changes and the user can
       //  opt to not exit the application, so removing NVRSESSIONID would finish the session.
       // document.cookie = "NVRSESSIONID=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
       //await this.utilsService.decrementInstanceCountOnExit().toPromise();
 
-     await this.utilsService.changeInstanceCount(false).toPromise();
+      await this.utilsService.changeInstanceCount(false).toPromise();
     }
   }
 
@@ -88,7 +89,7 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
     let suuid = 'suuid=';
     let uri = stream.recording.recording_src_url;
     let index = uri.indexOf(suuid);
-    let streamName = uri.substring(index + suuid.length, uri.length-1);
+    let streamName = uri.substring(index + suuid.length, uri.length - 1);
     window.location.href = '#/recording/' + streamName;
   }
 
@@ -101,7 +102,7 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   adHocDeviceAdmin(device: Device) {
-    window.location.href = '#/camadmin/' +btoa(device.ipAddress);
+    window.location.href = '#/camadmin/' + btoa(device.ipAddress);
   }
 
   getActiveIPAddresses() {
@@ -129,26 +130,26 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   hardwareDecoding(checked: boolean) {
-    NavComponent.setCookie("hardwareDecoding", checked ? "true" : "false", 600);
+    NavComponent.setCookie('hardwareDecoding', checked ? 'true' : 'false', 600);
   }
 
   useCaching(checked: boolean) {
-    NavComponent.setCookie("useCaching", checked ? "true" : "false", 600);
+    NavComponent.setCookie('useCaching', checked ? 'true' : 'false', 600);
     this.cameraSvc.setUseCaching(checked).subscribe((resp) => {
     });
   }
 
-  static setCookie(cname:string, cvalue:string, exdays:number) {
+  static setCookie(cname: string, cvalue: string, exdays: number) {
     const d = new Date();
     d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
-    let expires = "expires="+d.toUTCString();
-    document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+    let expires = 'expires=' + d.toUTCString();
+    document.cookie = cname + '=' + cvalue + ';' + expires + ';path=/';
   }
 
-  static getCookie(cname:string) {
-    let name = cname + "=";
+  static getCookie(cname: string) {
+    let name = cname + '=';
     let ca = document.cookie.split(';');
-    for(let i = 0; i < ca.length; i++) {
+    for (let i = 0; i < ca.length; i++) {
       let c = ca[i];
       while (c.charAt(0) == ' ') {
         c = c.substring(1);
@@ -157,7 +158,7 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
         return c.substring(name.length, c.length);
       }
     }
-    return "";
+    return '';
   }
 
   logOff(logoff: boolean): void {
@@ -262,12 +263,18 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
     navbarCollapse.setAttribute('style', 'max-height: 0');
   }
 
-   initialise(auth: string): void {
+  initialise(auth: string): void {
     this.utilsService.isTransportActive().subscribe();  // Sets the status flag in utils service
     switch (auth) {
       case 'ROLE_CLIENT':
-  //      this.utilsService.changeInstanceCount(true).subscribe();
+        //      this.utilsService.changeInstanceCount(true).subscribe();
         this.cameraSvc.initialiseCameras();  // Load the cameras data
+        this.utilsService.loadAdHocDevices().subscribe(() => {
+          },
+          reason => {
+            this.errorReporting.errorMessage = reason;
+          }
+        );
         this.cameraSvc.getPublicKey();
         this.idleTimeoutActive = this.callGetTemp = true;
         this.callGetAuthorities = false;
@@ -328,6 +335,7 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
   setActiveMQCreds() {
     window.location.href = '#/registerActiveMQAccount';
   }
+
   get cameras(): Map<string, Camera> {
     return this.cameraSvc.getCameras();
   }
@@ -407,29 +415,29 @@ export class NavComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   adHocHostingConfiguration() {
-    window.location.href = "#/adhochostingconfig"
+    window.location.href = '#/adhochostingconfig';
   }
 
   ngAfterViewInit(): void {
-    let hwdc = NavComponent.getCookie("hardwareDecoding");
-    if (hwdc === "") {
-      NavComponent.setCookie("hardwareDecoding", "true", 600);
-      hwdc = "true";
+    let hwdc = NavComponent.getCookie('hardwareDecoding');
+    if (hwdc === '') {
+      NavComponent.setCookie('hardwareDecoding', 'true', 600);
+      hwdc = 'true';
     }
     const sub = timer(30).subscribe(() => {
       sub.unsubscribe();
-      this.hardwareDecodingCheckBox.checked = hwdc === "true";
+      this.hardwareDecodingCheckBox.checked = hwdc === 'true';
     });
 
-    let useCaching = NavComponent.getCookie("useCaching");
-    if (useCaching === "") {
-      NavComponent.setCookie("useCaching", "true", 600);
-      useCaching = "false";
+    let useCaching = NavComponent.getCookie('useCaching');
+    if (useCaching === '') {
+      NavComponent.setCookie('useCaching', 'true', 600);
+      useCaching = 'false';
     }
     const sub2 = timer(30).subscribe(() => {
       sub2.unsubscribe();
-      this.useCachingCheckBox.checked = useCaching === "true";
-      this.useCaching(useCaching === "true");
+      this.useCachingCheckBox.checked = useCaching === 'true';
+      this.useCaching(useCaching === 'true');
     });
     // If the camera service got any errors while getting the camera setup, then we report it here.
     this.cameraSvc.errorEmitter.subscribe((error: HttpErrorResponse) => this.errorReporting.errorMessage = error);
