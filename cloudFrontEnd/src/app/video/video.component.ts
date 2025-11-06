@@ -28,7 +28,7 @@ import {AudioInputPipe} from './audio-input.pipe';
     selector: 'app-video',
     templateUrl: './video.component.html',
     styleUrls: ['./video.component.scss'],
-   imports: [SharedModule, SharedAngularMaterialModule, FormsModule, AudioControlComponent, AudioControlComponent, AudioInputPipe]
+  imports: [SharedModule, SharedAngularMaterialModule, FormsModule, AudioControlComponent, AudioControlComponent, AudioInputPipe, AudioControlComponent]
 })
 export class VideoComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('video') videoEl!: ElementRef<HTMLVideoElement>;

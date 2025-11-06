@@ -508,10 +508,9 @@ export class UtilsService {
    * expandableStreamStyle: Open and close list sections with vertical transition
    * @param bOpen Open if true, else close
    * @param div The div enclosing the list
-   * @param extra Some extra headroom for if this element contains expandable elements
    */
-  static expandableStreamStyle(bOpen: boolean, div: HTMLDivElement, extra:number = 0): string {
-    const height = div.scrollHeight+extra;
+  static expandableStreamStyle(bOpen: boolean, div: HTMLDivElement): string {
+    const height = div.scrollHeight;
     const transitionStyle = "; transition: max-height 225ms; transition-timing-function: cubic-bezier(0.4, 0.0, 0.2, 1)";
     const openStyle = "max-height: "+height+ "px"+transitionStyle;
     const closedStyle = "max-height: 0"+transitionStyle;
