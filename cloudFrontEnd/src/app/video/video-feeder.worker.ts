@@ -37,6 +37,7 @@ class VideoFeeder {
     private ws!: WebSocket;
     private noRestart: boolean = false;
     private isHEVC: boolean = false;
+  private fourByteStart = true;
     hardwareAcceleration: HardwareAcceleration = "no-preference";
     private started = false;
     private codec = ""; // https://wiki.whatwg.org/wiki/Video_type_parameters
@@ -96,6 +97,7 @@ class VideoFeeder {
                 if (array[0] === 9) {
                     let decoded_arr = array.slice(1);
                     this.codec = this.Utf8ArrayToStr(decoded_arr);
+          this.isHEVC = this.codec.includes("hvc1")
                     console.log('first video packet with codec data: ' + this.codec);
                     this.started = true;
                 } else
@@ -166,16 +168,19 @@ class VideoFeeder {
     }
 
     readonly hevcStart: Uint8Array = new Uint8Array([0x00, 0x00, 0x01]);
-    readonly h264Start: Uint8Array = new Uint8Array([0x00, 0x00, 0x00, 0x01]);
+  readonly generalStart: Uint8Array = new Uint8Array([0x00, 0x00, 0x00, 0x01]);
     readonly h264KeyFrame1: Uint8Array = new Uint8Array([0x67, 0x64]);
     readonly h264KeyFrame2: Uint8Array = new Uint8Array([0x27, 0x64]);
     readonly h264KeyFrame3: Uint8Array = new Uint8Array([0x61, 0x88]);
 
     isStartFrame(buffer: Uint8Array): boolean {
-        let startFrame: boolean = this.h264Start.every((value, index) => value === buffer[index]);
+    let startFrame: boolean = this.generalStart.every((value, index) => value === buffer[index]);
+    if (startFrame)
+      this.fourByteStart = true;
         if (!startFrame) {// Not h264, try hevc
             startFrame = this.hevcStart.every((value, index) => value === buffer[index]);
-            this.isHEVC = startFrame;
+      if (startFrame)
+        this.fourByteStart = false;
          }
         const h264Decoding = this.h264HardwareDecoding ? "no-preference" : "prefer-software";
         // Use software decoding for H264 as hardware decoding in Windows and VAAPI on Linux add noticeable latency
@@ -189,7 +194,8 @@ class VideoFeeder {
      */
     isKeyFrame(buffer: Uint8Array): boolean {
         if (this.isHEVC) {
-            const byte = (buffer[3] >> 1) & 0x3f;
+      let bytePosition = this.fourByteStart ? 4 : 3;
+      const byte = (buffer[bytePosition] >> 1) & 0x3f;
             return byte === 0x19 || byte === 0x20;
         } else {
             let isKeyFrame = this.h264KeyFrame1.every((value, index) => value === buffer[index + 4]);

@@ -320,9 +320,22 @@ export class CameraService {
       catchError((err: HttpErrorResponse) => throwError(err)));
   }
 
-  closeClients(accessToken: string): Observable<void> {
-    let params: {} = {accessToken: accessToken}
-    return this.http.post<void>(this._baseUrl.getLink("cam", "closeClients"), params, this.httpJSONOptions).pipe(
+  getHostingAccess(cameraHost: string, port: number): Observable<{ nvrIPAddress: string }> {
+    let params: {} = {host: cameraHost, port: port};
+    return this.http.post<{
+      nvrIPAddress: string
+    }>(this._baseUrl.getLink("cam", "getHostingAccess"), params, this.httpJSONOptions).pipe(
+      catchError((err: HttpErrorResponse) => throwError(err)));
+  }
+
+  closeClient(): Observable<void> {
+    return this.http.post<void>(this._baseUrl.getLink("cam", "closeClient"), "", this.httpJSONOptions).pipe(
+      catchError((err: HttpErrorResponse) => throwError(err)));
+  }
+
+  setUseCaching(useCaching: boolean): Observable<boolean> {
+    let params = {useCaching: useCaching};
+    return this.http.post<boolean>(this._baseUrl.getLink("cam", "setUseCaching"), params, this.httpJSONOptions).pipe(
       catchError((err: HttpErrorResponse) => throwError(err)));
   }
 }

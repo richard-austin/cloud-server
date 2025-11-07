@@ -127,7 +127,7 @@ span.duration-time {
   color: #858585;
 }
 
-.media-feed-stalled {
+.media-feed-stalled, .audio-latency-correction {
   > mat-icon {
     animation: flash 2000ms infinite;
   }
@@ -147,4 +147,27 @@ mat-icon {
   padding-bottom: 10px;
   margin-top: -10px;
   margin-bottom: -10px;
+}
+
+.enter-animation {
+  opacity: 0;
+  animation: fade-in 0.5s;
+}
+
+.leaving-animation  {
+  opacity: 1;
+  animation: fade-out 0.5s;
+}
+
+
+@keyframes fade-in {
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
 }

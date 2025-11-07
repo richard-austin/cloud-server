@@ -29,9 +29,10 @@ export class PTZControlsComponent implements OnInit {
   constructor(private utils: UtilsService, private ptzService: PTZService) {
   }
 
-  // ngFor counter for preset buttons
-  counter(i: number) {
-    return new Array(i);
+  _array: Array<number> = [];
+  // counter for preset buttons
+  counter() {
+    return this._array;
   }
 
   presetsTooltip(presetNbr: number): string {
@@ -72,9 +73,14 @@ export class PTZControlsComponent implements OnInit {
     this.ptzService.ptzPresetsInfo(new PTZPresetsInfoCommand(this.camera)).subscribe((result) => {
         this.presetsInfo = result;
         this.maxPresets = result.maxPresets > 32 ? 32 : this.presetsInfo.maxPresets;
+        for(let i = 0; i < this.maxPresets; i++) {
+          this._array.push(i+1);
+        }
       },
       reason => {
         this.reporting.errorMessage = reason;
       })
   }
+
+  protected readonly UtilsService = UtilsService;
 }

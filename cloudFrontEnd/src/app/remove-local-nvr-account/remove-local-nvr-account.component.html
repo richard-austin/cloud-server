@@ -5,6 +5,7 @@
     <span>
       <button color="cancel" mat-raised-button (click)="cancel()"
               matTooltip="Close the delete account form, and leave the account active"
+              [matTooltipShowDelay]="UtilsService.toolTipDelay"
               matTooltipClass="tooltip">
         Cancel
       </button>
@@ -12,6 +13,7 @@
       <button [disabled]="!utilsService.hasLocalAccount" color="warn" mat-raised-button
               (click)="deleteAccount()"
               matTooltip="Delete the local NVR web account"
+              [matTooltipShowDelay]="UtilsService.toolTipDelay"
               matTooltipClass="tooltip">
         Delete Account
       </button>

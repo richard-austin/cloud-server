@@ -98,6 +98,12 @@ export class SetCameraParams {
   reboot: boolean;
 }
 
+export class Device {
+  name!: string;
+  ipAddress!: string;
+  ipPort!: number;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -143,9 +149,12 @@ export class UtilsService {
     return this._hasLocalAccount;
   }
 
+  adHocDevices!: Array<Device>;
+  public static readonly toolTipDelay = 1000;
   constructor(private http: HttpClient, private _baseUrl: BaseUrl) {
     // Initialise the speakActive state
     this.audioInUse().subscribe();
+    this.loadAdHocDevices().subscribe();
   }
 
   login(username: string, password: string, rememberMe: boolean): Observable<[{ authority: string }]> {
@@ -493,5 +502,37 @@ export class UtilsService {
    */
   async isGuest(): Promise<GuestStatus> {
     return new GuestStatus(this.isGuestAccount);
+  }
+
+  /**
+   * expandableStreamStyle: Open and close list sections with vertical transition
+   * @param bOpen Open if true, else close
+   * @param div The div enclosing the list
+   */
+  static expandableStreamStyle(bOpen: boolean, div: HTMLDivElement): string {
+    const height = div.scrollHeight;
+    const transitionStyle = "; transition: max-height 225ms; transition-timing-function: cubic-bezier(0.4, 0.0, 0.2, 1)";
+    const openStyle = "max-height: "+height+ "px"+transitionStyle;
+    const closedStyle = "max-height: 0"+transitionStyle;
+
+    return bOpen ? openStyle : closedStyle;
+  }
+  loadAdHocDevices() {
+    return this.http.post<Array<Device>>(this._baseUrl.getLink("utils", "loadAdHocDevices"), '', this.httpJSONOptions).pipe(
+      tap(devices => {
+        this.adHocDevices = devices;
+      }),
+      catchError((err: HttpErrorResponse) => throwError(err))
+    );
+  }
+
+  updateAdhocDeviceList(adHocDeviceListJSON: string):
+    Observable<Array<Device>> {
+    let devices = {adHocDeviceListJSON: adHocDeviceListJSON};
+    return this.http.post<any>(this._baseUrl.getLink("utils", "updateAdHocDeviceList"), JSON.stringify(devices), this.httpJSONOptions).pipe(
+      tap(devices => {
+        this.adHocDevices = devices;
+      })
+    );
   }
 }

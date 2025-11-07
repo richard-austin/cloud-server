@@ -5,6 +5,7 @@ import { HttpErrorResponse } from "@angular/common/http";
 import {SharedAngularMaterialModule} from "../shared/shared-angular-material/shared-angular-material.module";
 import {SharedModule} from "../shared/shared.module";
 import {ChangePasswordService} from './change-password.service';
+import {UtilsService} from '../shared/utils.service';
 
 @Component({
   selector: 'app-change-password2',
@@ -83,4 +84,6 @@ export class ChangePasswordComponent implements OnInit {
     }, {updateOn: "change"});
     this.changePasswordForm.markAllAsTouched();
   }
+
+  protected readonly UtilsService = UtilsService;
 }

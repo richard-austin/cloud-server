@@ -12,6 +12,7 @@ import {UntypedFormControl, UntypedFormGroup, Validators} from '@angular/forms';
 import { MatSelect } from '@angular/material/select';
 import {SharedModule} from '../shared/shared.module';
 import {SharedAngularMaterialModule} from '../shared/shared-angular-material/shared-angular-material.module';
+import {UtilsService} from '../shared/utils.service';
 
 @Component({
     selector: 'app-wifi-settings',
@@ -210,4 +211,6 @@ export class WifiSettingsComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
   }
+
+  protected readonly UtilsService = UtilsService;
 }

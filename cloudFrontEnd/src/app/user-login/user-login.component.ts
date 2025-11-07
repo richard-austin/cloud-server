@@ -74,4 +74,6 @@ export class UserLoginComponent implements OnInit, AfterViewInit {
       this.usernameInput.nativeElement.focus();
     });
   }
+
+  protected readonly UtilsService = UtilsService;
 }

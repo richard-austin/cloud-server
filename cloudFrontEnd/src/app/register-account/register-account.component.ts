@@ -129,4 +129,6 @@ export class RegisterAccountComponent implements OnInit, AfterViewInit {
       this.usernameInput.nativeElement.focus();
     });
   }
+
+  protected readonly UtilsService = UtilsService;
 }

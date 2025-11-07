@@ -5,17 +5,17 @@
     <mat-card-title>About {{isLocal ? "CCTV Cloud" : "NVR"}}</mat-card-title>
     <mat-card-content>
       <div>Version: {{version}}</div>
-      <ng-container *ngIf="!isLocal">
+      @if (!isLocal) {
         <hr>
-        <img src="{{getOnvifUrl()}}" width="=100" height="50" alt="Onvif logo">
-        <hr>
-        <h2>Built with open source software</h2>
-        <div [innerHTML]="openSourceInfo">
-        </div>
-      </ng-container>
-    </mat-card-content>
-  </mat-card>
-</div>
+          <img src="{{getOnvifUrl()}}" width="=100" height="50" alt="Onvif logo">
+          <hr>
+            <h2>Built with open source software</h2>
+            <div [innerHTML]="openSourceInfo">
+            </div>
+          }
+        </mat-card-content>
+      </mat-card>
+    </div>
 
 
 

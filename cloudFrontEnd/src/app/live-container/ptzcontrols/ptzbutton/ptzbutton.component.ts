@@ -52,4 +52,6 @@ export class PTZButtonComponent implements OnInit {
   ngOnInit(): void {
     this.isGuest = this.utils.isGuestAccount;
   }
+
+  protected readonly UtilsService = UtilsService;
 }

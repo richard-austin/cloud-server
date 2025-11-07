@@ -4,36 +4,31 @@ import {
   ElementRef,
   Input,
   OnDestroy,
-  OnInit,
+  OnInit, signal,
   ViewChild
 } from '@angular/core';
 import {Camera, Stream} from '../cameras/Camera';
 import {UtilsService} from '../shared/utils.service';
 import {ReportingComponent} from "../reporting/reporting.component";
 import {Subscription, timer} from "rxjs";
-import {MediaFeeder} from './MediaFeeder';
+import MediaFeeder from './MediaFeeder';
 import {AudioBackchannel} from './AudioBackchannel';
 import {VideoTransformations} from "./VideoTransformations";
 import {VideoSizing} from "./VideoSizing";
 import {SharedModule} from "../shared/shared.module";
 import {SharedAngularMaterialModule} from "../shared/shared-angular-material/shared-angular-material.module";
 import {FormsModule} from "@angular/forms";
-import {AudioControlComponent} from "./audio-control/audio-control.component";
-import {animate, state, style, transition, trigger} from "@angular/animations";
+import AudioControlComponent from "./audio-control/audio-control.component";
+import {NavComponent} from "../nav/nav.component";
+import {AudioSettings} from './AudioSettings';
 import {AudioInputPipe} from './audio-input.pipe';
+
 
 @Component({
     selector: 'app-video',
     templateUrl: './video.component.html',
     styleUrls: ['./video.component.scss'],
-  animations: [
-    trigger('detailExpand', [
-      state('collapsed', style({width: '0px', minWidth: '0'})),
-      state('expanded', style({width: '*'})),
-      transition('expanded <=> collapsed', animate('225ms cubic-bezier(0.4, 0.0, 0.2, 1)')),
-    ])
-    ],
-  imports: [SharedModule, SharedAngularMaterialModule, FormsModule, AudioControlComponent, AudioInputPipe]
+  imports: [SharedModule, SharedAngularMaterialModule, FormsModule, AudioControlComponent, AudioControlComponent, AudioInputPipe, AudioControlComponent]
 })
 export class VideoComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('video') videoEl!: ElementRef<HTMLVideoElement>;
@@ -54,6 +49,9 @@ export class VideoComponent implements OnInit, AfterViewInit, OnDestroy {
   sizing!: VideoSizing;
   showAudioControls: boolean = false;
   ctrlKeyDown = false;
+  camKey: string = "";
+  enterClass=signal('enter-animation');
+  farewell=signal('leaving-animation')
 
   constructor(public utilsService: UtilsService) {
     this.mediaFeeder = new MediaFeeder();
@@ -95,17 +93,34 @@ export class VideoComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   toggleMuteAudio() {
-    if (this.mediaFeeder)
+    if (this.mediaFeeder) {
       this.mediaFeeder.mute(!this.mediaFeeder.isMuted);
+      const settings = new AudioSettings(this.mediaFeeder.volume, this.mediaFeeder.isMuted, this.mediaFeeder.getAudioLatencyControl());
+      NavComponent.setCookie(this.camKey, JSON.stringify(settings), 600);
+    }
   }
 
   mute(mute: boolean = true): void {
-    if (this.mediaFeeder)
+    if (this.mediaFeeder) {
       this.mediaFeeder.mute(mute);
+      const settings = new AudioSettings(this.mediaFeeder.volume, mute, this.mediaFeeder.getAudioLatencyControl());
+      NavComponent.setCookie(this.camKey, JSON.stringify(settings), 600);
+    }
   }
 
   setVolume(volume: number) {
+    if(this.mediaFeeder) {
     this.mediaFeeder.gain =volume;
+      const settings = new AudioSettings(volume, this.mediaFeeder.isMuted, this.mediaFeeder.getAudioLatencyControl());
+      NavComponent.setCookie(this.camKey, JSON.stringify(settings), 600);
+    }
+  }
+  audioLatencyLimiting(audioLatencyLimiting: boolean) {
+    if(this.mediaFeeder) {
+     this.mediaFeeder.setAutoLatencyControl(audioLatencyLimiting);
+     const settings = new AudioSettings(this.mediaFeeder.volume, this.mediaFeeder.isMuted, audioLatencyLimiting);
+     NavComponent.setCookie(this.camKey, JSON.stringify(settings), 600);
+    }
   }
 
   toggleShowAudioControls() {
@@ -115,6 +130,37 @@ export class VideoComponent implements OnInit, AfterViewInit, OnDestroy {
     }
     else
       this.showAudioControls = !this.showAudioControls;
+  }
+
+  /**
+   * getCamKey: Get key for level setting cookie name
+   * @param isMulti True if multi-cam, otherwise false for single
+   */
+  getCamKey(isMulti: boolean): void {
+    let camKey = '';
+    const searchTerm = "?suuid=";
+    const camIdx = this.stream.media_server_input_uri.indexOf(searchTerm);
+    if (camIdx > -1) {
+      const dashIdx = this.stream.media_server_input_uri.indexOf('-',camIdx);
+      if (dashIdx > -1) {
+        camKey = this.stream.media_server_input_uri.substring(camIdx+searchTerm.length, dashIdx);
+      }
+    }
+    this.camKey = (isMulti ? 'multi-' : '') + camKey;
+  }
+
+  setInitialAudioSettings(isMulti: boolean, level: number, muted: boolean, audioLatencyLimiting: boolean) {
+    this.getCamKey(isMulti);
+    let audioSettings: AudioSettings = new AudioSettings(level, muted, audioLatencyLimiting);
+    if(this.camKey !== "") {
+      const strSettings = NavComponent.getCookie(this.camKey)
+      if(strSettings !== "") {
+        audioSettings = JSON.parse(strSettings);
+      }
+    }
+    this.setVolume(audioSettings.level !== undefined ? audioSettings.level : 0.4);
+    this.mute(audioSettings.mute !== undefined ? audioSettings.mute : false);
+    this.audioLatencyLimiting(audioSettings.audioLatencyLimiting !== undefined ? audioSettings.audioLatencyLimiting : true);
   }
 
   setSize(size: number, isRecording: boolean = false): void {
@@ -196,4 +242,5 @@ export class VideoComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   protected readonly MediaFeeder = MediaFeeder;
+  protected readonly UtilsService = UtilsService;
 }

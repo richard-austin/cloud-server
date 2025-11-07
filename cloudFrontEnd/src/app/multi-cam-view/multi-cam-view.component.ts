@@ -4,40 +4,17 @@ import {Camera, Stream} from '../cameras/Camera';
 import {MatCheckboxChange} from '@angular/material/checkbox';
 import {ReportingComponent} from '../reporting/reporting.component';
 import {VideoComponent} from '../video/video.component';
-import { HttpErrorResponse } from '@angular/common/http';
+import {HttpErrorResponse} from '@angular/common/http';
 import {timer} from 'rxjs';
-import {animate, state, style, transition, trigger} from '@angular/animations';
 import {IdleTimeoutStatusMessage, UtilsService} from '../shared/utils.service';
-import {SharedModule} from "../shared/shared.module";
-import {SharedAngularMaterialModule} from "../shared/shared-angular-material/shared-angular-material.module";
+import {SharedModule} from '../shared/shared.module';
+import {SharedAngularMaterialModule} from '../shared/shared-angular-material/shared-angular-material.module';
 
 @Component({
-    selector: 'app-multi-cam-view',
-    templateUrl: './multi-cam-view.component.html',
-    styleUrls: ['./multi-cam-view.component.scss'],
-    imports: [SharedModule, SharedAngularMaterialModule, VideoComponent],
-    animations: [
-        trigger('openClose', [
-            // ...
-            state('open', style({
-                transform: 'rotate(90deg)'
-            })),
-            state('closed', style({
-                transform: 'rotate(0deg)'
-            })),
-            transition('open => closed', [
-                animate('.2s')
-            ]),
-            transition('closed => open', [
-                animate('.2s')
-            ]),
-        ]),
-        trigger('detailExpand', [
-            state('collapsed', style({ height: '0px', minHeight: '0' })),
-            state('expanded', style({ height: '*' })),
-            transition('expanded <=> collapsed', animate('225ms cubic-bezier(0.4, 0.0, 0.2, 1)')),
-        ])
-    ],
+  selector: 'app-multi-cam-view',
+  templateUrl: './multi-cam-view.component.html',
+  styleUrls: ['./multi-cam-view.component.scss'],
+  imports: [SharedModule, SharedAngularMaterialModule, VideoComponent],
 })
 export class MultiCamViewComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChildren(VideoComponent) videos!: QueryList<VideoComponent>;
@@ -55,16 +32,30 @@ export class MultiCamViewComponent implements OnInit, AfterViewInit, OnDestroy {
   cams: Map<string, Camera> = new Map<string, Camera>();
   showStreamSelector: boolean = false;
 
+  protected streamSelectorStyle(streamSelector: HTMLDivElement, showStreamSelector: boolean): string {
+    const maxHeight = streamSelector.scrollHeight;
+    let selectorStyle = ';';
+    if (showStreamSelector) {
+      selectorStyle = 'max-height: ' + maxHeight + 'px; animation: stream-selector-fade-in 0.5s;';
+    } else {
+      selectorStyle = 'max-height: 0; transition: max-height 0s; transition-delay: 0.5s; animation: stream-selector-fade-out 0.5s;';
+    }
+    return selectorStyle;
+  }
+
   toggleStreamSelector() {
     this.showStreamSelector = !this.showStreamSelector;
   }
-  static colsToSize: Map<number, number> = new Map<number, number>([[0,100], [1, 50], [2,33.33], [3, 25]]);
+
+  static colsToSize: Map<number, number> = new Map<number, number>([[0, 100], [1, 50], [2, 33.33], [3, 25]]);
+
   setNumColumns(column: number) {
     this.numColumns = column;
-    this.cameraSvc.numColumns=column;
+    this.cameraSvc.numColumns = column;
     const size = MultiCamViewComponent.colsToSize.get(column);
-    if(typeof size == "number")
+    if (typeof size == 'number') {
       this.videos.forEach((vid) => vid.changeSize(size));
+    }
   }
 
   setupVideo() {
@@ -80,14 +71,14 @@ export class MultiCamViewComponent implements OnInit, AfterViewInit, OnDestroy {
           let video: VideoComponent | undefined = this.videos?.get(index);
           if (video !== undefined && stream.defaultOnMultiDisplay) {
             video.setSource(cam, stream);
-            video.mute();
-            video.setVolume(0.4);
+            video.setInitialAudioSettings(true, 0.4, true, true);
             video.visible = true;
             const size = MultiCamViewComponent.colsToSize.get(this.cameraSvc.numColumns);
-            if(typeof size == "number")
+            if (typeof size == 'number') {
               video.setSize(size);
-            else
+            } else {
               video.setSize(50);
+            }
             ++index;
           }
         });
@@ -179,4 +170,6 @@ export class MultiCamViewComponent implements OnInit, AfterViewInit, OnDestroy {
     // Re-enable the user idle service
     this.utilsService.sendMessage(new IdleTimeoutStatusMessage(true));
   }
+
+  protected readonly UtilsService = UtilsService;
 }

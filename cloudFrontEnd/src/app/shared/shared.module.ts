@@ -9,9 +9,9 @@ import {MatButton} from "@angular/material/button";
 
 @NgModule({
   declarations: [
-      ReportingComponent,
   ],
     imports: [
+        ReportingComponent,
         CommonModule,
         MatCard,
         MatCardTitle,
